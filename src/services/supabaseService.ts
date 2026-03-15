@@ -1166,6 +1166,65 @@ export const supabaseService = {
         }
     },
 
+    async getPaymentRequests(filters?: { status?: string }): Promise<any[]> {
+        if (IS_MOCK_MODE) {
+            return [];
+        }
+
+        let query = supabase
+            .from('payment_requests')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (filters?.status) {
+            query = query.eq('status', filters.status);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+            console.error('Error fetching payment requests:', error);
+            return [];
+        }
+        return data || [];
+    },
+
+    async getPaymentRequestsCount(filters?: { status?: string }): Promise<number> {
+        if (IS_MOCK_MODE) {
+            return 0;
+        }
+
+        let query = supabase
+            .from('payment_requests')
+            .select('*', { count: 'exact', head: true });
+
+        if (filters?.status) {
+            query = query.eq('status', filters.status);
+        }
+
+        const { count, error } = await query;
+        if (error) {
+            console.error('Error fetching payment requests count:', error);
+            return 0;
+        }
+        return count || 0;
+    },
+
+    async getProfilesCount(): Promise<number> {
+        if (IS_MOCK_MODE) {
+            return 1;
+        }
+
+        const { count, error } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true });
+
+        if (error) {
+            console.error('Error fetching profiles count:', error);
+            return 0;
+        }
+        return count || 0;
+    },
+
     // ====== ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ======
     async getNotifications(userId: string): Promise<{
         id: string;
