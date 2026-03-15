@@ -1,50 +1,51 @@
-'use client';
-
-import { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Property, CATEGORY_AR, STATUS_AR, PropertyStatus } from '@/types';
 
 interface MyPropertyCardProps {
     property: Property;
     onDelete: (id: string) => void;
-    onStatusChange?: (id: string, newStatus: PropertyStatus) => Promise<void>;
+    onStatusChange?: (id: string, status: PropertyStatus) => void;
     isDeleting?: boolean;
 }
 
-export default function MyPropertyCard({ property, onDelete, onStatusChange, isDeleting: externalIsDeleting }: MyPropertyCardProps) {
-    const [showConfirm, setShowConfirm] = useState(false);
+function MyPropertyCardComponent({ property, onDelete, onStatusChange, isDeleting }: MyPropertyCardProps) {
     const [showStatusMenu, setShowStatusMenu] = useState(false);
-    const isDeleting = externalIsDeleting || false;
+    const menuRef = useRef<HTMLDivElement>(null);
 
-    const handleDeleteClick = () => {
-        setShowConfirm(true);
-    };
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setShowStatusMenu(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
-    const handleConfirmDelete = () => {
-        onDelete(property.id);
-        setShowConfirm(false);
-    };
-
-    const handleStatusChange = async (newStatus: PropertyStatus) => {
-        if (onStatusChange) {
-            await onStatusChange(property.id, newStatus);
+    const handleStatusChange = (status: PropertyStatus) => {
+        if (onStatusChange && property.status !== status) {
+            onStatusChange(property.id, status);
         }
         setShowStatusMenu(false);
     };
 
+    const handleDeleteClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        onDelete(property.id);
+    };
+
     return (
-        <div className="group bg-white dark:bg-zinc-900/40 backdrop-blur-md rounded-[1.5rem] p-4 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col sm:flex-row gap-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/50 overflow-hidden relative">
-            {/* Subtle top glow indicator based on status */}
-            <div className={`absolute top-0 inset-x-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${property.status === 'available' ? 'bg-gradient-to-r from-transparent via-green-500 to-transparent' : 'bg-gradient-to-r from-transparent via-red-500 to-transparent'}`} />
-            
-            <div className="relative w-full sm:w-40 h-48 sm:h-auto shrink-0 rounded-[1.1rem] overflow-hidden bg-gray-100 dark:bg-zinc-800">
+        <div className="group bg-white dark:bg-zinc-900/50 backdrop-blur-md rounded-[1.5rem] p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 dark:border-white/5 flex flex-col sm:flex-row gap-5">
+            {/* Image */}
+            <div className="relative w-full sm:w-48 h-48 sm:h-auto shrink-0 rounded-[1.1rem] overflow-hidden bg-gray-100 dark:bg-zinc-800">
                 <Image
                     src={property.images[0] || '/placeholder-house.jpg'}
                     alt={property.title}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width: 640px) 100vw, 160px"
+                    sizes="(max-width: 640px) 100vw, 192px"
                 />
                 <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">
                     {CATEGORY_AR[property.category]}
@@ -58,7 +59,7 @@ export default function MyPropertyCard({ property, onDelete, onStatusChange, isD
                         <Link href={`/property/${property.id}`} className="font-black text-lg text-gray-900 dark:text-white line-clamp-1 hover:text-primary transition-colors">
                             {property.title}
                         </Link>
-                        <div className="relative z-10">
+                        <div className="relative z-10" ref={menuRef}>
                             <button
                                 onClick={() => setShowStatusMenu(!showStatusMenu)}
                                 disabled={!onStatusChange}
@@ -133,49 +134,8 @@ export default function MyPropertyCard({ property, onDelete, onStatusChange, isD
                     </div>
                 </div>
             </div>
-
-            {showConfirm && (
-                <div
-                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-300"
-                    onClick={() => setShowConfirm(false)}
-                >
-                    <div
-                        className="bg-white dark:bg-zinc-900 rounded-t-[2rem] sm:rounded-[2rem] p-6 w-full max-w-sm shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-8 sm:zoom-in-95 duration-300"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <div className="w-12 h-1.5 bg-gray-200 dark:bg-zinc-800 rounded-full mx-auto mb-6 sm:hidden" />
-                        
-                        <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-5 rotate-3">
-                            <span className="material-symbols-outlined text-4xl text-red-500">warning</span>
-                        </div>
-                        
-                        <h3 className="text-center font-black text-gray-900 dark:text-white text-xl mb-2">تأكيد الحذف</h3>
-                        <p className="text-center text-gray-500 dark:text-gray-400 text-sm mb-1">هل أنت متأكد من رغبتك في حذف عقار</p>
-                        <p className="text-center font-bold text-gray-900 dark:text-white text-base mb-8 line-clamp-2 px-4 shadow-sm bg-gray-50 dark:bg-white/5 py-2 rounded-xl mt-3 border border-gray-100 dark:border-white/5">"{property.title}"؟</p>
-                        
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setShowConfirm(false)}
-                                className="flex-1 py-3.5 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold transition-colors active:scale-95"
-                            >
-                                العودة للأمان
-                            </button>
-                            <button
-                                onClick={handleConfirmDelete}
-                                disabled={isDeleting}
-                                className="flex-1 py-3.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all active:scale-95 shadow-lg shadow-red-500/30 disabled:opacity-60 disabled:hover:bg-red-500 disabled:active:scale-100 flex items-center justify-center gap-2"
-                            >
-                                {isDeleting ? (
-                                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
-                                )}
-                                {isDeleting ? 'جاري الحذف...' : 'نعم، احذف!'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
+
+export default React.memo(MyPropertyCardComponent);
