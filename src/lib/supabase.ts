@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { STORAGE_BUCKET } from './storageBucket';
 
 // التحقق من وجود المتغيرات (Fail-Fast Guard)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -32,8 +33,8 @@ export const supabase = createClient(
     }
 );
 
-// اسم الـ Storage Bucket للصور
-export const STORAGE_BUCKET = 'properties-images';
+// Re-exported for backward compatibility with existing imports.
+export { STORAGE_BUCKET };
 
 // دوال مساعدة للتخزين
 export async function uploadImage(file: File, pathPrefix: string = ''): Promise<string> {

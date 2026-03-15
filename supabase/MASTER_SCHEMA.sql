@@ -729,8 +729,8 @@ BEGIN
   SELECT b.start_date, b.end_date
   FROM public.bookings b
   WHERE b.property_id = p_property_id
-    AND b.status = 'confirmed'
-    AND b.end_date >= CURRENT_DATE
+    AND b.status IN ('confirmed', 'active')
+    AND b.end_date > CURRENT_DATE
   ORDER BY b.start_date ASC
   LIMIT 1;
 END;
@@ -772,7 +772,8 @@ BEGIN
   FROM public.bookings
   WHERE property_id = p_property_id
     AND status IN ('confirmed', 'active')
-    AND (p_start_date <= end_date AND p_end_date >= start_date)
+    AND end_date > p_start_date
+    AND start_date < p_end_date
   FOR UPDATE;
 
   IF v_conflict_count > 0 THEN

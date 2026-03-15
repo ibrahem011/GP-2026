@@ -190,7 +190,7 @@ export interface Booking {
     paymentMethod: 'vodafone_cash' | 'instapay' | 'cash_on_delivery';
     paymentStatus: 'pending' | 'confirmed' | 'failed';
     paymentProof?: string;
-    status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+    status: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed';
     createdAt: string;
     confirmedAt?: string;
     property?: Property;
