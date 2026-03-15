@@ -28,16 +28,18 @@ export default function AdminDashboard() {
 
     const loadDashboard = async () => {
         try {
-            const [pending, all] = await Promise.all([
+            const [pending, all, pendingPaymentsCount, usersCount] = await Promise.all([
                 supabaseService.getProperties({ status: 'pending' }),
                 supabaseService.getProperties(),
+                supabaseService.getPaymentRequestsCount({ status: 'pending' }),
+                supabaseService.getProfilesCount(),
             ]);
 
             setStats({
                 pendingProperties: pending.length,
                 totalProperties: all.length,
-                pendingPayments: 0, // TODO: fetch from payment_requests
-                totalUsers: 0, // TODO: fetch from profiles
+                pendingPayments: pendingPaymentsCount,
+                totalUsers: usersCount,
             });
 
             setRecentProperties(pending.slice(0, 5));
