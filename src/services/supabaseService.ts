@@ -261,8 +261,8 @@ async function getUserBookingsFallback(userId: string): Promise<{ bookings: any[
     }
 
     const bookings = [
-        ...((tenantRows || []) as UserBookingsFallbackRow[]).map((row) => mapFallbackBookingRow(row, 'tenant')),
-        ...((ownerRows || []) as UserBookingsFallbackRow[]).map((row) => mapFallbackBookingRow(row, 'owner')),
+        ...(((tenantRows || []) as unknown) as UserBookingsFallbackRow[]).map((row) => mapFallbackBookingRow(row, 'tenant')),
+        ...(((ownerRows || []) as unknown) as UserBookingsFallbackRow[]).map((row) => mapFallbackBookingRow(row, 'owner')),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return { bookings, error: null };
