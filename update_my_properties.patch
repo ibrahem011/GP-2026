@@ -1,0 +1,32 @@
+--- src/app/my-properties/page.tsx
++++ src/app/my-properties/page.tsx
+@@ -95,6 +95,7 @@
+                         <button
+                             onClick={() => window.history.back()}
+                             className="w-9 h-9 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-center text-gray-500 hover:text-primary transition-colors"
++                            aria-label="الرجوع"
+                         >
+                             <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                         </button>
+@@ -124,6 +125,7 @@
+                             <button
+                                 onClick={() => window.history.back()}
+                                 className="w-10 h-10 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 flex items-center justify-center text-gray-500 hover:text-primary hover:scale-105 active:scale-95 transition-all"
++                                aria-label="الرجوع"
+                                 title="رجوع"
+                             >
+                                 <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+@@ -198,11 +200,13 @@
+                                         <button
+                                             onClick={() => setViewMode('list')}
+                                             className={'p-2 rounded-xl transition-all duration-300 ' + (viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300')}
++                                            aria-label="عرض قائمة"
+                                         >
+                                             <span className="material-symbols-outlined text-[20px]">view_list</span>
+                                         </button>
+                                         <button
+                                             onClick={() => setViewMode('grid')}
+                                             className={'p-2 rounded-xl transition-all duration-300 ' + (viewMode === 'grid' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300')}
++                                            aria-label="عرض شبكة"
+                                         >
+                                             <span className="material-symbols-outlined text-[20px]">grid_view</span>
