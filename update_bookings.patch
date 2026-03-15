@@ -1,0 +1,10 @@
+--- src/app/bookings/page.tsx
++++ src/app/bookings/page.tsx
+@@ -382,6 +382,7 @@
+             <button
+               onClick={() => router.push("/")}
+               className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:text-primary focus:ring-2 focus:ring-primary/20 dark:border-zinc-800 dark:bg-zinc-900"
++              aria-label="الرجوع للرئيسية"
+             >
+               <span className="material-symbols-outlined text-[20px]">
+                 arrow_forward
