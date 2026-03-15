@@ -28,8 +28,8 @@ describe('Payment Security Tests', () => {
       // Clean up mock DB if we can, or just rely on random IDs so test cases don't step on each other
       await supabase.from('payment_requests').delete().neq('id', '0');
       await supabase.from('unlocked_properties').delete().neq('id', '0');
-    } catch (error) {
-      console.warn('Cleanup failed:', error);
+    } catch {
+      // Cleanup is optional as we use random IDs
     }
   });
 
