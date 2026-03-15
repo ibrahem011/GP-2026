@@ -803,10 +803,8 @@ export const supabaseService = {
         }
 
         const property = await this.getPropertyById(id);
-        if (property?.images) {
-            for (const url of property.images) {
-                await this.deletePropertyImage(url);
-            }
+        if (property?.images && property.images.length > 0) {
+            await Promise.all(property.images.map((url) => this.deletePropertyImage(url)));
         }
 
         const { error } = await supabase
