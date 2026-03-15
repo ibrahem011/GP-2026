@@ -1,16 +1,18 @@
 'use client';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import MyPropertyCard from '@/components/MyPropertyCard';
 import PropertyCardSkeleton from '@/components/PropertyCardSkeleton';
 import EmptyState from '@/components/EmptyState';
 import StatCard from '@/components/StatCard';
 import FilterChip from '@/components/FilterChip';
+import { PropertyFilters } from '@/components/PropertyFilters';
 import { useAuth } from '@/context/AuthContext';
 import { useMyProperties } from '@/hooks/useMyProperties';
+import { usePropertyFilters } from '@/hooks/usePropertyFilters';
 import { useToast } from '@/hooks/useToast';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { PropertyCategory, PropertyStatus, CATEGORY_AR } from '@/types';
+import { PropertyStatus, CATEGORY_AR } from '@/types';
 
 export default function MyPropertiesPage() {
     const { user } = useAuth();
@@ -21,17 +23,39 @@ export default function MyPropertiesPage() {
             onError: (msg) => toast.error(msg),
         });
 
-    const [filter, setFilter] = useState<PropertyStatus | PropertyCategory | null>(null);
-    const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'views' | 'price_high' | 'price_low'>('newest');
+    const {
+        filter,
+        setFilter,
+        sortBy,
+        setSortBy,
+        filteredProperties: displayedProperties,
+        availableCount,
+        rentedCount,
+        totalViews,
+        uniqueCategories,
+        isFilterEmpty,
+    } = usePropertyFilters(properties);
+
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+    const [propertyToDelete, setPropertyToDelete] = useState<{ id: string, title: string } | null>(null);
 
-    const handleDelete = async (id: string) => {
-        await deleteProperty(id);
+    const handleDeleteClick = useCallback((id: string) => {
+        const property = properties.find(p => p.id === id);
+        if (property) {
+            setPropertyToDelete({ id, title: property.title });
+        }
+    }, [properties]);
+
+    const handleConfirmDelete = async () => {
+        if (propertyToDelete) {
+            await deleteProperty(propertyToDelete.id);
+            setPropertyToDelete(null);
+        }
     };
 
-    const handleStatusChange = async (id: string, newStatus: PropertyStatus) => {
+    const handleStatusChange = useCallback(async (id: string, newStatus: PropertyStatus) => {
         await updateStatus(id, newStatus);
-    };
+    }, [updateStatus]);
 
     if (!user) {
         return (
@@ -55,59 +79,12 @@ export default function MyPropertiesPage() {
         );
     }
 
-    const uniqueCategories = Array.from(new Set(properties.map((p) => p.category)));
-    const availableCount = properties.filter((p) => p.status === 'available').length;
-    const rentedCount = properties.filter((p) => p.status === 'rented').length;
-    const totalViews = properties.reduce((sum, p) => sum + p.viewsCount, 0);
-
-    const displayedProperties = (() => {
-        let list = properties;
-        if (filter) {
-            if (['available', 'rented'].includes(filter as string)) {
-                list = list.filter((p) => p.status === filter);
-            } else {
-                list = list.filter((p) => p.category === filter);
-            }
-        }
-        return [...list].sort((a, b) => {
-            switch (sortBy) {
-                case 'oldest':
-                    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-                case 'views':
-                    return b.viewsCount - a.viewsCount;
-                case 'price_high':
-                    return b.price - a.price;
-                case 'price_low':
-                    return a.price - b.price;
-                default:
-                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            }
-        });
-    })();
-
-    const isFilterEmpty = filter !== null && displayedProperties.length === 0;
-
     return (
         <ProtectedRoute>
-            <div className="min-h-screen bg-gray-50 dark:bg-black pb-24">
-                <div className="max-w-5xl mx-auto px-4 py-8">
-                    <div className="sm:hidden flex items-center justify-between mb-6 gap-3">
-                        <button
-                            onClick={() => window.history.back()}
-                            className="w-9 h-9 rounded-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 flex items-center justify-center text-gray-500 hover:text-primary transition-colors"
-                            aria-label="الرجوع"
-                        >
-                            <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-                        </button>
-                        <nav className="text-xs font-bold text-gray-400 flex items-center gap-2">
-                            <Link href="/" className="hover:text-primary transition-colors">الرئيسية</Link>
-                            <span className="material-symbols-outlined text-[14px]">chevron_left</span>
-                            <Link href="/profile" className="hover:text-primary transition-colors text-gray-600 dark:text-gray-300">الحالي</Link>
-                        </nav>
-                    </div>
-
-                    {/* Sticky Floating Header */}
-                    <div className="sticky top-4 z-40 flex items-center justify-between mb-8 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl px-5 py-4 rounded-3xl shadow-sm border border-white/20 dark:border-white/5 transition-all">
+            <div className="min-h-screen bg-gray-50/50 dark:bg-black pb-24 sm:pb-8 pt-6">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-8 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl px-5 py-4 rounded-3xl shadow-sm border border-white/20 dark:border-white/5 transition-all">
                         <div className="flex items-center gap-4">
                             <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">عقاراتي</h1>
                             <span className="bg-primary/10 text-primary text-sm font-black px-3 py-1 rounded-full border border-primary/20 shadow-inner">
@@ -176,42 +153,24 @@ export default function MyPropertiesPage() {
                             </div>
 
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                                <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar flex-1">
-                                    <FilterChip label="الكل" count={properties.length} active={!filter} onClick={() => setFilter(null)} />
-                                    <FilterChip label="متاح" count={availableCount} active={filter === 'available'} onClick={() => setFilter('available')} />
-                                    <FilterChip label="مؤجر" count={rentedCount} active={filter === 'rented'} onClick={() => setFilter('rented')} />
-                                    {uniqueCategories.map((cat) => (
-                                        <FilterChip key={cat} label={CATEGORY_AR[cat]} active={filter === cat} onClick={() => setFilter(cat)} />
-                                    ))}
-                                </div>
-                                <div className="flex gap-2 items-center shrink-0">
-                                    <select
-                                        value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                                        className="bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-400 text-sm rounded-xl px-3 py-1.5 border-none outline-none cursor-pointer"
-                                    >
-                                        <option value="newest">الأحدث أولاً</option>
-                                        <option value="oldest">الأقدم أولاً</option>
-                                        <option value="views">الأكثر مشاهدة</option>
-                                        <option value="price_high">السعر: الأعلى</option>
-                                        <option value="price_low">السعر: الأقل</option>
-                                    </select>
-                                    <div className="flex bg-gray-100 dark:bg-white/5 rounded-2xl p-1.5 shadow-inner">
-                                        <button
-                                            onClick={() => setViewMode('list')}
-                                            className={'p-2 rounded-xl transition-all duration-300 ' + (viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300')}
-                                            aria-label="عرض قائمة"
-                                        >
-                                            <span className="material-symbols-outlined text-[20px]">view_list</span>
-                                        </button>
-                                        <button
-                                            onClick={() => setViewMode('grid')}
-                                            className={'p-2 rounded-xl transition-all duration-300 ' + (viewMode === 'grid' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300')}
-                                            aria-label="عرض شبكة"
-                                        >
-                                            <span className="material-symbols-outlined text-[20px]">grid_view</span>
-                                        </button>
+                                <div className="relative flex-1 overflow-hidden">
+                                    <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar relative z-10">
+                                        <FilterChip label="الكل" count={properties.length} active={!filter} onClick={() => setFilter(null)} />
+                                        <FilterChip label="متاح" count={availableCount} active={filter === 'available'} onClick={() => setFilter('available')} />
+                                        <FilterChip label="مؤجر" count={rentedCount} active={filter === 'rented'} onClick={() => setFilter('rented')} />
+                                        {uniqueCategories.map((cat) => (
+                                            <FilterChip key={cat} label={CATEGORY_AR[cat]} active={filter === cat} onClick={() => setFilter(cat)} />
+                                        ))}
                                     </div>
+                                    <div className="absolute top-0 left-0 h-full w-8 bg-gradient-to-r from-gray-50/90 dark:from-black/90 to-transparent pointer-events-none z-20 sm:hidden"></div>
+                                </div>
+                                <div className="shrink-0">
+                                    <PropertyFilters
+                                        sortBy={sortBy}
+                                        setSortBy={setSortBy}
+                                        viewMode={viewMode}
+                                        setViewMode={setViewMode}
+                                    />
                                 </div>
                             </div>
 
@@ -228,7 +187,7 @@ export default function MyPropertiesPage() {
                                         <MyPropertyCard
                                             key={property.id}
                                             property={property}
-                                            onDelete={handleDelete}
+                                            onDelete={handleDeleteClick}
                                             onStatusChange={handleStatusChange}
                                             isDeleting={deletingId === property.id}
                                         />
@@ -245,6 +204,50 @@ export default function MyPropertiesPage() {
                 >
                     <span className="material-symbols-outlined text-[28px]">add</span>
                 </Link>
+
+                {/* Centralized Delete Modal */}
+                {propertyToDelete && (
+                    <div
+                        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-300"
+                        onClick={() => setPropertyToDelete(null)}
+                    >
+                        <div
+                            className="bg-white dark:bg-zinc-900 rounded-t-[2rem] sm:rounded-[2rem] p-6 w-full max-w-sm shadow-2xl animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-8 sm:zoom-in-95 duration-300"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="w-12 h-1.5 bg-gray-200 dark:bg-zinc-800 rounded-full mx-auto mb-6 sm:hidden" />
+
+                            <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-5 rotate-3">
+                                <span className="material-symbols-outlined text-4xl text-red-500">warning</span>
+                            </div>
+
+                            <h3 className="text-center font-black text-gray-900 dark:text-white text-xl mb-2">تأكيد الحذف</h3>
+                            <p className="text-center text-gray-500 dark:text-gray-400 text-sm mb-1">هل أنت متأكد من رغبتك في حذف عقار</p>
+                            <p className="text-center font-bold text-gray-900 dark:text-white text-base mb-8 line-clamp-2 px-4 shadow-sm bg-gray-50 dark:bg-white/5 py-2 rounded-xl mt-3 border border-gray-100 dark:border-white/5">"{propertyToDelete.title}"؟</p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setPropertyToDelete(null)}
+                                    className="flex-1 py-3.5 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 font-bold transition-colors active:scale-95"
+                                >
+                                    العودة للأمان
+                                </button>
+                                <button
+                                    onClick={handleConfirmDelete}
+                                    disabled={deletingId === propertyToDelete.id}
+                                    className="flex-1 py-3.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all active:scale-95 shadow-lg shadow-red-500/30 disabled:opacity-60 disabled:hover:bg-red-500 disabled:active:scale-100 flex items-center justify-center gap-2"
+                                >
+                                    {deletingId === propertyToDelete.id ? (
+                                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <span className="material-symbols-outlined text-[20px]">delete_sweep</span>
+                                    )}
+                                    {deletingId === propertyToDelete.id ? 'جاري الحذف...' : 'نعم، احذف!'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </ProtectedRoute>
     );
