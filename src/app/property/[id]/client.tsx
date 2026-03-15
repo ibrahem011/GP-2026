@@ -140,8 +140,14 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
         () => Boolean(tenantState?.unlockedAt || tenantState?.hasBookingHistory),
         [tenantState?.hasBookingHistory, tenantState?.unlockedAt],
     );
-    const pendingBooking = latestBooking?.status === 'pending' ? latestBooking : null;
-    const confirmedBooking = latestBooking?.status === 'confirmed' ? latestBooking : null;
+    const pendingBooking =
+        latestBooking && (latestBooking.status === 'pending' || latestBooking.status === 'requested')
+            ? latestBooking
+            : null;
+    const confirmedBooking =
+        latestBooking && (latestBooking.status === 'confirmed' || latestBooking.status === 'active')
+            ? latestBooking
+            : null;
     const pendingUnlockRequest = tenantState?.unlockRequestStatus === 'pending';
     const ownerProfileName = ownerProfile?.full_name?.trim() || '';
     const ownerAvatar = ownerProfile?.avatar_url?.trim() || '';

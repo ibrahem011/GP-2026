@@ -180,7 +180,7 @@ export interface Database {
                     payment_method: 'vodafone_cash' | 'instapay' | 'cash_on_delivery' | null;
                     payment_status: 'pending' | 'confirmed' | 'failed' | null;
                     payment_proof: string | null;
-                    status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+                    status: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed';
                     created_at: string;
                     confirmed_at: string | null;
                 };
@@ -204,7 +204,7 @@ export interface Database {
                     payment_method?: 'vodafone_cash' | 'instapay' | 'cash_on_delivery' | null;
                     payment_status?: 'pending' | 'confirmed' | 'failed' | null;
                     payment_proof?: string | null;
-                    status?: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+                    status?: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed';
                     created_at?: string;
                     confirmed_at?: string | null;
                 };
@@ -228,7 +228,7 @@ export interface Database {
                     payment_method?: 'vodafone_cash' | 'instapay' | 'cash_on_delivery' | null;
                     payment_status?: 'pending' | 'confirmed' | 'failed' | null;
                     payment_proof?: string | null;
-                    status?: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+                    status?: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed';
                     created_at?: string;
                     confirmed_at?: string | null;
                 };

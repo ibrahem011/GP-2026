@@ -51,3 +51,8 @@
 - `docs/analysis/EXECUTION_PR_PLAN.md`
 - `docs/analysis/ROLE_ENUM_MISMATCH_AUDIT.md`
 - `docs/runbooks/actionable-tasks-v2.md`
+
+## Deferred Epics
+
+### Rate Limiter
+- Deferred as a separate Epic in this branch because `middleware.ts` / `rateLimit.ts` are not present.

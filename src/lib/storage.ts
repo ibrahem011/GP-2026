@@ -1,7 +1,8 @@
 import { Property, User, PaymentRequest, Review, Notification } from '@/types';
 import { fromPropertyRow, toPropertyInsert } from './propertyMapper';
 import type { PropertyRowCompat } from './propertyMapper';
-import { supabase, STORAGE_BUCKET } from './supabase';
+import { supabase } from './supabase';
+import { STORAGE_BUCKET } from './storageBucket';
 
 type PropertyRowWithLegacyLocation = PropertyRowCompat;
 type PropertyInsertPayload = ReturnType<typeof toPropertyInsert>;
