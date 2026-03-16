@@ -1,18 +1,13 @@
 
-> gamasa-properties@0.1.0 dev /app
+> gamasa-properties@0.1.0 dev
 > next dev
 
-⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
 ▲ Next.js 16.1.1 (Turbopack)
-- Local:         http://localhost:3001
-- Network:       http://192.168.0.2:3001
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
 - Environments: .env.local
 
 ✓ Starting...
-⨯ Unable to acquire lock at /app/.next/dev/lock, is another instance of next dev running?
-  Suggestion: If you intended to restart next dev, terminate the other process, and then try again.
-[?25h
- ELIFECYCLE  Command failed  GET / 200 in 188ms (compile: 6ms, proxy.ts: 6ms, render: 176ms)
- GET /my-properties 200 in 133ms (compile: 5ms, proxy.ts: 7ms, render: 122ms)
- ELIFECYCLE  Command failed.
-[?25h
+✓ Ready in 2.3s
+ GET / 200 in 1972ms (compile: 712ms, proxy.ts: 354ms, render: 905ms)
+ GET / 200 in 194ms (compile: 7ms, proxy.ts: 7ms, render: 180ms)
