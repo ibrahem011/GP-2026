@@ -80,29 +80,35 @@ export function createMessagingService() {
             ];
         }
 
-        const { data: asBuyer, error: errBuyer } = await supabase
-            .from('conversations')
-            .select(`
-                *,
-                property:properties(title, images),
-                buyer:profiles!buyer_id(full_name, avatar_url),
-                owner:profiles!owner_id(full_name, avatar_url),
-                last_message:messages(text, created_at, is_read, sender_id)
-            `)
-            .eq('buyer_id', userId)
-            .order('updated_at', { ascending: false });
-
-        const { data: asOwner, error: errOwner } = await supabase
-            .from('conversations')
-            .select(`
-                *,
-                property:properties(title, images),
-                buyer:profiles!buyer_id(full_name, avatar_url),
-                owner:profiles!owner_id(full_name, avatar_url),
-                last_message:messages(text, created_at, is_read, sender_id)
-            `)
-            .eq('owner_id', userId)
-            .order('updated_at', { ascending: false });
+        // ⚡ Bolt: Fetching conversations as buyer and owner concurrently using Promise.all
+        // This cuts the database roundtrip time for this function approximately in half.
+        const [
+            { data: asBuyer, error: errBuyer },
+            { data: asOwner, error: errOwner }
+        ] = await Promise.all([
+            supabase
+                .from('conversations')
+                .select(`
+                    *,
+                    property:properties(title, images),
+                    buyer:profiles!buyer_id(full_name, avatar_url),
+                    owner:profiles!owner_id(full_name, avatar_url),
+                    last_message:messages(text, created_at, is_read, sender_id)
+                `)
+                .eq('buyer_id', userId)
+                .order('updated_at', { ascending: false }),
+            supabase
+                .from('conversations')
+                .select(`
+                    *,
+                    property:properties(title, images),
+                    buyer:profiles!buyer_id(full_name, avatar_url),
+                    owner:profiles!owner_id(full_name, avatar_url),
+                    last_message:messages(text, created_at, is_read, sender_id)
+                `)
+                .eq('owner_id', userId)
+                .order('updated_at', { ascending: false })
+        ]);
 
         const error = errBuyer || errOwner;
         const data = [...(asBuyer || []), ...(asOwner || [])]
