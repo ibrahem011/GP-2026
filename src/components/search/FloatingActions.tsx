@@ -27,9 +27,10 @@ export default function FloatingActions({
                     {/* Filters */}
                     <button
                         onClick={onOpenFilters}
+                        aria-label="افتح الفلاتر"
                         className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition"
                     >
-                        <span className="material-symbols-outlined text-[20px]">tune</span>
+                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">tune</span>
                         <span className="text-sm font-semibold">فلترة</span>
 
                         {appliedCount > 0 && (
@@ -39,27 +40,29 @@ export default function FloatingActions({
                         )}
                     </button>
 
-                    <div className="w-px h-7 bg-gray-200 dark:bg-white/10" />
+                    <div className="w-px h-7 bg-gray-200 dark:bg-white/10" aria-hidden="true" />
 
                     {/* Map/List toggle */}
                     <button
                         onClick={onToggleMap}
+                        aria-label={viewMode === 'list' ? 'عرض على الخريطة' : 'عرض القائمة'}
                         className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition"
                     >
-                        <span className="material-symbols-outlined text-[20px]">
+                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
                             {viewMode === 'list' ? 'map' : 'view_list'}
                         </span>
                         <span className="text-sm font-semibold">{viewMode === 'list' ? 'الخريطة' : 'قائمة'}</span>
                     </button>
 
-                    <div className="w-px h-7 bg-gray-200 dark:bg-white/10" />
+                    <div className="w-px h-7 bg-gray-200 dark:bg-white/10" aria-hidden="true" />
 
                     {/* Sort */}
                     <button
                         onClick={onOpenSort}
+                        aria-label="ترتيب النتائج"
                         className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition"
                     >
-                        <span className="material-symbols-outlined text-[20px]">sort</span>
+                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">sort</span>
                         <span className="text-sm font-semibold">ترتيب</span>
                     </button>
                 </div>
