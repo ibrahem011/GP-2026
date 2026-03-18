@@ -1,0 +1,3 @@
+## 2024-03-18 - [Parallelizing independent database queries]
+**Learning:** This codebase uses independent queries to the same database (e.g., getting conversations where user is a buyer, and where user is an owner). Performing these queries sequentially introduces a bottleneck. We must use `Promise.all` to run independent Supabase queries concurrently when they do not depend on each other.
+**Action:** When working on services interacting with Supabase, ensure that queries fetching distinct data sets concurrently use `Promise.all` rather than awaiting sequentially.
