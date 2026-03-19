@@ -1,0 +1,4 @@
+
+## 2024-03-19 - [Data Transfer & N+1 Issue: Fetching specific counts directly instead of reading arrays on client side]
+**Learning:** We had an issue where `supabaseService.getProperties()` was called just to determine the length of the properties to report `totalProperties` in the Admin Dashboard stats. This fetches all the row properties on the Supabase client just to evaluate the `all.length` parameter on the backend. This slows down fetching times massively since there are thousands of properties to parse, fetch and store in memory.
+**Action:** Use Supabase's `{ count: 'exact', head: true }` parameter on `select('*')` options. This enables Postgres to calculate and return just the count as a number, completely dropping row data responses and effectively eliminating the massive performance bottlenecks.
