@@ -30,14 +30,14 @@ export default function AdminDashboard() {
         try {
             const [pending, all, pendingPaymentsCount, usersCount] = await Promise.all([
                 supabaseService.getProperties({ status: 'pending' }),
-                supabaseService.getPropertiesCount(),
+                supabaseService.getProperties(),
                 supabaseService.getPaymentRequestsCount({ status: 'pending' }),
                 supabaseService.getProfilesCount(),
             ]);
 
             setStats({
                 pendingProperties: pending.length,
-                totalProperties: all,
+                totalProperties: all.length,
                 pendingPayments: pendingPaymentsCount,
                 totalUsers: usersCount,
             });
