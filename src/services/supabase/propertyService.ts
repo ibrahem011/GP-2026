@@ -196,6 +196,27 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
         return (data || []) as PropertyRow[];
     }
 
+    async function getPropertiesCount(filters?: { ownerId?: string }): Promise<number> {
+        if (isMockModeEnabled()) {
+            let filtered = [...MOCK_PROPERTIES];
+            if (filters?.ownerId) filtered = filtered.filter((p) => p.owner_id === filters.ownerId);
+            return filtered.length;
+        }
+
+        let query = supabase
+            .from('properties')
+            .select('*', { count: 'exact', head: true });
+
+        if (filters?.ownerId) query = query.eq('owner_id', filters.ownerId);
+
+        const { count, error } = await query;
+        if (error) {
+            console.error('Error fetching properties count:', error);
+            return 0;
+        }
+        return count || 0;
+    }
+
     async function getPropertyById(id: string): Promise<PropertyRow | null> {
         if (isMockModeEnabled()) {
             return MOCK_PROPERTIES.find((p) => p.id === id) || null;
@@ -342,6 +363,24 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
         return true;
     }
 
+    async function getFavoritesCount(userId: string): Promise<number> {
+        if (isMockModeEnabled()) {
+            return Array.from(_mockFavorites).length;
+        }
+
+        const { count, error } = await supabase
+            .from('favorites')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error('Error fetching favorites count:', error);
+            return 0;
+        }
+
+        return count || 0;
+    }
+
     async function getUnlockedProperties(userId: string): Promise<string[]> {
         if (isMockModeEnabled()) {
             return Array.from(_mockUnlocked);
@@ -358,6 +397,24 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
         }
 
         return data.map((u) => u.property_id);
+    }
+
+    async function getUnlockedPropertiesCount(userId: string): Promise<number> {
+        if (isMockModeEnabled()) {
+            return Array.from(_mockUnlocked).length;
+        }
+
+        const { count, error } = await supabase
+            .from('unlocked_properties')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error('Error fetching unlocked properties count:', error);
+            return 0;
+        }
+
+        return count || 0;
     }
 
     async function isPropertyUnlocked(userId: string, propertyId: string): Promise<boolean> {
@@ -434,13 +491,16 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
     return {
         createFullProperty,
         getProperties,
+        getPropertiesCount,
         getPropertyById,
         incrementPropertyViews,
         updateProperty,
         deleteProperty,
         getFavorites,
         toggleFavorite,
+        getFavoritesCount,
         getUnlockedProperties,
+        getUnlockedPropertiesCount,
         isPropertyUnlocked,
         getReviewsForProperty,
         addReview,
