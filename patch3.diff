@@ -1,0 +1,22 @@
+--- src/app/admin/page.tsx
++++ src/app/admin/page.tsx
+@@ -25,18 +25,18 @@
+     const loadDashboard = async () => {
+         try {
+             const [pending, all, pendingPaymentsCount, usersCount] = await Promise.all([
+                 supabaseService.getProperties({ status: 'pending' }),
+-                supabaseService.getProperties(),
++                supabaseService.getPropertiesCount(),
+                 supabaseService.getPaymentRequestsCount({ status: 'pending' }),
+                 supabaseService.getProfilesCount(),
+             ]);
+
+             setStats({
+                 pendingProperties: pending.length,
+-                totalProperties: all.length,
++                totalProperties: all,
+                 pendingPayments: pendingPaymentsCount,
+                 totalUsers: usersCount,
+             });
+
+             setRecentProperties(pending.slice(0, 5));
