@@ -32,6 +32,7 @@ export const supabaseService = {
     deletePropertyImage: storageService.deletePropertyImage,
     createFullProperty: propertyService.createFullProperty,
     getProperties: propertyService.getProperties,
+    getPropertiesCount: propertyService.getPropertiesCount,
     getPropertyById: propertyService.getPropertyById,
     incrementPropertyViews: propertyService.incrementPropertyViews,
     updateProperty: propertyService.updateProperty,
