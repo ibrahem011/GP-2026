@@ -72,6 +72,10 @@ async function getFavoritesFallback(userId: string): Promise<{ data: PropertyRow
     return { data: orderedProperties, error: null };
 }
 
+const inFlightPropertyRequests = new Map<string, Promise<PropertyRow | null>>();
+const propertyCache = new Map<string, { data: PropertyRow; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export function createPropertyService(deps: PropertyServiceDependencies) {
     async function createFullProperty(
         propertyData: PropertyInsert,
@@ -201,17 +205,46 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
             return MOCK_PROPERTIES.find((p) => p.id === id) || null;
         }
 
-        const { data, error } = await supabase
-            .from('properties')
-            .select('*')
-            .eq('id', id)
-            .maybeSingle();
-
-        if (error) {
-            console.error('Error fetching property:', { id, error });
-            return null;
+        // Check cache first
+        const cached = propertyCache.get(id);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+            return cached.data;
         }
-        return (data as PropertyRow | null) || null;
+
+        // Check if there is already an in-flight request
+        if (inFlightPropertyRequests.has(id)) {
+            return inFlightPropertyRequests.get(id)!;
+        }
+
+        const promise = (async () => {
+            const { data, error } = await supabase
+                .from('properties')
+                .select('*')
+                .eq('id', id)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Error fetching property:', { id, error });
+                return null;
+            }
+
+            const result = (data as PropertyRow | null) || null;
+
+            // Populate cache on success
+            if (result) {
+                propertyCache.set(id, { data: result, timestamp: Date.now() });
+            }
+
+            return result;
+        })();
+
+        inFlightPropertyRequests.set(id, promise);
+
+        try {
+            return await promise;
+        } finally {
+            inFlightPropertyRequests.delete(id);
+        }
     }
 
     async function incrementPropertyViews(id: string): Promise<void> {
@@ -250,6 +283,12 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
             console.error('Error updating property:', error);
             return null;
         }
+
+        // Invalidate or update cache on edit
+        if (data) {
+            propertyCache.set(id, { data: data as PropertyRow, timestamp: Date.now() });
+        }
+
         return data as PropertyRow;
     }
 
@@ -272,6 +311,10 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
             .from('properties')
             .delete()
             .eq('id', id);
+
+        if (!error) {
+            propertyCache.delete(id);
+        }
 
         return !error;
     }
