@@ -1,3 +1,3 @@
-## 2026-03-15 - Missing ARIA Labels on Custom Increment/Decrement Controls
-**Learning:** Custom UI controls for numeric filters (like bedrooms and bathrooms) in this app use icon-only buttons (+/-) without native `<input type="number">`. These were missing `aria-label` attributes, rendering them completely opaque to screen readers, especially in the Right-To-Left (RTL) Arabic context.
-**Action:** Always verify icon-only interactive elements in custom filter components and explicitly add Arabic `aria-label`s to provide context (e.g., 'زيادة عدد غرف النوم' for incrementing bedrooms).
+## 2024-05-18 - Added ARIA labels to PropertyCard icons
+**Learning:** Material Icons rely on text ligatures (e.g., "favorite", "bed", "bathtub"). In a primarily Arabic application (RTL), screen readers will read these English text ligatures aloud if they are not explicitly hidden, causing severe confusion. Also, icon-only buttons need dynamic Arabic `aria-label`s and `aria-pressed` states to be usable.
+**Action:** Always add `aria-hidden="true"` to decorative `<span className="material-symbols-outlined">` elements. For interactive icon-only buttons, use dynamic `aria-label`s in Arabic (e.g., "إضافة إلى المفضلة" and "إزالة من المفضلة") and bind `aria-pressed` to the active state.
