@@ -196,6 +196,24 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
         return (data || []) as PropertyRow[];
     }
 
+    async function getPropertiesCount(filters?: { status?: string }): Promise<number> {
+        if (isMockModeEnabled()) {
+            let filtered = [...MOCK_PROPERTIES];
+            if (filters?.status) filtered = filtered.filter((p) => p.status === filters.status);
+            return filtered.length;
+        }
+
+        let query = supabase.from('properties').select('*', { count: 'exact', head: true });
+        if (filters?.status) query = query.eq('status', filters.status);
+
+        const { count, error } = await query;
+        if (error) {
+            console.error('Error fetching properties count:', error);
+            return 0;
+        }
+        return count || 0;
+    }
+
     async function getPropertyById(id: string): Promise<PropertyRow | null> {
         if (isMockModeEnabled()) {
             return MOCK_PROPERTIES.find((p) => p.id === id) || null;
@@ -434,6 +452,7 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
     return {
         createFullProperty,
         getProperties,
+        getPropertiesCount,
         getPropertyById,
         incrementPropertyViews,
         updateProperty,
