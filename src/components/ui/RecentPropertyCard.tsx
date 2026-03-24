@@ -61,6 +61,7 @@ export function RecentPropertyCard({
                         onFavoriteClick?.();
                     }}
                     className="absolute top-3 right-3 size-8 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white transition-colors group/btn"
+                    aria-label="إضافة إلى المفضلة"
                 >
                     <span className="material-symbols-outlined text-white group-hover/btn:text-error text-[20px] transition-colors">
                         favorite

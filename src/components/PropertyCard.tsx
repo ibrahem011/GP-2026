@@ -100,6 +100,7 @@ export function PropertyCard({
                         ? "bg-white text-error shadow-sm transform scale-110"
                         : "bg-white/30 text-white hover:bg-white hover:text-error"
                         }`}
+                    aria-label={isFavorite ? "إزالة من المفضلة" : "إضافة إلى المفضلة"}
                 >
                     <span
                         className="material-symbols-outlined text-[20px] transition-colors"
