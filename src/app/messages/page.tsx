@@ -85,15 +85,19 @@ export default function MessagesPage() {
                         <button
                             onClick={() => router.back()}
                             className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-zinc-800 transition-colors"
+                            aria-label="الرجوع"
                         >
-                            <span className="material-symbols-outlined text-gray-500">arrow_forward</span>
+                            <span className="material-symbols-outlined text-gray-500" aria-hidden="true">arrow_forward</span>
                         </button>
                         <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
                             رسائلي
                         </h1>
                     </div>
-                    <button className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center text-gray-500 shadow-sm border border-gray-100 dark:border-zinc-700">
-                        <span className="material-symbols-outlined">support_agent</span>
+                    <button
+                        className="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center text-gray-500 shadow-sm border border-gray-100 dark:border-zinc-700"
+                        aria-label="الدعم الفني"
+                    >
+                        <span className="material-symbols-outlined" aria-hidden="true">support_agent</span>
                     </button>
                 </div>
 
