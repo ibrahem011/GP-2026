@@ -6,17 +6,18 @@ export function createStorageService() {
             return files.map(() => `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000)}?auto=format&fit=crop&w=800&q=80`);
         }
 
-        const uploadedUrls: string[] = [];
-        for (const file of files) {
-            try {
-                const url = await uploadImage(file, `${userId}/`);
-                uploadedUrls.push(url);
-            } catch (error) {
-                console.error('Error uploading image:', error);
-                throw error;
-            }
+        try {
+            // ⚡ Bolt: [performance improvement]
+            // What: Parallelized image uploads using Promise.all instead of sequential await
+            // Why: IO-bound operations shouldn't block each other.
+            // Impact: Reduces total upload time from O(N) to O(max(upload_time))
+            const uploadPromises = files.map((file) => uploadImage(file, `${userId}/`));
+            const uploadedUrls = await Promise.all(uploadPromises);
+            return uploadedUrls;
+        } catch (error) {
+            console.error('Error uploading images concurrently:', error);
+            throw error;
         }
-        return uploadedUrls;
     }
 
     async function deletePropertyImage(url: string): Promise<void> {
