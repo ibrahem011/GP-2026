@@ -71,64 +71,69 @@ function mapFallbackBookingRow(
 }
 
 async function getUserBookingsFallback(userId: string): Promise<{ bookings: any[]; error: any }> {
-    const { data: tenantRows, error: tenantError } = await supabase
-        .from('bookings')
-        .select(`
-            id,
-            property_id,
-            user_id,
-            start_date,
-            end_date,
-            total_amount,
-            status,
-            created_at,
-            tenant_name,
-            property:properties (
+    // ⚡ Bolt: Parallelize independent database queries for faster loading
+    const [
+        { data: tenantRows, error: tenantError },
+        { data: ownerRows, error: ownerError }
+    ] = await Promise.all([
+        supabase
+            .from('bookings')
+            .select(`
                 id,
-                title,
-                images,
-                area,
-                owner_id,
-                owner_name,
-                owner_phone
-            )
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+                property_id,
+                user_id,
+                start_date,
+                end_date,
+                total_amount,
+                status,
+                created_at,
+                tenant_name,
+                property:properties (
+                    id,
+                    title,
+                    images,
+                    area,
+                    owner_id,
+                    owner_name,
+                    owner_phone
+                )
+            `)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false }),
+        supabase
+            .from('bookings')
+            .select(`
+                id,
+                property_id,
+                user_id,
+                start_date,
+                end_date,
+                total_amount,
+                status,
+                created_at,
+                tenant_name,
+                property:properties!inner (
+                    id,
+                    title,
+                    images,
+                    area,
+                    owner_id,
+                    owner_name,
+                    owner_phone
+                ),
+                user:profiles (
+                    id,
+                    full_name,
+                    avatar_url
+                )
+            `)
+            .eq('property.owner_id', userId)
+            .order('created_at', { ascending: false })
+    ]);
 
     if (tenantError) {
         return { bookings: [], error: tenantError };
     }
-
-    const { data: ownerRows, error: ownerError } = await supabase
-        .from('bookings')
-        .select(`
-            id,
-            property_id,
-            user_id,
-            start_date,
-            end_date,
-            total_amount,
-            status,
-            created_at,
-            tenant_name,
-            property:properties!inner (
-                id,
-                title,
-                images,
-                area,
-                owner_id,
-                owner_name,
-                owner_phone
-            ),
-            user:profiles (
-                id,
-                full_name,
-                avatar_url
-            )
-        `)
-        .eq('property.owner_id', userId)
-        .order('created_at', { ascending: false });
 
     if (ownerError) {
         return { bookings: [], error: ownerError };
