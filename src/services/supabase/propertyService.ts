@@ -196,6 +196,65 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
         return (data || []) as PropertyRow[];
     }
 
+    async function getPropertiesCount(filters?: {
+        status?: string;
+        category?: string;
+        area?: string;
+        minPrice?: number;
+        maxPrice?: number;
+        bedrooms?: number;
+        bathrooms?: number;
+        features?: string[];
+        ownerId?: string;
+        q?: string;
+    }): Promise<number> {
+        if (isMockModeEnabled()) {
+            let filtered = [...MOCK_PROPERTIES];
+            if (filters?.status) filtered = filtered.filter((p) => p.status === filters.status);
+            if (filters?.category) filtered = filtered.filter((p) => p.category === filters.category);
+            if (filters?.area && filters.area !== 'ط§ظ„ظƒظ„') filtered = filtered.filter((p) => p.area === filters.area);
+            if (filters?.minPrice) filtered = filtered.filter((p) => p.price >= filters.minPrice!);
+            if (filters?.maxPrice) filtered = filtered.filter((p) => p.price <= filters.maxPrice!);
+            if (filters?.bedrooms) filtered = filtered.filter((p) => (p.bedrooms || 0) >= filters.bedrooms!);
+            if (filters?.bathrooms) filtered = filtered.filter((p) => (p.bathrooms || 0) >= filters.bathrooms!);
+            if (filters?.ownerId) filtered = filtered.filter((p) => p.owner_id === filters.ownerId);
+            if (filters?.q) {
+                const normalizedQuery = filters.q.trim().toLowerCase();
+                filtered = filtered.filter((property) =>
+                    property.title.toLowerCase().includes(normalizedQuery) ||
+                    (property.address || '').toLowerCase().includes(normalizedQuery) ||
+                    (property.area || '').toLowerCase().includes(normalizedQuery),
+                );
+            }
+            return filtered.length;
+        }
+
+        let query = supabase
+            .from('properties')
+            .select('*', { count: 'exact', head: true });
+
+        if (filters?.status) query = query.eq('status', filters.status);
+        if (filters?.category) query = query.eq('category', filters.category);
+        if (filters?.area && filters.area !== 'ط§ظ„ظƒظ„') query = query.eq('area', filters.area);
+        if (filters?.minPrice) query = query.gte('price', filters.minPrice);
+        if (filters?.maxPrice) query = query.lte('price', filters.maxPrice);
+        if (filters?.bedrooms) query = query.gte('bedrooms', filters.bedrooms);
+        if (filters?.bathrooms) query = query.gte('bathrooms', filters.bathrooms);
+        if (filters?.features && filters.features.length > 0) query = query.contains('features', filters.features);
+        if (filters?.ownerId) query = query.eq('owner_id', filters.ownerId);
+        if (filters?.q?.trim()) {
+            const searchQuery = filters.q.trim();
+            query = query.or(`title.ilike.%${searchQuery}%,address.ilike.%${searchQuery}%,area.ilike.%${searchQuery}%`);
+        }
+
+        const { count, error } = await query;
+        if (error) {
+            console.error('Error fetching properties count:', error);
+            return 0;
+        }
+        return count || 0;
+    }
+
     async function getPropertyById(id: string): Promise<PropertyRow | null> {
         if (isMockModeEnabled()) {
             return MOCK_PROPERTIES.find((p) => p.id === id) || null;
@@ -434,6 +493,7 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
     return {
         createFullProperty,
         getProperties,
+        getPropertiesCount,
         getPropertyById,
         incrementPropertyViews,
         updateProperty,
