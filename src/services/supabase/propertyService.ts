@@ -73,6 +73,13 @@ async function getFavoritesFallback(userId: string): Promise<{ data: PropertyRow
 }
 
 export function createPropertyService(deps: PropertyServiceDependencies) {
+    // Cache map to store the cached favorites response for a user.
+    // The key is the userId, the value is an object with data, error, and expiry time.
+    const favoritesCache = new Map<string, { data: PropertyRow[]; error: any; expiresAt: number }>();
+    // Map to store in-flight promises to deduplicate concurrent calls
+    const inFlightFavoritesPromises = new Map<string, Promise<{ data: PropertyRow[]; error: any }>>();
+    const FAVORITES_CACHE_TTL_MS = 5000; // 5 seconds
+
     async function createFullProperty(
         propertyData: PropertyInsert,
         imageFiles: File[],
@@ -276,7 +283,7 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
         return !error;
     }
 
-    async function getFavorites(userId: string): Promise<{ data: PropertyRow[]; error: any }> {
+    async function fetchFavoritesFromDB(userId: string): Promise<{ data: PropertyRow[]; error: any }> {
         if (isMockModeEnabled()) {
             const favoriteProperties = Array.from(_mockFavorites)
                 .map((id) => MOCK_PROPERTIES.find((property) => property.id === id) || null)
@@ -309,7 +316,41 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
         }
     }
 
+    async function getFavorites(userId: string): Promise<{ data: PropertyRow[]; error: any }> {
+        const now = Date.now();
+        const cached = favoritesCache.get(userId);
+
+        if (cached && cached.expiresAt > now) {
+            return { data: cached.data, error: cached.error };
+        }
+
+        if (inFlightFavoritesPromises.has(userId)) {
+            return inFlightFavoritesPromises.get(userId)!;
+        }
+
+        const promise = fetchFavoritesFromDB(userId).then(result => {
+            if (!result.error) {
+                favoritesCache.set(userId, {
+                    data: result.data,
+                    error: result.error,
+                    expiresAt: Date.now() + FAVORITES_CACHE_TTL_MS
+                });
+            }
+            inFlightFavoritesPromises.delete(userId);
+            return result;
+        }).catch(err => {
+            inFlightFavoritesPromises.delete(userId);
+            throw err;
+        });
+
+        inFlightFavoritesPromises.set(userId, promise);
+        return promise;
+    }
+
     async function toggleFavorite(userId: string, propertyId: string): Promise<boolean> {
+        // Invalidate cache immediately when a favorite is toggled
+        favoritesCache.delete(userId);
+
         if (isMockModeEnabled()) {
             if (_mockFavorites.has(propertyId)) {
                 _mockFavorites.delete(propertyId);
