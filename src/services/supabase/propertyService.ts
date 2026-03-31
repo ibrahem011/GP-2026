@@ -112,9 +112,11 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
                 .single();
 
             if (error) {
-                for (const url of imageUrls) {
-                    await deps.deletePropertyImage(url);
-                }
+                // ⚡ Bolt: Use Promise.allSettled for parallel cleanup of orphaned images
+                // ensures all deletions are attempted regardless of individual failures
+                await Promise.allSettled(
+                    imageUrls.map((url) => deps.deletePropertyImage(url))
+                );
                 throw new Error(`ظپط´ظ„ ط­ظپط¸ ط§ظ„ط¹ظ‚ط§ط±: ${error.message}`);
             }
 

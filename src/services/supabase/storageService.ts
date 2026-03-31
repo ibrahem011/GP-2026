@@ -6,17 +6,15 @@ export function createStorageService() {
             return files.map(() => `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000)}?auto=format&fit=crop&w=800&q=80`);
         }
 
-        const uploadedUrls: string[] = [];
-        for (const file of files) {
-            try {
-                const url = await uploadImage(file, `${userId}/`);
-                uploadedUrls.push(url);
-            } catch (error) {
-                console.error('Error uploading image:', error);
-                throw error;
-            }
+        // ⚡ Bolt: Parallelize image uploads using Promise.all
+        // This reduces total I/O wait time from O(N) to roughly O(1) for multiple images
+        try {
+            const uploadPromises = files.map((file) => uploadImage(file, `${userId}/`));
+            return await Promise.all(uploadPromises);
+        } catch (error) {
+            console.error('Error uploading image(s):', error);
+            throw error;
         }
-        return uploadedUrls;
     }
 
     async function deletePropertyImage(url: string): Promise<void> {
