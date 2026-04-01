@@ -28,21 +28,22 @@ export default function AdminDashboard() {
 
     const loadDashboard = async () => {
         try {
-            const [pending, all, pendingPaymentsCount, usersCount] = await Promise.all([
-                supabaseService.getProperties({ status: 'pending' }),
-                supabaseService.getProperties(),
+            const [pendingProperties, pendingPropertiesCount, totalPropertiesCount, pendingPaymentsCount, usersCount] = await Promise.all([
+                supabaseService.getProperties({ status: 'pending', limit: 5 }),
+                supabaseService.getPropertiesCount({ status: 'pending' }),
+                supabaseService.getPropertiesCount(),
                 supabaseService.getPaymentRequestsCount({ status: 'pending' }),
                 supabaseService.getProfilesCount(),
             ]);
 
             setStats({
-                pendingProperties: pending.length,
-                totalProperties: all.length,
+                pendingProperties: pendingPropertiesCount,
+                totalProperties: totalPropertiesCount,
                 pendingPayments: pendingPaymentsCount,
                 totalUsers: usersCount,
             });
 
-            setRecentProperties(pending.slice(0, 5));
+            setRecentProperties(pendingProperties);
         } catch (error) {
             console.error('Error loading dashboard:', error);
         } finally {
