@@ -48,10 +48,10 @@ export default function SortSheet({
                         ].join(' ')}
                     >
                         <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined">{opt.icon}</span>
+                            <span aria-hidden="true" className="material-symbols-outlined">{opt.icon}</span>
                             <span className="font-semibold">{opt.label}</span>
                         </div>
-                        {value === opt.value && <span className="material-symbols-outlined">check</span>}
+                        {value === opt.value && <span aria-hidden="true" className="material-symbols-outlined">check</span>}
                     </button>
                 ))}
             </div>

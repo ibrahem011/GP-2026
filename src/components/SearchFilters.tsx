@@ -95,7 +95,7 @@ export default function SearchFilters({
       {/* Category */}
       <div id="filter-category">
         <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-text-main">
-          <span className="material-symbols-outlined text-primary text-[18px]">category</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-primary text-[18px]">category</span>
           نوع العقار
         </h4>
         <div className="flex gap-2 overflow-auto no-scrollbar pb-1">
@@ -110,7 +110,7 @@ export default function SearchFilters({
                   : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200',
               ].join(' ')}
             >
-              <span className="material-symbols-outlined text-[18px]">{opt.icon}</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[18px]">{opt.icon}</span>
               {opt.label}
             </button>
           ))}
@@ -120,7 +120,7 @@ export default function SearchFilters({
       {/* Price */}
       <div id="filter-price">
         <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-text-main">
-          <span className="material-symbols-outlined text-primary text-[18px]">payments</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-primary text-[18px]">payments</span>
           نطاق السعر
         </h4>
 
@@ -173,7 +173,7 @@ export default function SearchFilters({
       {/* Area */}
       <div id="filter-area">
         <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-text-main">
-          <span className="material-symbols-outlined text-primary text-[18px]">location_on</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-primary text-[18px]">location_on</span>
           المنطقة
         </h4>
         <select
@@ -200,7 +200,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="تقليل عدد غرف النوم"
             >
-              <span className="material-symbols-outlined">remove</span>
+              <span aria-hidden="true" className="material-symbols-outlined">remove</span>
             </button>
             <div className="text-lg font-bold">{bedrooms === 0 ? 'بدون تحديد' : `${bedrooms}+`}</div>
             <button
@@ -208,7 +208,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="زيادة عدد غرف النوم"
             >
-              <span className="material-symbols-outlined">add</span>
+              <span aria-hidden="true" className="material-symbols-outlined">add</span>
             </button>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="تقليل عدد الحمامات"
             >
-              <span className="material-symbols-outlined">remove</span>
+              <span aria-hidden="true" className="material-symbols-outlined">remove</span>
             </button>
             <div className="text-lg font-bold">{bathrooms === 0 ? 'بدون تحديد' : `${bathrooms}+`}</div>
             <button
@@ -229,7 +229,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="زيادة عدد الحمامات"
             >
-              <span className="material-symbols-outlined">add</span>
+              <span aria-hidden="true" className="material-symbols-outlined">add</span>
             </button>
           </div>
         </div>
@@ -238,7 +238,7 @@ export default function SearchFilters({
       {/* Features */}
       <div id="filter-features">
         <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-text-main">
-          <span className="material-symbols-outlined text-primary text-[18px]">star</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-primary text-[18px]">star</span>
           المميزات
         </h4>
 
@@ -254,7 +254,7 @@ export default function SearchFilters({
                   : 'bg-transparent border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-gray-400',
               ].join(' ')}
             >
-              <span className="material-symbols-outlined text-[16px]">{feature.icon}</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[16px]">{feature.icon}</span>
               {feature.label}
             </button>
           ))}

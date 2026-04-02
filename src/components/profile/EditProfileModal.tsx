@@ -157,14 +157,14 @@ export default function EditProfileModal({
                        focus:outline-none focus:ring-2 focus:ring-primary/40"
                         aria-label="إغلاق"
                     >
-                        <span className="material-symbols-outlined">close</span>
+                        <span aria-hidden="true" className="material-symbols-outlined">close</span>
                     </button>
                 </div>
 
                 <div className="p-6 space-y-4">
                     {success ? (
                         <div className="py-6 text-center space-y-3 animate-fadeIn">
-                            <span className="material-symbols-outlined text-green-500 text-6xl">check_circle</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-green-500 text-6xl">check_circle</span>
                             <p className="font-black text-lg text-gray-900 dark:text-white">تم التحديث بنجاح!</p>
                         </div>
                     ) : (
@@ -180,7 +180,7 @@ export default function EditProfileModal({
                                     الاسم الكامل
                                 </label>
                                 <div className="relative">
-                                    <span className="material-symbols-outlined absolute right-4 top-3.5 text-gray-400 text-[20px]">
+                                    <span aria-hidden="true" className="material-symbols-outlined absolute right-4 top-3.5 text-gray-400 text-[20px]">
                                         person
                                     </span>
                                     <input
@@ -201,7 +201,7 @@ export default function EditProfileModal({
                                     رقم الهاتف
                                 </label>
                                 <div className="relative">
-                                    <span className="material-symbols-outlined absolute right-4 top-3.5 text-gray-400 text-[20px]">
+                                    <span aria-hidden="true" className="material-symbols-outlined absolute right-4 top-3.5 text-gray-400 text-[20px]">
                                         phone
                                     </span>
                                     <input
@@ -227,7 +227,7 @@ export default function EditProfileModal({
                                 {loading ? (
                                     <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
-                                    <span className="material-symbols-outlined">save</span>
+                                    <span aria-hidden="true" className="material-symbols-outlined">save</span>
                                 )}
                                 {loading ? 'جاري الحفظ...' : 'حفظ التغييرات'}
                             </button>
