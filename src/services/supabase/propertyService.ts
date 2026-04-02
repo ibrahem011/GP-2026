@@ -375,6 +375,27 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
         return !!data;
     }
 
+    async function getPropertiesCount(filters?: { status?: string }): Promise<number> {
+        if (isMockModeEnabled()) {
+            let filtered = [...MOCK_PROPERTIES];
+            if (filters?.status) filtered = filtered.filter((p) => p.status === filters.status);
+            return filtered.length;
+        }
+
+        let query = supabase
+            .from('properties')
+            .select('*', { count: 'exact', head: true });
+
+        if (filters?.status) query = query.eq('status', filters.status);
+
+        const { count, error } = await query;
+        if (error) {
+            console.error('Error fetching properties count:', error);
+            return 0;
+        }
+        return count || 0;
+    }
+
     async function getReviewsForProperty(propertyId: string): Promise<{
         id: string;
         user_id: string;
@@ -444,5 +465,6 @@ export function createPropertyService(deps: PropertyServiceDependencies) {
         isPropertyUnlocked,
         getReviewsForProperty,
         addReview,
+        getPropertiesCount,
     };
 }
