@@ -36,6 +36,7 @@ export const supabaseService = {
     incrementPropertyViews: propertyService.incrementPropertyViews,
     updateProperty: propertyService.updateProperty,
     deleteProperty: propertyService.deleteProperty,
+    getPropertiesCount: propertyService.getPropertiesCount,
     getFavorites: propertyService.getFavorites,
     toggleFavorite: propertyService.toggleFavorite,
     getUnlockedProperties: propertyService.getUnlockedProperties,
