@@ -1,0 +1,3 @@
+## 2025-04-03 - [Optimize getUserConversations with Promise.all]
+**Learning:** Sequential independent I/O-bound queries in Supabase services can significantly increase latency and result in poor application performance. The existing pattern awaited related queries sequentially (e.g., `asBuyer` then `asOwner`) instead of executing them simultaneously.
+**Action:** Parallelize independent I/O-bound queries using `Promise.all` directly inside service implementations to decrease network latency by ~50% when multiple tables or contexts must be queried concurrently.
