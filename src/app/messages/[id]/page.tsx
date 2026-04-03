@@ -204,8 +204,9 @@ export default function ChatPage({ params }: ChatPageProps) {
                     <button
                         onClick={() => router.back()}
                         className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                        aria-label="الرجوع"
                     >
-                        <span className="material-symbols-outlined text-gray-500">arrow_forward</span>
+                        <span className="material-symbols-outlined text-gray-500" aria-hidden="true">arrow_forward</span>
                     </button>
 
                     <div className="flex items-center gap-3">
@@ -230,11 +231,17 @@ export default function ChatPage({ params }: ChatPageProps) {
                 </div>
 
                 <div className="flex gap-2">
-                    <button className="w-10 h-10 rounded-full bg-gray-50 dark:bg-zinc-700 flex items-center justify-center text-gray-500 hover:text-primary transition-colors">
-                        <span className="material-symbols-outlined">call</span>
+                    <button
+                        className="w-10 h-10 rounded-full bg-gray-50 dark:bg-zinc-700 flex items-center justify-center text-gray-500 hover:text-primary transition-colors"
+                        aria-label="اتصال"
+                    >
+                        <span className="material-symbols-outlined" aria-hidden="true">call</span>
                     </button>
-                    <button className="w-10 h-10 rounded-full bg-gray-50 dark:bg-zinc-700 flex items-center justify-center text-gray-500 hover:text-primary transition-colors">
-                        <span className="material-symbols-outlined">more_vert</span>
+                    <button
+                        className="w-10 h-10 rounded-full bg-gray-50 dark:bg-zinc-700 flex items-center justify-center text-gray-500 hover:text-primary transition-colors"
+                        aria-label="خيارات إضافية"
+                    >
+                        <span className="material-symbols-outlined" aria-hidden="true">more_vert</span>
                     </button>
                 </div>
             </div>
