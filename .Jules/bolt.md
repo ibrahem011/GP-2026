@@ -1,0 +1,3 @@
+## 2024-04-04 - In-flight Promise Deduplication for N+1 Query Issues
+**Learning:** In frontend component loops (like multiple PropertyCard instances), missing caching mechanisms on user-specific async data (e.g., getting user favorites) leads to severe N+1 query bottlenecks where each mounted card fires the same exact RPC/fetch request simultaneously.
+**Action:** Implemented in-flight promise deduplication and short-lived in-memory cache directly within `supabaseService.getFavorites`. Next time, look for similar patterns where multiple isolated components fetch the same global/user context simultaneously and apply deduplication at the service layer.

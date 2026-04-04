@@ -503,7 +503,19 @@ const MOCK_PROPERTIES: PropertyRow[] = [
 const _mockFavorites = new Set<string>();
 const _mockUnlocked = new Set<string>();
 
+// ⚡ Bolt: Implements in-flight promise deduplication and short-lived caching for getFavorites
+// This prevents N+1 query bottlenecks on pages with multiple PropertyCards
+const _favoritesPromises = new Map<string, Promise<{ data: PropertyRow[]; error: any }>>();
+const _favoritesCache = new Map<string, { data: PropertyRow[], timestamp: number }>();
+const FAVORITES_CACHE_TTL_MS = 10000; // 10 seconds cache
+
 export const supabaseService = {
+    // ⚡ Bolt: Helper to clear favorites cache in tests
+    clearFavoritesCache() {
+        _favoritesCache.clear();
+        _favoritesPromises.clear();
+    },
+
     // ====== Mock Auth Hub ======
     async signIn(email: string, pass: string) {
         if (shouldShortCircuitMock()) {
@@ -867,31 +879,63 @@ export const supabaseService = {
             return { data: favoriteProperties, error: null };
         }
 
-        try {
-            const { data, error } = await supabase
-                .rpc('get_user_favorites', { uid: userId });
+        // ⚡ Bolt: Check short-lived cache
+        const now = Date.now();
+        const cached = _favoritesCache.get(userId);
+        if (cached && (now - cached.timestamp < FAVORITES_CACHE_TTL_MS)) {
+            return { data: cached.data, error: null };
+        }
 
-            if (error) {
-                if (isMissingRpcFunctionError(error, 'get_user_favorites')) {
-                    return await getFavoritesFallback(userId);
+        // ⚡ Bolt: Deduplicate in-flight requests
+        if (_favoritesPromises.has(userId)) {
+            return _favoritesPromises.get(userId)!;
+        }
+
+        const promise = (async () => {
+            try {
+                const { data, error } = await supabase
+                    .rpc('get_user_favorites', { uid: userId });
+
+                if (error) {
+                    if (isMissingRpcFunctionError(error, 'get_user_favorites')) {
+                        const fallbackResult = await getFavoritesFallback(userId);
+                        if (!fallbackResult.error && fallbackResult.data) {
+                            _favoritesCache.set(userId, { data: fallbackResult.data, timestamp: Date.now() });
+                        }
+                        return fallbackResult;
+                    }
+
+                    console.error('[getFavorites RPC Error]', error);
+                    return { data: [], error };
                 }
 
-                console.error('[getFavorites RPC Error]', error);
+                const resultData = (data || []) as PropertyRow[];
+                _favoritesCache.set(userId, { data: resultData, timestamp: Date.now() });
+                return { data: resultData, error: null };
+            } catch (error) {
+                if (isMissingRpcFunctionError(error, 'get_user_favorites')) {
+                    const fallbackResult = await getFavoritesFallback(userId);
+                    if (!fallbackResult.error && fallbackResult.data) {
+                        _favoritesCache.set(userId, { data: fallbackResult.data, timestamp: Date.now() });
+                    }
+                    return fallbackResult;
+                }
+
+                console.error('[getFavorites Unexpected Error]', error);
                 return { data: [], error };
+            } finally {
+                _favoritesPromises.delete(userId);
             }
+        })();
 
-            return { data: (data || []) as PropertyRow[], error: null };
-        } catch (error) {
-            if (isMissingRpcFunctionError(error, 'get_user_favorites')) {
-                return await getFavoritesFallback(userId);
-            }
-
-            console.error('[getFavorites Unexpected Error]', error);
-            return { data: [], error };
-        }
+        _favoritesPromises.set(userId, promise);
+        return promise;
     },
 
     async toggleFavorite(userId: string, propertyId: string): Promise<boolean> {
+        // ⚡ Bolt: Invalidate cache on mutation
+        _favoritesCache.delete(userId);
+
         if (shouldShortCircuitMock()) {
             if (_mockFavorites.has(propertyId)) {
                 _mockFavorites.delete(propertyId);
