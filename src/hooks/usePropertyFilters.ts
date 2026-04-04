@@ -40,7 +40,7 @@ export function usePropertyFilters(properties: Property[]) {
     const availableCount = useMemo(() => properties.filter((p) => p.status === 'available').length, [properties]);
     const rentedCount = useMemo(() => properties.filter((p) => p.status === 'rented').length, [properties]);
     const totalViews = useMemo(() => properties.reduce((sum, p) => sum + p.viewsCount, 0), [properties]);
-
+    
     const uniqueCategories = useMemo(() => {
         const categories = new Set(properties.map((p) => p.category));
         return Array.from(categories);

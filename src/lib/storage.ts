@@ -1,11 +1,11 @@
-import { Property, User, PaymentRequest, Review, Notification } from '@/types';
-import { fromPropertyRow, toPropertyInsert } from './propertyMapper';
-import type { PropertyRowCompat } from './propertyMapper';
 import { supabase } from './supabase';
+import { getIsMockMode } from '@/config/constants';
+import { supabaseService } from '@/services/supabaseService';
+import type { Property, Notification, User, Booking, Review, PaymentRequest } from '@/types';
+import type { Property as PropertyRow } from '@/types/database.types';
+import type { Message } from '@/types/messaging';
+import { fromPropertyRow, toPropertyInsert } from './propertyMapper';
 import { STORAGE_BUCKET } from './storageBucket';
-
-type PropertyRowWithLegacyLocation = PropertyRowCompat;
-type PropertyInsertPayload = ReturnType<typeof toPropertyInsert>;
 
 // مفاتيح التخزين
 const STORAGE_KEYS = {
@@ -125,154 +125,6 @@ export async function deletePropertyImages(urls: string[]): Promise<void> {
     }
 }
 
-// ====== دوال Mapping بين DB و App ======
-
-// تحويل Property من DB format إلى App format
-function convertPropertyFromDB(dbProperty: PropertyRowWithLegacyLocation): Property {
-    return fromPropertyRow(dbProperty);
-}
-
-// تحويل Property من App format إلى DB format
-function convertPropertyToDB(appProperty: Partial<Property>): PropertyInsertPayload {
-    return toPropertyInsert(appProperty);
-}
-
-// دالة للحصول على العقارات من Supabase
-export async function getPropertiesFromSupabase(): Promise<Property[]> {
-    try {
-        const { data, error } = await supabase
-            .from('properties')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        return data ? data.map(convertPropertyFromDB) : [];
-    } catch (error) {
-        console.error('Error fetching properties from Supabase:', error);
-        throw error;
-    }
-}
-
-// دالة للحصول على عقارات المستخدم الحالي من Supabase
-export async function getUserPropertiesFromSupabase(userId: string): Promise<Property[]> {
-    try {
-        const { data, error } = await supabase
-            .from('properties')
-            .select(`
-                id,
-                owner_id,
-                title,
-                description,
-                price,
-                price_unit,
-                category,
-                status,
-                images,
-                address,
-                area,
-                bedrooms,
-                bathrooms,
-                floor_area,
-                floor_number,
-                features,
-                owner_phone,
-                owner_name,
-                is_verified,
-                views_count,
-                created_at,
-                updated_at,
-                location_lat,
-                location_lng
-            `)
-            .eq('owner_id', userId)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('[getUserPropertiesFromSupabase Error]', error);
-            throw new Error(`فشل جلب عقارات المستخدم: ${error.message}`);
-        }
-
-        return data ? data.map(convertPropertyFromDB) : [];
-    } catch (error) {
-        console.error('[getUserPropertiesFromSupabase Unexpected]', error);
-        throw error;
-    }
-}
-
-// دالة للحصول على عقار واحد من Supabase
-export async function getPropertyByIdFromSupabase(id: string): Promise<Property | null> {
-    try {
-        const { data, error } = await supabase
-            .from('properties')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error) throw error;
-
-        return data ? convertPropertyFromDB(data) : null;
-    } catch (error) {
-        console.error('Error fetching property from Supabase:', error);
-        return null;
-    }
-}
-
-export async function deletePropertyFromSupabase(id: string): Promise<{ success: boolean; error?: string }> {
-    try {
-        const property = await getPropertyByIdFromSupabase(id);
-        if (!property) {
-            return { success: false, error: 'العقار غير موجود' };
-        }
-
-        if (property.images.length > 0) {
-            await deletePropertyImages(property.images);
-        }
-
-        const { error } = await supabase
-            .from('properties')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            console.error('Error deleting property from Supabase:', error);
-            return { success: false, error: error.message };
-        }
-
-        return { success: true };
-    } catch (error) {
-        console.error('Error in deletePropertyFromSupabase:', error);
-        return { success: false, error: error instanceof Error ? error.message : 'فشل حذف العقار' };
-    }
-}
-
-export async function updatePropertyInSupabase(
-    id: string,
-    updates: Partial<Property>
-): Promise<Property | null> {
-    try {
-        const dbUpdates = convertPropertyToDB(updates);
-        const updatesWithTimestamp = {
-            ...dbUpdates,
-            updated_at: new Date().toISOString(),
-        };
-
-        const { data, error } = await supabase
-            .from('properties')
-            .update(updatesWithTimestamp)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        return data ? convertPropertyFromDB(data) : null;
-    } catch (error) {
-        console.error('Error updating property in Supabase:', error);
-        throw error;
-    }
-}
-
 // ====== العقارات ======
 
 export function getProperties(): Property[] {
@@ -284,13 +136,11 @@ export function getPropertyById(id: string): Property | undefined {
     return properties.find(p => p.id === id);
 }
 
+// This function is kept for mock mode support specifically in components that use it
 export async function addProperty(
     property: Omit<Property, 'id' | 'createdAt' | 'updatedAt' | 'viewsCount'>
 ): Promise<Property> {
-    const isMockMode = process.env.NEXT_PUBLIC_IS_MOCK_MODE === 'true';
-
-    if (isMockMode) {
-        // Mock Mode - localStorage
+    if (getIsMockMode()) {
         const properties = getProperties();
         const newProperty: Property = {
             ...property,
@@ -304,26 +154,15 @@ export async function addProperty(
         return newProperty;
     }
 
-    // Supabase Mode
-    try {
-        const dbProperty = convertPropertyToDB(property);
+    const dbProperty = toPropertyInsert(property);
+    const { data, error } = await supabase
+        .from('properties')
+        .insert(dbProperty)
+        .select()
+        .single();
 
-        const { data, error } = await supabase
-            .from('properties')
-            .insert(dbProperty)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Supabase insert error:', error);
-            throw error;
-        }
-
-        return convertPropertyFromDB(data);
-    } catch (error) {
-        console.error('Error adding property to Supabase:', error);
-        throw error;
-    }
+    if (error) throw error;
+    return fromPropertyRow(data);
 }
 
 export function updateProperty(id: string, updates: Partial<Property>): Property | null {
@@ -349,43 +188,6 @@ export function incrementViews(id: string): void {
     }
 }
 
-export function searchProperties(filters: {
-    query?: string;
-    category?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    area?: string;
-}): Property[] {
-    let properties = getProperties();
-
-    if (filters.query) {
-        const q = filters.query.toLowerCase();
-        properties = properties.filter(p =>
-            p.title.toLowerCase().includes(q) ||
-            p.description.toLowerCase().includes(q) ||
-            p.location.address.toLowerCase().includes(q)
-        );
-    }
-
-    if (filters.category) {
-        properties = properties.filter(p => p.category === filters.category);
-    }
-
-    if (filters.minPrice) {
-        properties = properties.filter(p => p.price >= filters.minPrice!);
-    }
-
-    if (filters.maxPrice) {
-        properties = properties.filter(p => p.price <= filters.maxPrice!);
-    }
-
-    if (filters.area) {
-        properties = properties.filter(p => p.location.area === filters.area);
-    }
-
-    return properties;
-}
-
 // ====== المستخدمين ======
 
 export function getCurrentUser(): User | null {
@@ -396,37 +198,13 @@ export function setCurrentUser(user: User | null): void {
     setItem(STORAGE_KEYS.CURRENT_USER, user);
 }
 
-export function createUser(userData: Omit<User, 'id' | 'createdAt' | 'favorites' | 'unlockedProperties' | 'isVerified' | 'memberSince'>): User {
-    const users = getItem<User[]>(STORAGE_KEYS.USERS, []);
-    const now = new Date().toISOString();
-    const newUser: User = {
-        ...userData,
-        id: generateId(),
-        favorites: [],
-        unlockedProperties: [],
-        isVerified: false,
-        createdAt: now,
-        memberSince: now,
-        lastLogin: now,
-    };
-    users.push(newUser);
-    setItem(STORAGE_KEYS.USERS, users);
-    setCurrentUser(newUser);
-
-    // إضافة إشعار ترحيبي
-    addNotification({
-        userId: newUser.id,
-        title: 'مرحباً بك في عقارات جمصة!',
-        message: 'نتمنى لك تجربة مميزة في البحث عن عقارك المثالي.',
-        type: 'success',
-    });
-
-    return newUser;
-}
-
-export function toggleFavorite(propertyId: string): boolean {
+export async function toggleFavorite(propertyId: string): Promise<boolean> {
     const user = getCurrentUser();
     if (!user) return false;
+
+    if (!getIsMockMode()) {
+        return supabaseService.toggleFavorite(user.id, propertyId);
+    }
 
     const index = user.favorites.indexOf(propertyId);
     if (index === -1) {
@@ -435,95 +213,32 @@ export function toggleFavorite(propertyId: string): boolean {
         user.favorites.splice(index, 1);
     }
     setCurrentUser(user);
-    return index === -1; // true إذا تمت الإضافة، false إذا تمت الإزالة
+    return index === -1;
 }
 
-export function isPropertyUnlocked(userId: string, propertyId: string): boolean {
-    const user = getUserById(userId);
-    return user ? user.unlockedProperties.includes(propertyId) : false;
-}
-
-export function unlockProperty(propertyId: string): boolean {
+export async function unlockProperty(propertyId: string, paymentId?: string): Promise<boolean> {
     const user = getCurrentUser();
     if (!user) return false;
+
+    if (!getIsMockMode()) {
+        await supabaseService.unlockProperty(user.id, propertyId, paymentId);
+        return true;
+    }
 
     if (!user.unlockedProperties.includes(propertyId)) {
         user.unlockedProperties.push(propertyId);
         setCurrentUser(user);
 
-        // إرسال إشعار
-        addNotification({
+        await addNotification({
             userId: user.id,
             title: 'تم فك القفل بنجاح',
             message: 'يمكنك الآن التواصل مع المالك مباشرة.',
             type: 'success',
-            link: `/property/${propertyId}`
+            link: `/property/${propertyId}`,
         });
         return true;
     }
-    return true; // Already unlocked
-}
-
-export function getUserById(id: string): User | null {
-    const users = getItem<User[]>(STORAGE_KEYS.USERS, []);
-    return users.find(u => u.id === id) || null;
-}
-
-export function updateUserLastLogin(userId: string): void {
-    const user = getCurrentUser();
-    if (user && user.id === userId) {
-        user.lastLogin = new Date().toISOString();
-        setCurrentUser(user);
-    }
-}
-
-// ====== طلبات الدفع ======
-
-export function getPaymentRequests(): PaymentRequest[] {
-    return getItem<PaymentRequest[]>(STORAGE_KEYS.PAYMENTS, []);
-}
-
-export function createPaymentRequest(request: Omit<PaymentRequest, 'id' | 'createdAt' | 'status'>): PaymentRequest {
-    const payments = getPaymentRequests();
-    const newRequest: PaymentRequest = {
-        ...request,
-        id: generateId(),
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-    };
-    payments.unshift(newRequest);
-    setItem(STORAGE_KEYS.PAYMENTS, payments);
-    return newRequest;
-}
-
-export function approvePayment(paymentId: string): void {
-    const payments = getPaymentRequests();
-    const payment = payments.find(p => p.id === paymentId);
-    if (payment) {
-        payment.status = 'approved';
-        payment.processedAt = new Date().toISOString();
-        setItem(STORAGE_KEYS.PAYMENTS, payments);
-        unlockProperty(payment.propertyId);
-    }
-}
-
-// ====== التقييمات ======
-
-export function getReviewsForProperty(propertyId: string): Review[] {
-    const reviews = getItem<Review[]>(STORAGE_KEYS.REVIEWS, []);
-    return reviews.filter(r => r.propertyId === propertyId);
-}
-
-export function addReview(review: Omit<Review, 'id' | 'createdAt'>): Review {
-    const reviews = getItem<Review[]>(STORAGE_KEYS.REVIEWS, []);
-    const newReview: Review = {
-        ...review,
-        id: generateId(),
-        createdAt: new Date().toISOString(),
-    };
-    reviews.unshift(newReview);
-    setItem(STORAGE_KEYS.REVIEWS, reviews);
-    return newReview;
+    return true;
 }
 
 // ====== الإشعارات ======
@@ -536,7 +251,23 @@ export function getNotifications(userId?: string): Notification[] {
     return allNotifications;
 }
 
-export function addNotification(notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>): Notification {
+export async function addNotification(
+    notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>
+): Promise<Notification> {
+    if (!getIsMockMode() && notification.userId) {
+        try {
+            await supabaseService.createNotification({
+                userId: notification.userId,
+                title: notification.title,
+                message: notification.message,
+                type: notification.type as 'success' | 'info' | 'warning' | 'error',
+                link: notification.link,
+            });
+        } catch (err) {
+            console.error('Failed to create Supabase notification:', err);
+        }
+    }
+
     const notifications = getNotifications();
     const newNotification: Notification = {
         ...notification,

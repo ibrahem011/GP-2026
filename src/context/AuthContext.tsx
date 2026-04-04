@@ -6,8 +6,8 @@ import { getCurrentUser, setCurrentUser as saveUser } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { normalizeRole } from '@/lib/roles';
 
-// Mock Mode Flag
-const IS_MOCK_MODE = process.env.NEXT_PUBLIC_IS_MOCK_MODE === 'true';
+import { getIsMockMode } from '@/config/constants';
+
 type OAuthProvider = 'google' | 'facebook' | 'apple';
 
 interface OAuthSignInResult {
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getCanonicalRole = useCallback(async (u: any): Promise<UserRole> => {
         const metadataRole = normalizeRole(u.user_metadata?.role as string | undefined);
 
-        if (IS_MOCK_MODE) {
+        if (getIsMockMode()) {
             return metadataRole;
         }
 
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
                 } else {
                     // If no local user, check Supabase (if not mock)
-                    if (!IS_MOCK_MODE) {
+                    if (!getIsMockMode()) {
                         const { data } = await supabase.auth.getSession();
                         const sessionUser = data.session?.user;
 
@@ -200,7 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             setLoading(true);
 
-            if (IS_MOCK_MODE) {
+            if (getIsMockMode()) {
                 // Mock Mode: Check localStorage 'gamasa_users'
                 const users = JSON.parse(localStorage.getItem('gamasa_users') || '[]');
                 const foundUser = users.find((u: any) => u.email === email && u.password === password);
@@ -243,7 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             setLoading(true);
 
-            if (IS_MOCK_MODE) {
+            if (getIsMockMode()) {
                 const users = JSON.parse(localStorage.getItem('gamasa_users') || '[]');
 
                 if (users.some((u: any) => u.email === userData.email)) {
@@ -334,7 +334,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         redirectPath?: string
     ): Promise<OAuthSignInResult> => {
         try {
-            if (IS_MOCK_MODE) {
+            if (getIsMockMode()) {
                 return {
                     success: false,
                     error: 'OAuth غير متاح في وضع المحاكاة.',
@@ -368,7 +368,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = async () => {
         saveUser(null);
         setUser(null);
-        if (!IS_MOCK_MODE) {
+        if (!getIsMockMode()) {
             await supabase.auth.signOut();
         }
         window.location.href = '/';

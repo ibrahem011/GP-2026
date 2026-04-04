@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { getCurrentUser, setCurrentUser } from '@/lib/storage';
-import { PropertyRow, IS_MOCK_MODE, supabaseService } from '@/services/supabaseService';
+import { PropertyRow, getIsMockMode, supabaseService } from '@/services/supabaseService';
 import { RentalConfig, RentalType } from '@/types';
 import { validateUUID } from '@/utils/validation';
 import DateSelector from '@/components/booking/DateSelector';
@@ -174,7 +174,7 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
     const hydrate = async () => {
       let nextId = user.id;
       if (!validateUUID(nextId)) {
-        if (IS_MOCK_MODE) nextId = upgradeMockId(nextId);
+        if (getIsMockMode()) nextId = upgradeMockId(nextId);
         else {
           if (!cancelled) {
             setResolvedUserId('');

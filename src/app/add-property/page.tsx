@@ -8,7 +8,8 @@ import OwnerDetailsStep from '@/components/add-property/OwnerDetailsStep';
 import { useToast } from '@/components/ui/Toast';
 import { PROPERTY_FEATURES } from '@/config/features';
 import { useUser } from '@/hooks/useUser';
-import { addNotification, addProperty, deletePropertyImages, getCurrentUser, uploadPropertyImages } from '@/lib/storage';
+import { addNotification, getCurrentUser } from '@/lib/storage';
+import { supabaseService } from '@/services/supabaseService';
 import {
     AREAS,
     CATEGORY_AR,
@@ -379,53 +380,42 @@ export default function AddPropertyPage() {
 
             setUploading(true);
 
-            const imageUrls = await uploadPropertyImages(stagedImages.map((img) => img.file));
-
-            const propertyToAdd = {
-                title: formData.title,
-                description: formData.description,
-                price: Number(formData.price),
-                priceUnit: formData.priceUnit,
-                category: formData.category,
-                status: 'available' as PropertyStatus,
-                images: imageUrls,
-                location: {
-                    lat: selectedLocation?.lat ?? null,
-                    lng: selectedLocation?.lng ?? null,
+            const newProperty = await supabaseService.createFullProperty(
+                {
+                    title: formData.title,
+                    description: formData.description,
+                    price: Number(formData.price),
+                    price_unit: formData.priceUnit,
+                    category: formData.category,
+                    location_lat: selectedLocation?.lat ?? undefined,
+                    location_lng: selectedLocation?.lng ?? undefined,
                     address: formData.address,
                     area: formData.selectedArea,
+                    owner_phone: formData.ownerPhone,
+                    owner_name: formData.ownerName,
+                    features: formData.features,
+                    bedrooms: formData.bedrooms,
+                    bathrooms: formData.bathrooms,
+                    floor_area: Number(formData.area) || 0,
+                    floor_number: formData.floor,
                 },
-                ownerPhone: formData.ownerPhone,
-                ownerId: actualUser.id,
-                ownerName: formData.ownerName,
-                features: formData.features,
-                bedrooms: formData.bedrooms,
-                bathrooms: formData.bathrooms,
-                area: Number(formData.area) || 0,
-                floor: formData.floor,
-                isVerified: false,
-            };
+                stagedImages.map((img) => img.file),
+                actualUser.id
+            );
 
-            try {
-                const newProperty = await addProperty(propertyToAdd);
+            await addNotification({
+                userId: actualUser.id,
+                title: 'تمت إضافة عقارك بنجاح!',
+                message: `عقارك "${formData.title}" قيد المراجعة من الإدارة.`,
+                type: 'success',
+                link: `/property/${newProperty.id}`,
+            });
 
-                addNotification({
-                    userId: actualUser.id,
-                    title: 'تمت إضافة عقارك بنجاح!',
-                    message: `عقارك "${formData.title}" قيد المراجعة من الإدارة.`,
-                    type: 'success',
-                    link: `/property/${newProperty.id}`,
-                });
+            setSuccess(true);
 
-                setSuccess(true);
-
-                setTimeout(() => {
-                    window.location.href = '/my-properties';
-                }, 2000);
-            } catch (propertyError) {
-                await deletePropertyImages(imageUrls);
-                throw propertyError;
-            }
+            setTimeout(() => {
+                window.location.href = '/my-properties';
+            }, 2000);
         } catch (error) {
             console.error('Error adding property:', error);
             showToast('حدث خطأ أثناء إضافة العقار. يرجى المحاولة مرة أخرى.', 'error');

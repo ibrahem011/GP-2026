@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { IS_MOCK_MODE, supabaseService } from "@/services/supabaseService";
+import { getIsMockMode, supabaseService } from "@/services/supabaseService";
 
 export type BookingStatusUI =
   | "pending"
@@ -167,13 +167,13 @@ export default function BookingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    if (!user && !IS_MOCK_MODE) return;
+    if (!user && !getIsMockMode()) return;
 
     setError(null);
     setLoading(true);
 
     try {
-      if (IS_MOCK_MODE) {
+      if (getIsMockMode()) {
         setMyBookings(INITIAL_MY_BOOKINGS);
         setIncomingRequests(INITIAL_INCOMING_REQUESTS);
       } else if (user) {
@@ -236,7 +236,7 @@ export default function BookingsPage() {
   useEffect(() => {
     if (isAuthLoading) return;
 
-    if (!user && !IS_MOCK_MODE) {
+    if (!user && !getIsMockMode()) {
       setLoading(false);
       return;
     }
@@ -352,7 +352,7 @@ export default function BookingsPage() {
     );
   }
 
-  if (!user && !IS_MOCK_MODE) {
+  if (!user && !getIsMockMode()) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4 pb-28 dark:bg-black">
         <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-lg dark:bg-zinc-900">

@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { uploadImage, unlockProperty as unlockPropertyInMock, addNotification } from '@/lib/storage';
 import { useUser } from '@/hooks/useUser';
-import { IS_MOCK_MODE, supabaseService } from '@/services/supabaseService';
+import { supabaseService } from '@/services/supabaseService';
+import { getIsMockMode } from '@/config/constants';
 
 interface UnlockModalProps {
     propertyId: string;
@@ -35,14 +36,14 @@ export function UnlockModal({ propertyId, onClose, onSuccess }: UnlockModalProps
                 receiptImage: receiptUrl,
             });
 
-            if (IS_MOCK_MODE) {
+            if (getIsMockMode()) {
                 unlockPropertyInMock(propertyId);
             }
 
-            addNotification({
+            await addNotification({
                 userId: user.id,
-                title: IS_MOCK_MODE ? 'تم فك القفل تجريبيا' : 'تم إرسال طلب فك القفل',
-                message: IS_MOCK_MODE
+                title: getIsMockMode() ? 'تم فك القفل تجريبيا' : 'تم إرسال طلب فك القفل',
+                message: getIsMockMode()
                     ? 'أصبح زر الحجز متاحا لهذا العقار في وضع المحاكاة.'
                     : 'تم إرسال إيصال الدفع. سيظهر زر الحجز بعد مراجعة الطلب والموافقة عليه.',
                 type: 'info',
@@ -139,7 +140,7 @@ export function UnlockModal({ propertyId, onClose, onSuccess }: UnlockModalProps
                             </div>
                             <h3 className="text-xl font-bold text-text-main">تم استلام طلبك</h3>
                             <p className="text-text-muted">
-                                {IS_MOCK_MODE
+                                {getIsMockMode()
                                     ? 'تم تفعيل الوصول التجريبي لهذا العقار.'
                                     : 'سيظهر زر الحجز بعد مراجعة الدفع والموافقة على فك القفل.'}
                             </p>

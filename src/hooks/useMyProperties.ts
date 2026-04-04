@@ -1,37 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Property, PropertyStatus } from '@/types';
-import {
-    getProperties,
-    getUserPropertiesFromSupabase,
-    deletePropertyFromSupabase,
-    updatePropertyInSupabase,
-} from '@/lib/storage';
+import type { Property, PropertyStatus } from '@/types';
+import { getIsMockMode } from '@/config/constants';
+import { supabaseService } from '@/services/supabaseService';
+import { fromPropertyRow } from '@/lib/propertyMapper';
 
-interface ToastCallbacks {
+interface UseMyPropertiesCallbacks {
     onSuccess?: (message: string) => void;
     onError?: (message: string) => void;
 }
 
-interface UseMyPropertiesReturn {
-    properties: Property[];
-    loading: boolean;
-    error: string | null;
-    deletingId: string | null;
-    deleteProperty: (id: string) => Promise<void>;
-    updateStatus: (id: string, newStatus: PropertyStatus) => Promise<void>;
-    refresh: () => Promise<void>;
-}
-
-export function useMyProperties(
-    userId: string | undefined,
-    callbacks?: ToastCallbacks
-): UseMyPropertiesReturn {
+export function useMyProperties(userId: string | undefined, callbacks?: UseMyPropertiesCallbacks) {
     const [properties, setProperties] = useState<Property[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
-
-    const isMockMode = process.env.NEXT_PUBLIC_IS_MOCK_MODE === 'true';
 
     const loadProperties = useCallback(async () => {
         if (!userId) {
@@ -43,92 +25,97 @@ export function useMyProperties(
         setError(null);
 
         try {
-            if (isMockMode) {
-                const all = getProperties();
-                setProperties(all.filter((p) => p.ownerId === userId));
-            } else {
-                const userProperties = await getUserPropertiesFromSupabase(userId);
-                setProperties(userProperties);
-            }
-        } catch (err) {
-            console.error('Error loading properties:', err);
+            const TIMEOUT_MS = 15_000;
+            const MAX_RETRIES = 2;
 
-            if (isMockMode) {
-                const all = getProperties();
-                setProperties(all.filter((p) => p.ownerId === userId));
-            } else {
-                setError('Failed to load properties. Please try again.');
-                setProperties([]);
+            let lastError: any = null;
+            for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+                try {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+                    const rows = await supabaseService.getProperties({ ownerId: userId });
+                    clearTimeout(timer);
+
+                    setProperties(rows.map(fromPropertyRow));
+                    lastError = null;
+                    break;
+                } catch (err: any) {
+                    lastError = err;
+                    console.error(`Attempt ${attempt + 1} failed:`, err);
+
+                    if (attempt < MAX_RETRIES - 1) {
+                        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                    }
+                }
+            }
+
+            if (lastError) {
+                if (getIsMockMode()) {
+                    const mockRows = await supabaseService.getProperties({ ownerId: userId });
+                    setProperties(mockRows.map(fromPropertyRow));
+                } else {
+                    const isTimeout = lastError?.name === 'AbortError' || lastError?.message === 'TIMEOUT';
+                    const msg = isTimeout
+                        ? 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.'
+                        : 'فشل تحميل العقارات. يرجى المحاولة لاحقاً.';
+                    setError(msg);
+                    setProperties([]);
+                }
             }
         } finally {
             setLoading(false);
         }
-    }, [userId, isMockMode]);
+    }, [userId]);
+
+    useEffect(() => {
+        loadProperties();
+    }, [loadProperties]);
 
     const deleteProperty = useCallback(async (id: string) => {
+        if (!window.confirm('هل أنت متأكد من حذف هذا العقار؟')) return;
+
         setDeletingId(id);
-
         try {
-            if (isMockMode) {
-                const all = getProperties();
-                localStorage.setItem('gamasa_properties', JSON.stringify(all.filter((p) => p.id !== id)));
+            const success = await supabaseService.deleteProperty(id);
+            if (success) {
                 setProperties((prev) => prev.filter((p) => p.id !== id));
-                callbacks?.onSuccess?.('Property deleted successfully');
+                callbacks?.onSuccess?.('تم حذف العقار بنجاح');
             } else {
-                const result = await deletePropertyFromSupabase(id);
-
-                if (result.success) {
-                    setProperties((prev) => prev.filter((p) => p.id !== id));
-                    callbacks?.onSuccess?.('Property deleted successfully');
-                } else {
-                    callbacks?.onError?.(result.error || 'Failed to delete property, please try again');
-                }
+                callbacks?.onError?.('فشل حذف العقار، يرجى المحاولة مرة أخرى');
             }
         } catch (err) {
             console.error('Error deleting property:', err);
-            callbacks?.onError?.('Failed to delete property. Please try again.');
+            callbacks?.onError?.('فشل حذف العقار. يرجى المحاولة مرة أخرى.');
         } finally {
             setDeletingId(null);
         }
-    }, [isMockMode, callbacks]);
+    }, [callbacks]);
 
     const updateStatus = useCallback(async (id: string, newStatus: PropertyStatus) => {
         try {
-            if (isMockMode) {
-                const all = getProperties();
-                const property = all.find((p) => p.id === id);
-                if (property) {
-                    property.status = newStatus;
-                    localStorage.setItem('gamasa_properties', JSON.stringify(all));
-                    setProperties((prev) => prev.map((p) => p.id === id ? { ...p, status: newStatus } : p));
-                    callbacks?.onSuccess?.('Property status updated successfully');
-                }
+            const updated = await supabaseService.updateProperty(id, { status: newStatus });
+            if (updated) {
+                setProperties((prev) => 
+                    prev.map((p) => (p.id === id ? fromPropertyRow(updated) : p))
+                );
+                callbacks?.onSuccess?.('تم تحديث حالة العقار بنجاح');
             } else {
-                const updated = await updatePropertyInSupabase(id, { status: newStatus });
-                if (updated) {
-                    setProperties((prev) => prev.map((p) => p.id === id ? updated : p));
-                    callbacks?.onSuccess?.('Property status updated successfully');
-                } else {
-                    callbacks?.onError?.('Failed to update property status');
-                }
+                callbacks?.onError?.('فشل تحديث حالة العقار');
             }
         } catch (err) {
             console.error('Error updating status:', err);
-            callbacks?.onError?.('Failed to update property status');
+            callbacks?.onError?.('فشل تحديث حالة العقار');
         }
-    }, [isMockMode, callbacks]);
+    }, [callbacks]);
 
-    const refresh = useCallback(async () => {
-        await loadProperties();
-    }, [loadProperties]);
-
-    useEffect(() => {
-        if (userId) {
-            loadProperties();
-        } else {
-            setLoading(false);
-        }
-    }, [userId, loadProperties]);
-
-    return { properties, loading, error, deletingId, deleteProperty, updateStatus, refresh };
+    return {
+        properties,
+        loading,
+        error,
+        deletingId,
+        refresh: loadProperties,
+        deleteProperty,
+        updateStatus,
+    };
 }
