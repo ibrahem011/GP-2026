@@ -67,10 +67,13 @@ function MyPropertyCardComponent({ property, onDelete, onStatusChange, isDeletin
                                         ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border border-green-200 dark:border-green-500/20'
                                         : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border border-red-200 dark:border-red-500/20'
                                     }`}
+                                aria-label="تغيير حالة العقار"
+                                aria-haspopup="true"
+                                aria-expanded={showStatusMenu}
                             >
                                 <span className={`w-1.5 h-1.5 rounded-full ${property.status === 'available' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
                                 {STATUS_AR[property.status]}
-                                {onStatusChange && <span className="material-symbols-outlined text-[14px]">expand_more</span>}
+                                {onStatusChange && <span className="material-symbols-outlined text-[14px]" aria-hidden="true">expand_more</span>}
                             </button>
                             {showStatusMenu && onStatusChange && (
                                 <div className="absolute top-full left-0 mt-2 bg-white/90 dark:bg-zinc-800/95 backdrop-blur-xl rounded-2xl shadow-xl shadow-black/10 border border-gray-100 dark:border-white/10 p-1 z-20 min-w-[140px] animate-in slide-in-from-top-2 fade-in zoom-in-95 duration-200">
@@ -117,19 +120,21 @@ function MyPropertyCardComponent({ property, onDelete, onStatusChange, isDeletin
                             disabled={isDeleting}
                             className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group/del"
                             title="حذف العقار"
+                            aria-label="حذف العقار"
                         >
                             {isDeleting ? (
-                                <span className="material-symbols-outlined text-[22px] animate-spin">hourglass_empty</span>
+                                <span className="material-symbols-outlined text-[22px] animate-spin" aria-hidden="true">hourglass_empty</span>
                             ) : (
-                                <span className="material-symbols-outlined text-[22px] group-hover/del:scale-110 transition-transform">delete</span>
+                                <span className="material-symbols-outlined text-[22px] group-hover/del:scale-110 transition-transform" aria-hidden="true">delete</span>
                             )}
                         </button>
                         <Link
                             href={`/add-property?edit=${property.id}`}
                             className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl text-gray-600 dark:text-gray-300 bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10 transition-colors group/edit"
                             title="تعديل العقار"
+                            aria-label="تعديل العقار"
                         >
-                            <span className="material-symbols-outlined text-[22px] group-hover/edit:scale-110 transition-transform">edit</span>
+                            <span className="material-symbols-outlined text-[22px] group-hover/edit:scale-110 transition-transform" aria-hidden="true">edit</span>
                         </Link>
                     </div>
                 </div>
