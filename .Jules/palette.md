@@ -1,3 +1,6 @@
 ## 2026-03-15 - Missing ARIA Labels on Custom Increment/Decrement Controls
 **Learning:** Custom UI controls for numeric filters (like bedrooms and bathrooms) in this app use icon-only buttons (+/-) without native `<input type="number">`. These were missing `aria-label` attributes, rendering them completely opaque to screen readers, especially in the Right-To-Left (RTL) Arabic context.
 **Action:** Always verify icon-only interactive elements in custom filter components and explicitly add Arabic `aria-label`s to provide context (e.g., 'زيادة عدد غرف النوم' for incrementing bedrooms).
+## 2024-04-06 - Material Icons Screen Reader Redundancy
+**Learning:** Decorative Material icons relying on text ligatures (e.g., `<span className="material-symbols-outlined">light_mode</span>`) are read aloud by screen readers as the English ligature text. When the icon is inside an interactive element that already has a descriptive `aria-label` (like a theme toggle button), this causes confusing and redundant announcements (e.g., "Switch to dark mode, dark underscore mode, button").
+**Action:** Always add `aria-hidden="true"` to Material icon `<span>` elements when they are purely decorative or when their meaning is already conveyed by a parent element's `aria-label`.
