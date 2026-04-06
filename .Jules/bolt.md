@@ -1,0 +1,3 @@
+## 2024-05-15 - [Optimize Image Uploads]
+**Learning:** Sequential awaits in a loop for image uploads block execution. `uploadPropertyImages` processes image uploads sequentially which scales poorly with multiple image files. The memory explicitly mentions: "Parallelizing I/O-bound operations, such as multiple Supabase storage deletions, uploads, or sequential independent queries, using `Promise.all` is the preferred pattern for performance optimization in services."
+**Action:** Used `Promise.all` in `uploadPropertyImages` in `src/services/supabaseService.ts` to upload multiple images concurrently, significantly improving the performance of the upload process.

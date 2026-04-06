@@ -607,11 +607,12 @@ export const supabaseService = {
             return files.map(() => `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000)}?auto=format&fit=crop&w=800&q=80`);
         }
 
-        const uploadedUrls: string[] = [];
-        for (const file of files) {
+        // ⚡ Bolt Optimization: Parallelize image uploads using Promise.all
+        // This significantly reduces total upload time for multiple images
+        // compared to the previous sequential loop.
+        const uploadPromises = files.map(async (file) => {
             try {
-                const url = await uploadImage(file, `${userId}/`);
-                uploadedUrls.push(url);
+                return await uploadImage(file, `${userId}/`);
             } catch (error: any) {
                 console.error('Error uploading image:', {
                     message: error.message,
@@ -622,8 +623,9 @@ export const supabaseService = {
                 });
                 throw error;
             }
-        }
-        return uploadedUrls;
+        });
+
+        return Promise.all(uploadPromises);
     },
 
     // ====== ط­ط°ظپ ط§ظ„طµظˆط± ======
@@ -676,9 +678,9 @@ export const supabaseService = {
                 .single();
 
             if (error) {
-                for (const url of imageUrls) {
-                    await this.deletePropertyImage(url);
-                }
+                // ⚡ Bolt Optimization: Use Promise.allSettled for parallel I/O-bound cleanup operations
+                // Ensure all cleanup tasks are attempted regardless of individual rejections, while ensuring the original error is preserved for propagation.
+                await Promise.allSettled(imageUrls.map((url) => this.deletePropertyImage(url)));
                 throw new Error(`ظپط´ظ„ ط­ظپط¸ ط§ظ„ط¹ظ‚ط§ط±: ${error.message}`);
             }
 
