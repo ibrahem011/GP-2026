@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { supabaseService } from "@/services/supabaseService";
@@ -23,7 +23,7 @@ interface PropertyCardProps {
     discount?: number;
 }
 
-export function PropertyCard({
+function PropertyCardComponent({
     id,
     title,
     location,
@@ -195,3 +195,7 @@ export function PropertyCard({
         </div>
     );
 }
+
+// ⚡ Bolt Optimization: Added React.memo to prevent unnecessary re-renders when parent lists update.
+// Impact: Reduces re-renders of the PropertyCard significantly, especially in long lists like search results.
+export const PropertyCard = React.memo(PropertyCardComponent);
