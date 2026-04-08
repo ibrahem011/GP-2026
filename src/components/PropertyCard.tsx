@@ -96,13 +96,14 @@ export function PropertyCard({
                 {/* Favorite Button */}
                 <button
                     onClick={handleFavoriteClick}
+                    aria-label={isFavorite ? "إزالة من المفضلة" : "إضافة للمفضلة"}
                     className={`absolute top-3 right-3 size-8 backdrop-blur-md rounded-full flex items-center justify-center transition-all z-10 ${isFavorite
                         ? "bg-white text-error shadow-sm transform scale-110"
                         : "bg-white/30 text-white hover:bg-white hover:text-error"
                         }`}
                 >
                     <span
-                        className="material-symbols-outlined text-[20px] transition-colors"
+                        aria-hidden="true" className="material-symbols-outlined text-[20px] transition-colors"
                         style={{ fontVariationSettings: `'FILL' ${isFavorite ? 1 : 0}` }}
                     >
                         favorite
@@ -112,7 +113,7 @@ export function PropertyCard({
                 {/* Verified Badge */}
                 {isVerified && (
                     <div className="absolute bottom-3 right-3 bg-success/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded flex items-center gap-1 font-medium pointer-events-none">
-                        <span className="material-symbols-outlined text-[14px]">verified</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[14px]">verified</span>
                         موثوق
                     </div>
                 )}
@@ -120,7 +121,7 @@ export function PropertyCard({
                 {/* Rating Badge */}
                 {rating && (
                     <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/70 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 pointer-events-none">
-                        <span className="material-symbols-outlined text-yellow-500 text-[16px] fill-current">
+                        <span aria-hidden="true" className="material-symbols-outlined text-yellow-500 text-[16px] fill-current">
                             star
                         </span>
                         <span className="text-xs font-bold text-gray-900 dark:text-white">{rating}</span>
@@ -142,7 +143,7 @@ export function PropertyCard({
                             {title}
                         </h3>
                         <p className="text-sm text-text-muted flex items-center mt-1">
-                            <span className="material-symbols-outlined text-[16px] text-primary ml-1">
+                            <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-primary ml-1">
                                 location_on
                             </span>
                             {location}
@@ -160,13 +161,13 @@ export function PropertyCard({
                 <div className="flex gap-4 mt-4 py-3 border-t border-dashed border-border-light dark:border-border-dark">
                     {bedrooms && (
                         <div className="flex items-center gap-1.5 text-text-muted">
-                            <span className="material-symbols-outlined text-[18px]">bed</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">bed</span>
                             <span className="text-xs font-medium">{bedrooms} غرف</span>
                         </div>
                     )}
                     {bathrooms && (
                         <div className="flex items-center gap-1.5 text-text-muted">
-                            <span className="material-symbols-outlined text-[18px]">
+                            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                                 bathtub
                             </span>
                             <span className="text-xs font-medium">{bathrooms} حمام</span>
@@ -174,7 +175,7 @@ export function PropertyCard({
                     )}
                     {area && (
                         <div className="flex items-center gap-1.5 text-text-muted">
-                            <span className="material-symbols-outlined text-[18px]">
+                            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                                 straighten
                             </span>
                             <span className="text-xs font-medium">{area} م²</span>
@@ -187,7 +188,7 @@ export function PropertyCard({
                     className="w-full mt-1 bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                     عرض التفاصيل
-                    <span className="material-symbols-outlined text-[18px] rtl:rotate-180 transition-transform duration-300 group-hover:-translate-x-1">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[18px] rtl:rotate-180 transition-transform duration-300 group-hover:-translate-x-1">
                         arrow_right_alt
                     </span>
                 </Link>

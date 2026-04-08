@@ -193,7 +193,7 @@ export const ChatInput = ({
                             onClick={() => handleQuickAction(action.label)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-zinc-700/50 hover:bg-white dark:hover:bg-zinc-700 border border-gray-200 dark:border-zinc-600 rounded-full text-xs text-gray-600 dark:text-gray-300 transition-all whitespace-nowrap active:scale-95"
                         >
-                            <span className="material-symbols-outlined text-[16px]">{action.icon}</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">{action.icon}</span>
                             {action.label}
                         </button>
                     ))}
@@ -211,16 +211,18 @@ export const ChatInput = ({
                             <button
                                 type="button"
                                 onClick={cancelRecording}
+                                aria-label="إلغاء التسجيل"
                                 className="p-2 text-gray-500 hover:text-red-500 transition-colors"
                             >
-                                <span className="material-symbols-outlined">delete</span>
+                                <span aria-hidden="true" className="material-symbols-outlined">delete</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={stopRecording}
+                                aria-label="إرسال التسجيل"
                                 className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
                             >
-                                <span className="material-symbols-outlined">send</span>
+                                <span aria-hidden="true" className="material-symbols-outlined">send</span>
                             </button>
                         </div>
                     </div>
@@ -238,9 +240,10 @@ export const ChatInput = ({
                             type="button"
                             onClick={handleAttachmentClick}
                             disabled={uploading}
+                            aria-label={uploading ? "جاري الرفع" : (hasMediaPermission ? "إرفاق صورة" : "إرفاق صورة (غير مصرح)")}
                             className={`w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-zinc-700 text-gray-500 hover:text-primary transition-colors hover:bg-primary/10 ${uploading ? 'opacity-50' : ''}`}
                         >
-                            <span className="material-symbols-outlined">
+                            <span aria-hidden="true" className="material-symbols-outlined">
                                 {uploading ? 'cloud_upload' : (hasMediaPermission ? 'add_photo_alternate' : 'lock')}
                             </span>
                         </button>
@@ -248,9 +251,10 @@ export const ChatInput = ({
                         <div className="flex-1 bg-gray-100 dark:bg-zinc-700 rounded-2xl p-2 flex items-center gap-2">
                             <button
                                 type="button"
+                                aria-label="إدراج رمز تعبيري"
                                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-yellow-500 transition-colors"
                             >
-                                <span className="material-symbols-outlined">sentiment_satisfied</span>
+                                <span aria-hidden="true" className="material-symbols-outlined">sentiment_satisfied</span>
                             </button>
 
                             <textarea
@@ -273,18 +277,20 @@ export const ChatInput = ({
                             {message.trim() ? (
                                 <button
                                     type="submit"
+                                    aria-label="إرسال الرسالة"
                                     className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all"
                                 >
-                                    <span className="material-symbols-outlined scale-x-[-1]">send</span>
+                                    <span aria-hidden="true" className="material-symbols-outlined scale-x-[-1]">send</span>
                                 </button>
                             ) : (
                                 <button
                                     type="button"
                                     onMouseDown={startRecording}
                                     onTouchStart={startRecording}
+                                    aria-label="تسجيل رسالة صوتية"
                                     className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
                                 >
-                                    <span className="material-symbols-outlined">mic</span>
+                                    <span aria-hidden="true" className="material-symbols-outlined">mic</span>
                                 </button>
                             )}
                         </div>
