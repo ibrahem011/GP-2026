@@ -96,14 +96,16 @@ export function PropertyCard({
                 {/* Favorite Button */}
                 <button
                     onClick={handleFavoriteClick}
-                    className={`absolute top-3 right-3 size-8 backdrop-blur-md rounded-full flex items-center justify-center transition-all z-10 ${isFavorite
+                    className={`absolute top-3 right-3 size-8 backdrop-blur-md rounded-full flex items-center justify-center transition-all z-10 focus-visible:ring-2 focus-visible:outline-none ${isFavorite
                         ? "bg-white text-error shadow-sm transform scale-110"
                         : "bg-white/30 text-white hover:bg-white hover:text-error"
                         }`}
+                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
                 >
                     <span
                         className="material-symbols-outlined text-[20px] transition-colors"
                         style={{ fontVariationSettings: `'FILL' ${isFavorite ? 1 : 0}` }}
+                        aria-hidden="true"
                     >
                         favorite
                     </span>
