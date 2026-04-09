@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { _clearFavoritesCacheForTest } from '../supabaseService';
 
 const { mockRpc, mockFrom } = vi.hoisted(() => ({
     mockRpc: vi.fn(),
@@ -213,6 +214,10 @@ describe('supabaseService RPC methods', () => {
     });
 
     describe('getFavorites', () => {
+        beforeEach(() => {
+            _clearFavoritesCacheForTest();
+        });
+
         it('returns data and no error on success', async () => {
             mockRpc.mockResolvedValueOnce({
                 data: [

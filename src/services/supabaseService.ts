@@ -503,6 +503,17 @@ const MOCK_PROPERTIES: PropertyRow[] = [
 const _mockFavorites = new Set<string>();
 const _mockUnlocked = new Set<string>();
 
+// Cache for getFavorites to prevent N+1 frontend requests
+const _favoritesCache = new Map<string, { promise: Promise<{ data: PropertyRow[]; error: any }>; timestamp: number }>();
+const FAVORITES_CACHE_TTL = 5000; // 5 seconds
+
+// Export internal cache clearing mechanism for tests ONLY
+export const _clearFavoritesCacheForTest = () => {
+    if (process.env.NODE_ENV === 'test') {
+        _favoritesCache.clear();
+    }
+};
+
 export const supabaseService = {
     // ====== Mock Auth Hub ======
     async signIn(email: string, pass: string) {
@@ -867,31 +878,47 @@ export const supabaseService = {
             return { data: favoriteProperties, error: null };
         }
 
-        try {
-            const { data, error } = await supabase
-                .rpc('get_user_favorites', { uid: userId });
+        const now = Date.now();
+        const cached = _favoritesCache.get(userId);
 
-            if (error) {
+        if (cached && now - cached.timestamp < FAVORITES_CACHE_TTL) {
+            return cached.promise;
+        }
+
+        const fetchPromise = (async () => {
+            try {
+                const { data, error } = await supabase
+                    .rpc('get_user_favorites', { uid: userId });
+
+                if (error) {
+                    if (isMissingRpcFunctionError(error, 'get_user_favorites')) {
+                        return await getFavoritesFallback(userId);
+                    }
+
+                    console.error('[getFavorites RPC Error]', error);
+                    return { data: [], error };
+                }
+
+                return { data: (data || []) as PropertyRow[], error: null };
+            } catch (error) {
                 if (isMissingRpcFunctionError(error, 'get_user_favorites')) {
                     return await getFavoritesFallback(userId);
                 }
 
-                console.error('[getFavorites RPC Error]', error);
+                console.error('[getFavorites Unexpected Error]', error);
                 return { data: [], error };
             }
+        })();
 
-            return { data: (data || []) as PropertyRow[], error: null };
-        } catch (error) {
-            if (isMissingRpcFunctionError(error, 'get_user_favorites')) {
-                return await getFavoritesFallback(userId);
-            }
+        _favoritesCache.set(userId, { promise: fetchPromise, timestamp: now });
 
-            console.error('[getFavorites Unexpected Error]', error);
-            return { data: [], error };
-        }
+        return fetchPromise;
     },
 
     async toggleFavorite(userId: string, propertyId: string): Promise<boolean> {
+        // Clear cache so next fetch reflects the toggle
+        _favoritesCache.delete(userId);
+
         if (shouldShortCircuitMock()) {
             if (_mockFavorites.has(propertyId)) {
                 _mockFavorites.delete(propertyId);
