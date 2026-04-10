@@ -607,23 +607,22 @@ export const supabaseService = {
             return files.map(() => `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000)}?auto=format&fit=crop&w=800&q=80`);
         }
 
-        const uploadedUrls: string[] = [];
-        for (const file of files) {
-            try {
-                const url = await uploadImage(file, `${userId}/`);
-                uploadedUrls.push(url);
-            } catch (error: any) {
-                console.error('Error uploading image:', {
-                    message: error.message,
-                    code: error.code,
-                    hint: error.hint,
-                    details: error.details,
-                    error // Log full error just in case it's not a PostgrestError
-                });
-                throw error;
-            }
+        try {
+            // ⚡ Bolt: Parallelize I/O-bound operations for significantly faster multi-image uploads
+            const uploadedUrls = await Promise.all(
+                files.map(file => uploadImage(file, `${userId}/`))
+            );
+            return uploadedUrls;
+        } catch (error: any) {
+            console.error('Error uploading image:', {
+                message: error.message,
+                code: error.code,
+                hint: error.hint,
+                details: error.details,
+                error // Log full error just in case it's not a PostgrestError
+            });
+            throw error;
         }
-        return uploadedUrls;
     },
 
     // ====== ط­ط°ظپ ط§ظ„طµظˆط± ======
@@ -676,9 +675,10 @@ export const supabaseService = {
                 .single();
 
             if (error) {
-                for (const url of imageUrls) {
-                    await this.deletePropertyImage(url);
-                }
+                // ⚡ Bolt: Parallelize cleanup operations so failures don't block subsequent cleanup
+                await Promise.allSettled(
+                    imageUrls.map(url => this.deletePropertyImage(url))
+                );
                 throw new Error(`ظپط´ظ„ ط­ظپط¸ ط§ظ„ط¹ظ‚ط§ط±: ${error.message}`);
             }
 
