@@ -1,0 +1,3 @@
+## 2023-10-27 - Icon-Only Button Accessibility in Notifications
+**Learning:** Icon-only buttons using Material Symbols (ligatures) without `aria-hidden="true"` and `aria-label` are prevalent in the notifications components (`NotificationsPopover`, `NotificationsSheet`). This causes screen readers to read the ligature text aloud (e.g., "close"), which is not localized, and lacks proper focus states for keyboard navigation.
+**Action:** When creating or fixing icon-only buttons, always add an English `aria-label` for screen readers, `aria-hidden="true"` on the inner icon element, and `focus-visible:ring-2 focus-visible:outline-none` for keyboard navigation visibility.
