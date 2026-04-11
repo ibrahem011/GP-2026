@@ -1251,6 +1251,30 @@ export const supabaseService = {
         return count || 0;
     },
 
+    async getPropertiesCount(filters?: { status?: string }): Promise<number> {
+        if (shouldShortCircuitMock()) {
+            if (filters?.status) {
+                return MOCK_PROPERTIES.filter(p => p.status === filters.status).length;
+            }
+            return MOCK_PROPERTIES.length;
+        }
+
+        let query = supabase
+            .from('properties')
+            .select('*', { count: 'exact', head: true });
+
+        if (filters?.status) {
+            query = query.eq('status', filters.status);
+        }
+
+        const { count, error } = await query;
+        if (error) {
+            console.error('Error fetching properties count:', error);
+            return 0;
+        }
+        return count || 0;
+    },
+
     async getProfilesCount(): Promise<number> {
         if (shouldShortCircuitMock()) {
             return 1;
