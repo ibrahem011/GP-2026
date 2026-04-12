@@ -103,6 +103,7 @@ export default function SearchFilters({
             <button
               key={String(opt.value)}
               onClick={() => setCategory(opt.value)}
+              aria-pressed={category === opt.value}
               className={[
                 'shrink-0 px-3 py-2 rounded-full border text-sm flex items-center gap-2 transition',
                 category === opt.value
@@ -126,8 +127,9 @@ export default function SearchFilters({
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="space-y-1">
-            <label className="text-xs text-text-muted">الحد الأدنى</label>
+            <label htmlFor="min-price" className="text-xs text-text-muted">الحد الأدنى</label>
             <input
+              id="min-price"
               inputMode="numeric"
               value={minPrice || ''}
               onChange={(e) => setMinPrice(Number(e.target.value || 0))}
@@ -136,8 +138,9 @@ export default function SearchFilters({
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-text-muted">الحد الأقصى</label>
+            <label htmlFor="max-price" className="text-xs text-text-muted">الحد الأقصى</label>
             <input
+              id="max-price"
               inputMode="numeric"
               value={maxPrice || ''}
               onChange={(e) => setMaxPrice(Number(e.target.value || 0))}
@@ -154,6 +157,7 @@ export default function SearchFilters({
           step="500"
           value={Math.min(Math.max(maxPrice || 5000, 500), 10000)}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
+          aria-label="اختر الحد الأقصى للسعر"
           className="w-full h-2 bg-background-light dark:bg-background-dark rounded-lg appearance-none cursor-pointer accent-primary"
         />
 
@@ -162,6 +166,7 @@ export default function SearchFilters({
             <button
               key={v}
               onClick={() => setMaxPrice(v)}
+              aria-pressed={maxPrice === v}
               className="shrink-0 px-3 py-2 rounded-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm"
             >
               حتى {v.toLocaleString()}
@@ -179,6 +184,7 @@ export default function SearchFilters({
         <select
           value={selectedArea}
           onChange={(e) => setSelectedArea(e.target.value)}
+          aria-label="اختر المنطقة"
           className="w-full p-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm outline-none"
         >
           <option value="all">كل المناطق</option>
@@ -247,6 +253,7 @@ export default function SearchFilters({
             <button
               key={feature.id}
               onClick={() => toggleFeature(feature.id)}
+              aria-pressed={selectedFeatures.includes(feature.id)}
               className={[
                 'px-3 py-1.5 rounded-full text-xs font-medium border transition-all flex items-center gap-1.5',
                 selectedFeatures.includes(feature.id)
