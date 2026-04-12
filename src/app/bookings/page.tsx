@@ -276,10 +276,7 @@ export default function BookingsPage() {
       ),
     );
 
-    const { error: updateError } = await supabaseService.updateBookingStatus(
-      id,
-      "cancelled",
-    );
+    const { error: updateError } = await supabaseService.cancelBooking(id);
 
     if (updateError) {
       alert("فشل في عملية الإلغاء. سيتم التراجع.");
@@ -300,10 +297,7 @@ export default function BookingsPage() {
       ),
     );
 
-    const { error: updateError } = await supabaseService.updateBookingStatus(
-      id,
-      "confirmed",
-    );
+    const { error: updateError } = await supabaseService.confirmBookingRequest(id);
 
     if (updateError) {
       alert("فشل في عملية القبول. سيتم التراجع.");
@@ -326,10 +320,7 @@ export default function BookingsPage() {
       ),
     );
 
-    const { error: updateError } = await supabaseService.updateBookingStatus(
-      id,
-      "cancelled",
-    );
+    const { error: updateError } = await supabaseService.rejectBookingRequest(id);
 
     if (updateError) {
       alert("فشل في عملية الرفض. سيتم التراجع.");

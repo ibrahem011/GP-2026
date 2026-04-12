@@ -35,7 +35,7 @@
 - `src/hooks/useUser.ts`
 - `src/context/AuthContext.tsx`
 - `src/app/profile/page.tsx`
-- [x] مزامنة `supabase/schema.sql` و`supabase/functions.sql` لمنع schema drift.
+- [x] مزامنة ملفات Supabase المرجعية داخل `supabase/manual/` لمنع schema drift.
 
 #### Verification
 - [x] `rg -n "'مؤجر'|'مستأجر'|مشرف|مدير" src` → المتبقي فقط داخل labels/mapping.

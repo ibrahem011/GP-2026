@@ -21,6 +21,11 @@ vi.mock('@/lib/supabase', () => ({
             from: vi.fn(() => ({
                 upload: vi.fn(),
                 getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://example.com/image.jpg' } })),
+                createSignedUrl: vi.fn((path: string) => ({ data: { signedUrl: `https://example.com/${path}` }, error: null })),
+                createSignedUrls: vi.fn((paths: string[]) => ({
+                    data: paths.map((path) => ({ path, signedUrl: `https://example.com/${path}` })),
+                    error: null,
+                })),
                 remove: vi.fn(),
             })),
         },
@@ -290,9 +295,10 @@ describe('Booking regressions', () => {
 
         it('sends exactly one booking_request message for a successful booking', async () => {
             const sendMessageSpy = vi.spyOn(supabaseService, 'sendMessage').mockResolvedValue(undefined as any);
+            mockRpc.mockResolvedValueOnce({ data: 'booking-1', error: null });
 
             mockFrom.mockImplementation((table: string) => {
-                if (table === 'bookings') return createAvailabilityQuery({ data: bookingRow, error: null });
+                if (table === 'bookings') return createSelectEqSingleQuery({ data: bookingRow, error: null });
                 if (table === 'properties') return createAvailabilityQuery({ data: { owner_id: 'owner-1' }, error: null });
                 if (table === 'conversations') return createAvailabilityQuery({ data: { id: 'conv-1' }, error: null });
                 if (table === 'messages') {
@@ -304,15 +310,20 @@ describe('Booking regressions', () => {
 
             await supabaseService.createBooking(bookingData);
 
+            expect(mockRpc).toHaveBeenCalledWith('create_atomic_booking', expect.objectContaining({
+                p_property_id: validPropertyId,
+                p_user_id: validUserId,
+            }));
             expect(sendMessageSpy).toHaveBeenCalledTimes(1);
             sendMessageSpy.mockRestore();
         });
 
         it('does not duplicate booking_request message on retry for the same booking_id', async () => {
             const sendMessageSpy = vi.spyOn(supabaseService, 'sendMessage').mockResolvedValue(undefined as any);
+            mockRpc.mockResolvedValueOnce({ data: 'booking-1', error: null });
 
             mockFrom.mockImplementation((table: string) => {
-                if (table === 'bookings') return createAvailabilityQuery({ data: bookingRow, error: null });
+                if (table === 'bookings') return createSelectEqSingleQuery({ data: bookingRow, error: null });
                 if (table === 'properties') return createAvailabilityQuery({ data: { owner_id: 'owner-1' }, error: null });
                 if (table === 'conversations') return createAvailabilityQuery({ data: { id: 'conv-1' }, error: null });
                 if (table === 'messages') {

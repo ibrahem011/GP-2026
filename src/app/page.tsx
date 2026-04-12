@@ -165,7 +165,14 @@ export default function HomePage() {
             <span className="material-symbols-outlined text-[18px] rtl:rotate-180 transition-transform group-hover:-translate-x-1">arrow_forward</span>
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+        <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-4 hide-scrollbar snap-x snap-mandatory md:hidden">
+          {featuredProperties.map((property) => (
+            <div key={property.id} className="w-[85vw] min-w-[85vw] max-w-[22rem] shrink-0 snap-start">
+              <PropertyCard {...property} />
+            </div>
+          ))}
+        </div>
+        <div className="hidden gap-6 md:grid md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
           {featuredProperties.map((property) => (
             <PropertyCard key={property.id} {...property} />
           ))}
@@ -189,7 +196,14 @@ export default function HomePage() {
             <span className="material-symbols-outlined text-[18px] rtl:rotate-180 transition-transform group-hover:-translate-x-1">arrow_forward</span>
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+        <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-4 hide-scrollbar snap-x snap-mandatory md:hidden">
+          {recentProperties.map((property) => (
+            <div key={property.id} className="w-[85vw] min-w-[85vw] max-w-[22rem] shrink-0 snap-start">
+              <PropertyCard {...property} />
+            </div>
+          ))}
+        </div>
+        <div className="hidden gap-6 md:grid md:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
           {recentProperties.map((property) => (
             <PropertyCard key={property.id} {...property} />
           ))}

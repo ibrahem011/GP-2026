@@ -60,6 +60,13 @@ export interface User {
     role: UserRole;
     nationalId?: string;
     isVerified: boolean;
+    isAdmin?: boolean;
+    isSuperAdmin?: boolean;
+    isBlocked?: boolean;
+    blockedAt?: string;
+    blockedReason?: string;
+    archivedAt?: string;
+    archivedReason?: string;
     favorites: string[];
     unlockedProperties: string[];
     createdAt: string;
@@ -190,7 +197,7 @@ export interface Booking {
     paymentMethod: 'vodafone_cash' | 'instapay' | 'cash_on_delivery';
     paymentStatus: 'pending' | 'confirmed' | 'failed';
     paymentProof?: string;
-    status: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed';
+    status: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed' | 'rejected' | 'expired';
     createdAt: string;
     confirmedAt?: string;
     property?: Property;
@@ -207,4 +214,14 @@ export interface TenantPropertyState {
     unlockRequestStatus: 'none' | 'pending' | 'approved' | 'rejected';
     latestBooking: Pick<Booking, 'id' | 'startDate' | 'endDate' | 'status' | 'createdAt'> | null;
     hasBookingHistory: boolean;
+}
+
+export interface AdminAuditLog {
+    id: string;
+    action: string;
+    actorUserId: string;
+    targetType: string;
+    targetId: string;
+    metadata: any;
+    createdAt: string;
 }

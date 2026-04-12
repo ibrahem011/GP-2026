@@ -1,5 +1,12 @@
-
 import { supabase, STORAGE_BUCKET, uploadImage, deleteImage } from '@/lib/supabase';
+import { signPathsWithServiceRole } from '@/lib/serverSupabase';
+import {
+    STORAGE_BUCKETS,
+    type StorageBucketName,
+    buildStorageObjectPath,
+    isDisplayableUrl,
+    toStorageReference,
+} from '@/lib/storagePaths';
 import { Conversation, Message, Profile } from '@/types/messaging';
 import type { PublicBookingPeriod, TenantPropertyState, UserRole } from '@/types';
 import { normalizeRole } from '@/lib/roles';
@@ -27,7 +34,109 @@ const PUBLIC_BOOKING_PERIODS_RPC_ENABLED = process.env.NEXT_PUBLIC_ENABLE_PUBLIC
 
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const UNLOCK_FEE = 50;
+const STORAGE_SIGN_TTL_SECONDS = 60 * 5;
 let publicBookingPeriodsRpcAvailable = PUBLIC_BOOKING_PERIODS_RPC_ENABLED;
+
+type GetPropertiesLogLevel = 'error' | 'warn' | 'silent';
+
+export interface GetPropertiesFilters {
+    status?: string;
+    category?: string;
+    area?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    features?: string[];
+    ownerId?: string;
+    q?: string;
+    limit?: number;
+    offset?: number;
+    signal?: AbortSignal;
+    timeoutMs?: number;
+    logLevel?: GetPropertiesLogLevel;
+}
+
+type PropertyQueryErrorLike = {
+    message?: string;
+    code?: string;
+    hint?: string;
+    details?: string;
+};
+
+function createAbortSignalWithTimeout(timeoutMs?: number, externalSignal?: AbortSignal) {
+    if (typeof timeoutMs !== 'number' || timeoutMs <= 0) {
+        return {
+            signal: externalSignal,
+            cleanup: () => undefined,
+            didTimeout: () => false,
+        };
+    }
+
+    const controller = new AbortController();
+    let timedOut = false;
+    const handleTimeout = () => {
+        timedOut = true;
+        controller.abort();
+    };
+    const timeoutId = setTimeout(handleTimeout, timeoutMs);
+    const handleExternalAbort = () => controller.abort();
+
+    if (externalSignal) {
+        if (externalSignal.aborted) {
+            controller.abort();
+        } else {
+            externalSignal.addEventListener('abort', handleExternalAbort, { once: true });
+        }
+    }
+
+    return {
+        signal: controller.signal,
+        cleanup: () => {
+            clearTimeout(timeoutId);
+            externalSignal?.removeEventListener('abort', handleExternalAbort);
+        },
+        didTimeout: () => timedOut,
+    };
+}
+
+function isAbortLikeQueryFailure(error: PropertyQueryErrorLike | null | undefined): boolean {
+    const haystack = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+    return haystack.includes('aborterror')
+        || haystack.includes('aborted')
+        || haystack.includes('timeout')
+        || haystack.includes('timed out');
+}
+
+function sanitizeGetPropertiesFilters(filters?: GetPropertiesFilters) {
+    if (!filters) {
+        return undefined;
+    }
+
+    const { signal, ...safeFilters } = filters;
+    return safeFilters;
+}
+
+function logGetPropertiesFailure(
+    error: PropertyQueryErrorLike,
+    filters: GetPropertiesFilters | undefined,
+    timedOut: boolean,
+) {
+    const logLevel = filters?.logLevel ?? (timedOut || isAbortLikeQueryFailure(error) ? 'warn' : 'error');
+    if (logLevel === 'silent') {
+        return;
+    }
+
+    const logger = logLevel === 'warn' ? console.warn : console.error;
+    logger('Error fetching properties:', {
+        message: error.message,
+        code: error.code,
+        hint: error.hint,
+        details: error.details,
+        timedOut,
+        filters: sanitizeGetPropertiesFilters(filters),
+    });
+}
 
 type UnlockablePayment = {
     id: string;
@@ -39,7 +148,7 @@ type TenantPropertyBookingRow = {
     id: string;
     start_date: string;
     end_date: string;
-    status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+    status: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed' | 'rejected' | 'expired';
     created_at: string;
 };
 
@@ -97,6 +206,26 @@ type UserBookingsFallbackRow = {
     } | null;
 };
 
+type PaymentRequestListRow = {
+    id: string;
+    user_id: string;
+    property_id: string;
+    amount: number;
+    payment_method: 'vodafone_cash' | 'instapay' | 'fawry';
+    receipt_image: string | null;
+    status: 'pending' | 'approved' | 'rejected';
+    admin_note: string | null;
+    created_at: string;
+    is_consumed?: boolean | null;
+    processed_at?: string | null;
+    properties?: {
+        title?: string | null;
+    } | null;
+    profiles?: {
+        full_name?: string | null;
+    } | null;
+};
+
 const FAVORITES_PROPERTY_SELECT = `
     id,
     owner_id,
@@ -123,6 +252,233 @@ const FAVORITES_PROPERTY_SELECT = `
     created_at,
     updated_at
 `;
+
+const isBrowserRuntime = () => typeof window !== 'undefined';
+
+function createRandomStorageName(fileName: string | undefined, fallbackExtension: string): string {
+    const fileExt = fileName?.split('.').pop()?.trim() || fallbackExtension;
+    return `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+}
+
+async function getCurrentAuthUserId(): Promise<string> {
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error) {
+        throw new Error(`Failed to load authenticated user: ${error.message}`);
+    }
+
+    if (!data.user?.id) {
+        throw new Error('Authenticated user is required for this action.');
+    }
+
+    return data.user.id;
+}
+
+async function createSignedUrlMapWithClient(
+    bucket: StorageBucketName,
+    paths: string[],
+): Promise<Map<string, string>> {
+    const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+    if (uniquePaths.length === 0) {
+        return new Map<string, string>();
+    }
+
+    try {
+        const bucketClient: any = supabase.storage.from(bucket);
+        const signedUrlMap = new Map<string, string>();
+
+        if (typeof bucketClient.createSignedUrls === 'function') {
+            const { data, error } = await bucketClient.createSignedUrls(uniquePaths, STORAGE_SIGN_TTL_SECONDS);
+
+            if (error) {
+                return signedUrlMap;
+            }
+
+            for (const [index, item] of (data || []).entries()) {
+                const path = item.path || uniquePaths[index];
+                if (path && item.signedUrl) {
+                    signedUrlMap.set(path, item.signedUrl);
+                }
+            }
+
+            return signedUrlMap;
+        }
+
+        if (typeof bucketClient.createSignedUrl === 'function') {
+            for (const path of uniquePaths) {
+                const { data, error } = await bucketClient.createSignedUrl(path, STORAGE_SIGN_TTL_SECONDS);
+                if (!error && data?.signedUrl) {
+                    signedUrlMap.set(path, data.signedUrl);
+                }
+            }
+            return signedUrlMap;
+        }
+    } catch (error) {
+        console.error(`Error creating signed URLs for ${bucket}:`, error);
+    }
+
+    return new Map<string, string>();
+}
+
+async function createPropertySignedUrlMapWithRoute(paths: string[]): Promise<Map<string, string>> {
+    if (!isBrowserRuntime()) {
+        return new Map<string, string>();
+    }
+
+    try {
+        const response = await fetch('/api/storage/sign-property-images', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ paths }),
+        });
+
+        if (!response.ok) {
+            return new Map<string, string>();
+        }
+
+        const body = await response.json().catch(() => ({}));
+        const urls = body?.urls && typeof body.urls === 'object' ? body.urls : {};
+        return new Map<string, string>(Object.entries(urls));
+    } catch (error) {
+        console.error('Error signing property images through Next route:', error);
+        return new Map<string, string>();
+    }
+}
+
+async function createSignedUrlMap(
+    bucket: StorageBucketName,
+    paths: string[],
+): Promise<Map<string, string>> {
+    const uniquePaths = Array.from(new Set(paths.filter(Boolean)));
+    if (uniquePaths.length === 0) {
+        return new Map<string, string>();
+    }
+
+    if (!isBrowserRuntime()) {
+        try {
+            return await signPathsWithServiceRole(bucket, uniquePaths, STORAGE_SIGN_TTL_SECONDS);
+        } catch (error) {
+            console.error(`Error creating server-side signed URLs for ${bucket}:`, error);
+            return new Map<string, string>();
+        }
+    }
+
+    const clientSignedUrls = await createSignedUrlMapWithClient(bucket, uniquePaths);
+
+    if (bucket !== STORAGE_BUCKETS.propertiesImages) {
+        return clientSignedUrls;
+    }
+
+    const missingPaths = uniquePaths.filter((path) => !clientSignedUrls.has(path));
+    if (missingPaths.length === 0) {
+        return clientSignedUrls;
+    }
+
+    const routeSignedUrls = await createPropertySignedUrlMapWithRoute(missingPaths);
+    for (const [path, url] of routeSignedUrls.entries()) {
+        clientSignedUrls.set(path, url);
+    }
+
+    return clientSignedUrls;
+}
+
+async function resolveStorageValues(
+    values: Array<string | null | undefined>,
+    bucket: StorageBucketName,
+): Promise<Array<string | null>> {
+    const references = values.map((value) => toStorageReference(value, bucket));
+    const paths = references.flatMap((reference) => (reference.path ? [reference.path] : []));
+    const signedUrlMap = await createSignedUrlMap(bucket, paths);
+
+    return references.map((reference) => {
+        if (!reference.original) {
+            return null;
+        }
+
+        if (reference.path) {
+            const signedUrl = signedUrlMap.get(reference.path);
+            if (signedUrl) {
+                return signedUrl;
+            }
+
+            if (reference.passthrough && isDisplayableUrl(reference.passthrough)) {
+                return reference.passthrough;
+            }
+
+            return null;
+        }
+
+        if (reference.passthrough && isDisplayableUrl(reference.passthrough)) {
+            return reference.passthrough;
+        }
+
+        return null;
+    });
+}
+
+async function resolveStorageValue(
+    value: string | null | undefined,
+    bucket: StorageBucketName,
+): Promise<string | null> {
+    const [resolvedValue] = await resolveStorageValues([value], bucket);
+    return resolvedValue || null;
+}
+
+async function hydratePropertyRows(rows: PropertyRow[]): Promise<PropertyRow[]> {
+    const rawImages = rows.flatMap((row) => row.images || []);
+    const signedImages = await resolveStorageValues(rawImages, STORAGE_BUCKETS.propertiesImages);
+
+    let imageIndex = 0;
+
+    return rows.map((row) => ({
+        ...row,
+        images: (row.images || []).map(() => {
+            const resolved = signedImages[imageIndex];
+            imageIndex += 1;
+            return resolved || '';
+        }).filter(Boolean),
+    }));
+}
+
+async function hydratePropertyRow(row: PropertyRow | null): Promise<PropertyRow | null> {
+    if (!row) {
+        return null;
+    }
+
+    const [hydratedRow] = await hydratePropertyRows([row]);
+    return hydratedRow || null;
+}
+
+async function hydrateBookingsWithPropertyImages<T extends {
+    property?: {
+        images?: string[] | null;
+    } | null;
+}>(bookings: T[]): Promise<T[]> {
+    const rawImages = bookings.flatMap((booking) => booking.property?.images || []);
+    const signedImages = await resolveStorageValues(rawImages, STORAGE_BUCKETS.propertiesImages);
+
+    let imageIndex = 0;
+
+    return bookings.map((booking) => {
+        if (!booking.property) {
+            return booking;
+        }
+
+        return {
+            ...booking,
+            property: {
+                ...booking.property,
+                images: (booking.property.images || []).map(() => {
+                    const resolved = signedImages[imageIndex];
+                    imageIndex += 1;
+                    return resolved || '';
+                }).filter(Boolean),
+            },
+        };
+    });
+}
 
 function isMissingRpcFunctionError(error: any, functionName: string): boolean {
     if (!error) return false;
@@ -173,7 +529,7 @@ async function getFavoritesFallback(userId: string): Promise<{ data: PropertyRow
         .map((propertyId) => propertiesById.get(propertyId) || null)
         .filter((property): property is PropertyRow => property !== null);
 
-    return { data: orderedProperties, error: null };
+    return { data: await hydratePropertyRows(orderedProperties), error: null };
 }
 
 function mapFallbackBookingRow(
@@ -279,7 +635,7 @@ async function getUserBookingsFallback(userId: string): Promise<{ bookings: any[
         ...(((ownerRows || []) as unknown) as UserBookingsFallbackRow[]).map((row) => mapFallbackBookingRow(row, 'owner')),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return { bookings, error: null };
+    return { bookings: await hydrateBookingsWithPropertyImages(bookings), error: null };
 }
 
 function normalizeDateOnly(value: string): string | null {
@@ -607,11 +963,11 @@ export const supabaseService = {
             return files.map(() => `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000)}?auto=format&fit=crop&w=800&q=80`);
         }
 
-        const uploadedUrls: string[] = [];
+        const uploadedPaths: string[] = [];
         for (const file of files) {
             try {
-                const url = await uploadImage(file, `${userId}/`);
-                uploadedUrls.push(url);
+                const path = await uploadImage(file, `${userId}/`);
+                uploadedPaths.push(path);
             } catch (error: any) {
                 console.error('Error uploading image:', {
                     message: error.message,
@@ -623,13 +979,13 @@ export const supabaseService = {
                 throw error;
             }
         }
-        return uploadedUrls;
+        return uploadedPaths;
     },
 
     // ====== ط­ط°ظپ ط§ظ„طµظˆط± ======
-    async deletePropertyImage(url: string): Promise<void> {
+    async deletePropertyImage(pathOrUrl: string): Promise<void> {
         if (shouldShortCircuitMock()) return;
-        await deleteImage(url);
+        await deleteImage(pathOrUrl);
     },
 
 
@@ -658,9 +1014,9 @@ export const supabaseService = {
 
         try {
             // 1. ط±ظپط¹ ط§ظ„طµظˆط± ط£ظˆظ„ط§ظ‹
-            let imageUrls: string[] = [];
+            let imagePaths: string[] = [];
             if (imageFiles.length > 0) {
-                imageUrls = await this.uploadPropertyImages(imageFiles, userId);
+                imagePaths = await this.uploadPropertyImages(imageFiles, userId);
             }
 
             // 2. ط­ظپط¸ ط§ظ„ط¹ظ‚ط§ط± ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
@@ -669,20 +1025,20 @@ export const supabaseService = {
                 .insert({
                     ...propertyData,
                     owner_id: userId,
-                    images: imageUrls,
+                    images: imagePaths,
                     status: 'pending',
                 })
                 .select()
                 .single();
 
             if (error) {
-                for (const url of imageUrls) {
-                    await this.deletePropertyImage(url);
+                for (const path of imagePaths) {
+                    await this.deletePropertyImage(path);
                 }
                 throw new Error(`ظپط´ظ„ ط­ظپط¸ ط§ظ„ط¹ظ‚ط§ط±: ${error.message}`);
             }
 
-            return data as PropertyRow;
+            return (await hydratePropertyRow(data as PropertyRow)) as PropertyRow;
         } catch (error: any) {
             console.error('Error in createFullProperty:', {
                 message: error.message,
@@ -695,20 +1051,7 @@ export const supabaseService = {
         }
     },
 
-    async getProperties(filters?: {
-        status?: string;
-        category?: string;
-        area?: string;
-        minPrice?: number;
-        maxPrice?: number;
-        bedrooms?: number;
-        bathrooms?: number;
-        features?: string[];
-        ownerId?: string;
-        q?: string;
-        limit?: number;
-        offset?: number;
-    }): Promise<PropertyRow[]> {
+    async getProperties(filters?: GetPropertiesFilters): Promise<PropertyRow[]> {
         if (shouldShortCircuitMock()) {
             let filtered = [...MOCK_PROPERTIES];
             if (filters?.status) filtered = filtered.filter(p => p.status === filters.status);
@@ -758,17 +1101,30 @@ export const supabaseService = {
             query = query.range(offset, offset + filters.limit - 1);
         }
 
-        const { data, error } = await query;
-        if (error) {
-            console.error('Error fetching properties:', {
-                message: error.message,
-                code: error.code,
-                hint: error.hint,
-                details: error.details,
-            });
-            return [];
+        const timeout = createAbortSignalWithTimeout(filters?.timeoutMs, filters?.signal);
+        if (timeout.signal && typeof query.abortSignal === 'function') {
+            query = query.abortSignal(timeout.signal);
         }
-        return (data || []) as PropertyRow[];
+
+        try {
+            const { data, error } = await query;
+            if (error) {
+                logGetPropertiesFailure(error, filters, timeout.didTimeout());
+                return [];
+            }
+
+            return await hydratePropertyRows((data || []) as PropertyRow[]);
+        } catch (error: any) {
+            logGetPropertiesFailure({
+                message: error?.message,
+                code: error?.code,
+                hint: error?.hint,
+                details: error?.details || error?.stack,
+            }, filters, timeout.didTimeout());
+            return [];
+        } finally {
+            timeout.cleanup();
+        }
     },
 
     async getPropertyById(id: string): Promise<PropertyRow | null> {
@@ -792,7 +1148,7 @@ export const supabaseService = {
             });
             return null;
         }
-        return data as PropertyRow;
+        return await hydratePropertyRow(data as PropertyRow);
     },
 
     async incrementPropertyViews(id: string): Promise<void> {
@@ -831,7 +1187,7 @@ export const supabaseService = {
             console.error('Error updating property:', error);
             return null;
         }
-        return data as PropertyRow;
+        return await hydratePropertyRow(data as PropertyRow);
     },
 
     async deleteProperty(id: string): Promise<boolean> {
@@ -880,7 +1236,7 @@ export const supabaseService = {
                 return { data: [], error };
             }
 
-            return { data: (data || []) as PropertyRow[], error: null };
+            return { data: await hydratePropertyRows((data || []) as PropertyRow[]), error: null };
         } catch (error) {
             if (isMissingRpcFunctionError(error, 'get_user_favorites')) {
                 return await getFavoritesFallback(userId);
@@ -1124,57 +1480,18 @@ export const supabaseService = {
             return;
         }
 
-        if (!paymentId || !userId || !propertyId) {
-            throw new Error('paymentId, userId, and propertyId are required');
+        if (!paymentId) {
+            throw new Error('paymentId is required');
         }
 
         try {
-            const { data: existingPayment, error: existingPaymentError } = await supabase
-                .from('payment_requests')
-                .select('id, user_id, property_id, status, is_consumed')
-                .eq('id', paymentId)
-                .maybeSingle();
+            const { error } = await supabase.rpc('approve_payment_request_and_unlock', {
+                p_payment_id: paymentId,
+            });
 
-            if (existingPaymentError) {
-                throw new Error(`Failed to load payment request before approval: ${existingPaymentError.message}`);
+            if (error) {
+                throw new Error(`Failed to approve payment request: ${error.message}`);
             }
-
-            if (!existingPayment) {
-                throw new Error('Payment request was not found before approval');
-            }
-
-            if (existingPayment.user_id !== userId || existingPayment.property_id !== propertyId) {
-                throw new Error('Payment request data does not match the selected property');
-            }
-
-            const { error: approvalError } = await supabase
-                .from('payment_requests')
-                .update({
-                    status: 'approved',
-                    processed_at: new Date().toISOString(),
-                    is_consumed: false,
-                })
-                .eq('id', paymentId);
-
-            if (approvalError) {
-                throw new Error(`Failed to approve payment request: ${approvalError.message}`);
-            }
-
-            const { data: approvedPayment, error: approvedPaymentError } = await supabase
-                .from('payment_requests')
-                .select('id, status')
-                .eq('id', paymentId)
-                .maybeSingle();
-
-            if (approvedPaymentError) {
-                throw new Error(`Failed to verify approved payment request: ${approvedPaymentError.message}`);
-            }
-
-            if (!approvedPayment || approvedPayment.status !== 'approved') {
-                throw new Error('Payment request approval was not applied');
-            }
-
-            await supabaseService.unlockProperty(userId, propertyId, paymentId);
         } catch (error: any) {
             console.error('Error approving payment request:', error);
             throw error;
@@ -1208,6 +1525,35 @@ export const supabaseService = {
         }
     },
 
+    async uploadUnlockPaymentReceipt(
+        propertyId: string,
+        userId: string,
+        receiptFile: File,
+    ): Promise<string> {
+        if (shouldShortCircuitMock()) {
+            return 'https://example.com/mock-unlock-receipt.jpg';
+        }
+
+        const objectPath = buildStorageObjectPath(
+            userId,
+            `unlock-${propertyId}`,
+            createRandomStorageName(receiptFile.name, 'jpg'),
+        );
+
+        const { error } = await supabase.storage
+            .from(STORAGE_BUCKETS.paymentReceipts)
+            .upload(objectPath, receiptFile, {
+                cacheControl: '3600',
+                upsert: false,
+            });
+
+        if (error) {
+            throw new Error(`Failed to upload unlock receipt: ${error.message}`);
+        }
+
+        return objectPath;
+    },
+
     async getPaymentRequests(filters?: { status?: string }): Promise<any[]> {
         if (shouldShortCircuitMock()) {
             return [];
@@ -1215,7 +1561,11 @@ export const supabaseService = {
 
         let query = supabase
             .from('payment_requests')
-            .select('*')
+            .select(`
+                *,
+                properties:property_id(title),
+                profiles:user_id(full_name)
+            `)
             .order('created_at', { ascending: false });
 
         if (filters?.status) {
@@ -1227,7 +1577,36 @@ export const supabaseService = {
             console.error('Error fetching payment requests:', error);
             return [];
         }
-        return data || [];
+        const rows = (data || []) as PaymentRequestListRow[];
+        const signedReceipts = await resolveStorageValues(
+            rows.map((row) => row.receipt_image),
+            STORAGE_BUCKETS.paymentReceipts,
+        );
+
+        return rows.map((row, index) => ({
+            ...row,
+            receipt_image: signedReceipts[index] || row.receipt_image,
+            property_title: row.properties?.title || null,
+            user_name: row.profiles?.full_name || null,
+        }));
+    },
+
+    async rejectPaymentRequest(paymentId: string): Promise<void> {
+        if (shouldShortCircuitMock()) {
+            return;
+        }
+
+        const { error } = await supabase
+            .from('payment_requests')
+            .update({
+                status: 'rejected',
+                processed_at: new Date().toISOString(),
+            })
+            .eq('id', paymentId);
+
+        if (error) {
+            throw new Error(`Failed to reject payment request: ${error.message}`);
+        }
     },
 
     async getPaymentRequestsCount(filters?: { status?: string }): Promise<number> {
@@ -1422,6 +1801,7 @@ export const supabaseService = {
             console.error('Error fetching profiles:', error);
             return [];
         }
+
         return data;
     },
 
@@ -1583,7 +1963,7 @@ export const supabaseService = {
                 property:properties(title, images),
                 buyer:profiles!buyer_id(full_name, avatar_url),
                 owner:profiles!owner_id(full_name, avatar_url),
-                last_message:messages(text, created_at, is_read, sender_id)
+                last_message:messages(text, created_at, is_read, sender_id, media_url, message_type)
             `)
             .eq('buyer_id', userId)
             .order('updated_at', { ascending: false });
@@ -1595,7 +1975,7 @@ export const supabaseService = {
                 property:properties(title, images),
                 buyer:profiles!buyer_id(full_name, avatar_url),
                 owner:profiles!owner_id(full_name, avatar_url),
-                last_message:messages(text, created_at, is_read, sender_id)
+                last_message:messages(text, created_at, is_read, sender_id, media_url, message_type)
             `)
             .eq('owner_id', userId)
             .order('updated_at', { ascending: false });
@@ -1609,10 +1989,53 @@ export const supabaseService = {
             return [];
         }
 
-        return data.map((conv: any) => ({
+        const conversations = data.map((conv: any) => ({
             ...conv,
             last_message: conv.last_message?.[0] || null
         }));
+
+        const propertyImages = conversations.flatMap((conv: any) => conv.property?.images || []);
+        const signedPropertyImages = await resolveStorageValues(
+            propertyImages,
+            STORAGE_BUCKETS.propertiesImages,
+        );
+        const lastMessageMedia = await resolveStorageValues(
+            conversations.map((conv: any) => conv.last_message?.media_url || null),
+            STORAGE_BUCKETS.chatImages,
+        );
+        const lastVoiceMedia = await resolveStorageValues(
+            conversations.map((conv: any) => conv.last_message?.message_type === 'voice' ? conv.last_message?.media_url || null : null),
+            STORAGE_BUCKETS.voiceNotes,
+        );
+
+        let propertyImageIndex = 0;
+        let lastMessageIndex = 0;
+
+        return conversations.map((conv: any) => {
+            const messageIndex = conv.last_message ? lastMessageIndex++ : -1;
+
+            return {
+                ...conv,
+                property: conv.property
+                    ? {
+                        ...conv.property,
+                        images: (conv.property.images || []).map(() => {
+                            const resolved = signedPropertyImages[propertyImageIndex];
+                            propertyImageIndex += 1;
+                            return resolved || '';
+                        }).filter(Boolean),
+                    }
+                    : conv.property,
+                last_message: conv.last_message
+                    ? {
+                        ...conv.last_message,
+                        media_url: conv.last_message.message_type === 'voice'
+                            ? lastVoiceMedia[messageIndex] || lastMessageMedia[messageIndex] || conv.last_message.media_url || null
+                            : lastMessageMedia[messageIndex] || conv.last_message.media_url || null,
+                    }
+                    : null,
+            };
+        });
     },
 
     async getMessages(conversationId: string, limit: number = 50, offset: number = 0) {
@@ -1650,7 +2073,22 @@ export const supabaseService = {
             console.error('Error fetching messages:', error);
             return [];
         }
-        return (data || []).reverse(); // Return in chronological order
+        const messages = (data || []).reverse() as any[];
+        const signedChatMedia = await resolveStorageValues(
+            messages.map((message) => message.message_type === 'image' ? message.media_url || null : null),
+            STORAGE_BUCKETS.chatImages,
+        );
+        const signedVoiceMedia = await resolveStorageValues(
+            messages.map((message) => message.message_type === 'voice' ? message.media_url || null : null),
+            STORAGE_BUCKETS.voiceNotes,
+        );
+
+        return messages.map((message, index) => ({
+            ...message,
+            media_url: message.message_type === 'voice'
+                ? signedVoiceMedia[index] || message.media_url || null
+                : signedChatMedia[index] || message.media_url || null,
+        }));
     },
 
     async sendMessage(params: {
@@ -1703,18 +2141,19 @@ export const supabaseService = {
             return 'https://example.com/mock-voice.mp3';
         }
 
-        const filename = `${conversationId}_${Date.now()}.webm`;
-        const { data, error } = await supabase.storage
-            .from('voice-notes')
-            .upload(filename, audioBlob, { contentType: 'audio/webm' });
+        const senderId = await getCurrentAuthUserId();
+        const objectPath = buildStorageObjectPath(
+            conversationId,
+            senderId,
+            createRandomStorageName('voice.webm', 'webm'),
+        );
+        const { error } = await supabase.storage
+            .from(STORAGE_BUCKETS.voiceNotes)
+            .upload(objectPath, audioBlob, { contentType: 'audio/webm' });
 
         if (error) throw new Error(`ظپط´ظ„ ط±ظپط¹ ط§ظ„ط±ط³ط§ظ„ط© ط§ظ„طµظˆطھظٹط©: ${error.message}`);
 
-        const { data: { publicUrl } } = supabase.storage
-            .from('voice-notes')
-            .getPublicUrl(filename);
-
-        return publicUrl;
+        return objectPath;
     },
 
     async uploadChatImage(imageFile: File, conversationId: string): Promise<string> {
@@ -1722,19 +2161,19 @@ export const supabaseService = {
             return 'https://example.com/mock-image.jpg';
         }
 
-        const fileExt = imageFile.name.split('.').pop();
-        const filename = `${conversationId}_${Date.now()}.${fileExt}`;
-        const { data, error } = await supabase.storage
-            .from('chat-images')
-            .upload(filename, imageFile);
+        const senderId = await getCurrentAuthUserId();
+        const objectPath = buildStorageObjectPath(
+            conversationId,
+            senderId,
+            createRandomStorageName(imageFile.name, 'jpg'),
+        );
+        const { error } = await supabase.storage
+            .from(STORAGE_BUCKETS.chatImages)
+            .upload(objectPath, imageFile);
 
         if (error) throw new Error(`ظپط´ظ„ ط±ظپط¹ ط§ظ„طµظˆط±ط©: ${error.message}`);
 
-        const { data: { publicUrl } } = supabase.storage
-            .from('chat-images')
-            .getPublicUrl(filename);
-
-        return publicUrl;
+        return objectPath;
     },
 
     // ====== Media Permissions ======
@@ -1804,7 +2243,12 @@ export const supabaseService = {
             return null;
         }
 
-        return data;
+        const signedProperty = await hydratePropertyRow((data.property || null) as PropertyRow | null);
+
+        return {
+            ...data,
+            property: signedProperty,
+        };
     },
 
     // ====== Real-time Presence & Typing ======
@@ -1996,38 +2440,43 @@ export const supabaseService = {
             const mockBooking: import('@/types').Booking = {
                 ...safeBookingData,
                 id: `BK-${Date.now()}`,
+                paymentProof: undefined,
+                status: 'pending',
                 createdAt: new Date().toISOString(),
             };
             return { data: mockBooking, error: null };
         }
 
-        const { data, error } = await supabase
+        const { data: createdBookingId, error } = await supabase.rpc('create_atomic_booking', {
+            p_property_id: safeBookingData.propertyId,
+            p_user_id: safeBookingData.userId,
+            p_start_date: safeBookingData.startDate,
+            p_end_date: safeBookingData.endDate,
+            p_tenant_name: safeBookingData.tenantName,
+            p_tenant_phone: safeBookingData.tenantPhone,
+            p_base_price: safeBookingData.basePrice,
+            p_service_fee: safeBookingData.serviceFee,
+            p_total_amount: safeBookingData.totalAmount,
+            p_total_nights: safeBookingData.totalNights,
+            p_total_months: safeBookingData.totalMonths,
+            p_rental_type: safeBookingData.rentalType,
+            p_tenant_email: safeBookingData.tenantEmail,
+            p_deposit_amount: safeBookingData.depositAmount,
+            p_payment_method: safeBookingData.paymentMethod,
+        });
+
+        if (error || !createdBookingId) {
+            return { data: null, error };
+        }
+
+        const { data, error: bookingFetchError } = await supabase
             .from('bookings')
-            .insert({
-                property_id: safeBookingData.propertyId,
-                user_id: safeBookingData.userId,
-                start_date: safeBookingData.startDate,
-                end_date: safeBookingData.endDate,
-                total_nights: safeBookingData.totalNights,
-                total_months: safeBookingData.totalMonths,
-                rental_type: safeBookingData.rentalType,
-                tenant_name: safeBookingData.tenantName,
-                tenant_phone: safeBookingData.tenantPhone,
-                tenant_email: safeBookingData.tenantEmail,
-                base_price: safeBookingData.basePrice,
-                service_fee: safeBookingData.serviceFee,
-                deposit_amount: safeBookingData.depositAmount,
-                total_amount: safeBookingData.totalAmount,
-                payment_method: safeBookingData.paymentMethod,
-                payment_status: safeBookingData.paymentStatus,
-                payment_proof: safeBookingData.paymentProof,
-                status: safeBookingData.status,
-            })
-            .select()
+            .select('*')
+            .eq('id', createdBookingId)
             .single();
 
-        if (error) {
-            return { data: null, error };
+        if (bookingFetchError) {
+            return { data: null, error: bookingFetchError };
         }
 
         const booking: import('@/types').Booking = {
@@ -2048,7 +2497,7 @@ export const supabaseService = {
             totalAmount: data.total_amount,
             paymentMethod: data.payment_method,
             paymentStatus: data.payment_status,
-            paymentProof: data.payment_proof,
+            paymentProof: (await resolveStorageValue(data.payment_proof, STORAGE_BUCKETS.paymentReceipts)) || undefined,
             status: data.status,
             createdAt: data.created_at,
             confirmedAt: data.confirmed_at,
@@ -2213,7 +2662,7 @@ export const supabaseService = {
                     : null,
             }));
 
-            return { bookings, error: null };
+            return { bookings: await hydrateBookingsWithPropertyImages(bookings), error: null };
         } catch (error: any) {
             if (isMissingRpcFunctionError(error, 'get_user_bookings')) {
                 return await getUserBookingsFallback(userId);
@@ -2238,26 +2687,36 @@ export const supabaseService = {
             };
         }
 
-        const fileExt = receiptFile.name.split('.').pop();
-        const fileName = `${bookingId}_${Date.now()}.${fileExt}`;
+        const userId = await getCurrentAuthUserId();
+        const objectPath = buildStorageObjectPath(
+            userId,
+            bookingId,
+            createRandomStorageName(receiptFile.name, 'jpg'),
+        );
 
-        const { data, error } = await supabase.storage
-            .from('payment-receipts')
-            .upload(fileName, receiptFile);
+        const { error } = await supabase.storage
+            .from(STORAGE_BUCKETS.paymentReceipts)
+            .upload(objectPath, receiptFile, {
+                cacheControl: '3600',
+                upsert: false,
+            });
 
         if (error) return { url: null, error };
 
-        const { data: { publicUrl } } = supabase.storage
-            .from('payment-receipts')
-            .getPublicUrl(fileName);
-
         // طھط­ط¯ظٹط« ط§ظ„ط­ط¬ط² ط¨ط§ظ„ط¥ظٹطµط§ظ„
-        await supabase
-            .from('bookings')
-            .update({ payment_proof: publicUrl })
-            .eq('id', bookingId);
+        const { error: attachError } = await supabase.rpc('attach_booking_payment_proof', {
+            p_booking_id: bookingId,
+            p_object_path: objectPath,
+        });
 
-        return { url: publicUrl, error: null };
+        if (attachError) {
+            return { url: null, error: attachError };
+        }
+
+        return {
+            url: await resolveStorageValue(objectPath, STORAGE_BUCKETS.paymentReceipts),
+            error: null,
+        };
     },
 
     /**
@@ -2285,6 +2744,8 @@ export const supabaseService = {
             return { data: null, error };
         }
 
+        const signedProperty = await hydratePropertyRow((data.property || null) as PropertyRow | null);
+
         const booking: import('@/types').Booking = {
             id: data.id,
             propertyId: data.property_id,
@@ -2303,11 +2764,11 @@ export const supabaseService = {
             totalAmount: data.total_amount,
             paymentMethod: data.payment_method,
             paymentStatus: data.payment_status,
-            paymentProof: data.payment_proof,
+            paymentProof: (await resolveStorageValue(data.payment_proof, STORAGE_BUCKETS.paymentReceipts)) || undefined,
             status: data.status,
             createdAt: data.created_at,
             confirmedAt: data.confirmed_at,
-            property: data.property,
+            property: signedProperty as any,
             user: data.user,
         };
 
@@ -2317,29 +2778,74 @@ export const supabaseService = {
     /**
      * طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ط­ط¬ط²
      */
-    async updateBookingStatus(
-        bookingId: string,
-        status: string,
-        paymentStatus?: string
-    ): Promise<{ error: any }> {
+    async cancelBooking(bookingId: string): Promise<{ error: any }> {
         if (shouldShortCircuitMock()) {
             return { error: null };
         }
 
-        const updates: any = { status };
-        if (paymentStatus) {
-            updates.payment_status = paymentStatus;
-        }
-        if (status === 'confirmed' || status === 'approved') {
-            updates.confirmed_at = new Date().toISOString();
-        }
-
-        const { error } = await supabase
-            .from('bookings')
-            .update(updates)
-            .eq('id', bookingId);
+        const { error } = await supabase.rpc('transition_booking_status', {
+            p_booking_id: bookingId,
+            p_action: 'tenant_cancel',
+        });
 
         return { error };
+    },
+
+    async confirmBookingRequest(bookingId: string): Promise<{ error: any }> {
+        if (shouldShortCircuitMock()) {
+            return { error: null };
+        }
+
+        const { error } = await supabase.rpc('transition_booking_status', {
+            p_booking_id: bookingId,
+            p_action: 'landlord_confirm',
+        });
+
+        return { error };
+    },
+
+    async rejectBookingRequest(bookingId: string): Promise<{ error: any }> {
+        if (shouldShortCircuitMock()) {
+            return { error: null };
+        }
+
+        const { error } = await supabase.rpc('transition_booking_status', {
+            p_booking_id: bookingId,
+            p_action: 'landlord_reject',
+        });
+
+        return { error };
+    },
+
+    async moderatePropertyListing(
+        propertyId: string,
+        newStatus: 'available' | 'rejected',
+    ): Promise<PropertyRow | null> {
+        if (shouldShortCircuitMock()) {
+            const idx = MOCK_PROPERTIES.findIndex((property) => property.id === propertyId);
+            if (idx === -1) {
+                return null;
+            }
+
+            MOCK_PROPERTIES[idx] = {
+                ...MOCK_PROPERTIES[idx],
+                status: newStatus,
+            };
+
+            return MOCK_PROPERTIES[idx];
+        }
+
+        const { error } = await supabase.rpc('moderate_property_listing', {
+            p_property_id: propertyId,
+            p_new_status: newStatus,
+        });
+
+        if (error) {
+            console.error('Error moderating property listing:', error);
+            return null;
+        }
+
+        return await this.getPropertyById(propertyId);
     }
 };
 

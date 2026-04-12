@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>لوحة تحكم الإدارة | عقارات جمصة</title>
+    
+    <!-- الخطوط -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- الأيقونات -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    
+    <!-- إعدادات Tailwind -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe',
+                            300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6',
+                            600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a',
+                        },
+                        surface: {
+                            light: '#ffffff', dark: '#0f172a', dim: '#f8fafc', darkDim: '#1e293b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Kufi Arabic"', '"Inter"', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 20px rgba(37, 99, 235, 0.15)',
+                        'bottom-nav': '0 -10px 40px rgba(0, 0, 0, 0.08)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        
+        /* إخفاء شريط التمرير */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @media (min-width: 768px) {
+            ::-webkit-scrollbar { width: 6px; height: 6px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+            ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+            .dark ::-webkit-scrollbar-thumb { background-color: #475569; }
+        }
+
+        .material-symbols-rounded { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .icon-outline { font-variation-settings: 'FILL' 0; }
+
+        /* حركات الشريط الجانبي */
+        #sidebar { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden; white-space: nowrap; }
+        .sidebar-collapsed { width: 5rem !important; }
+        .sidebar-collapsed .sidebar-text, .sidebar-collapsed .sidebar-badge, .sidebar-collapsed .nav-title { opacity: 0; visibility: hidden; display: none; }
+        .sidebar-collapsed .nav-item { justify-content: center !important; padding-left: 0 !important; padding-right: 0 !important; }
+        .sidebar-collapsed .logo-container { justify-content: center !important; padding-left: 0 !important; padding-right: 0 !important; }
+
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 1rem); }
+        .scroll-fade-right { mask-image: linear-gradient(to left, transparent, black 20px); -webkit-mask-image: linear-gradient(to left, transparent, black 20px); }
+        
+        /* Animation للتبويبات (SPA Views) - مع حماية كاملة لمنع التداخل */
+        .main-view { display: none !important; animation: fadeIn 0.3s ease-in-out; }
+        .main-view.active { display: block !important; }
+        .tab-content { display: none !important; animation: fadeIn 0.3s ease-in-out; }
+        .tab-content.active { display: block !important; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-surface-dim dark:bg-surface-dark text-slate-800 dark:text-slate-200 transition-colors duration-300 font-sans h-screen flex overflow-hidden">
+
+    <!-- خلفية التراكب للجوال -->
+    <div id="mobile-backdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden transition-opacity opacity-0 md:hidden" onclick="toggleMobileMenu()"></div>
+
+    <!-- القائمة الجانبية (Sidebar) -->
+    <aside id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-surface-light dark:bg-surface-darkDim border-l border-slate-200 dark:border-slate-800 flex flex-col transition-transform duration-300 z-40 translate-x-full md:relative md:translate-x-0 md:flex shrink-0 shadow-2xl md:shadow-none">
+        
+        <button onclick="toggleMobileMenu()" class="md:hidden absolute top-6 left-4 w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-full">
+            <span class="material-symbols-rounded text-lg">close</span>
+        </button>
+
+        <button id="sidebar-toggle" class="hidden md:flex absolute -left-3.5 top-7 w-7 h-7 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center text-slate-500 hover:text-primary-600 shadow-md z-30 transition-transform hover:scale-110">
+            <span class="material-symbols-rounded text-lg" id="sidebar-toggle-icon">chevron_right</span>
+        </button>
+
+        <div class="logo-container h-20 flex items-center px-6 border-b border-slate-100 dark:border-slate-800/50 transition-all">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center text-white shadow-glow shrink-0">
+                    <span class="material-symbols-rounded">real_estate_agent</span>
+                </div>
+                <span class="sidebar-text text-xl font-bold bg-clip-text text-transparent bg-gradient-to-l from-primary-600 to-blue-400 transition-opacity">عقارات جمصة</span>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto no-scrollbar py-6 px-4 space-y-1">
+            <p class="nav-title px-2 text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider transition-opacity">الرئيسية</p>
+            
+            <button onclick="switchAppView('dashboard')" id="nav-dashboard" class="side-nav-btn w-full nav-item flex items-center gap-3 px-3 py-3 md:py-2.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-xl font-bold transition-all group">
+                <span class="material-symbols-rounded text-xl shrink-0">dashboard</span>
+                <span class="sidebar-text transition-opacity">نظرة عامة</span>
+            </button>
+
+            <button onclick="switchAppView('properties')" id="nav-properties" class="side-nav-btn w-full nav-item flex items-center justify-between px-3 py-3 md:py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white rounded-xl font-medium transition-all group">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-rounded icon-outline text-xl shrink-0 group-hover:scale-110 transition-transform">domain</span>
+                    <span class="sidebar-text transition-opacity">العقارات</span>
+                </div>
+                <!-- تنبيه العقارات المعلقة -->
+                <span class="sidebar-badge bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0">8 معلق</span>
+            </button>
+
+            <button onclick="switchAppView('payments')" id="nav-payments" class="side-nav-btn w-full nav-item flex items-center justify-between px-3 py-3 md:py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white rounded-xl font-medium transition-all group">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-rounded icon-outline text-xl shrink-0 group-hover:scale-110 transition-transform">payments</span>
+                    <span class="sidebar-text transition-opacity">طلبات الدفع</span>
+                </div>
+                <!-- تنبيه المدفوعات المعلقة -->
+                <span class="sidebar-badge bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 text-xs font-bold px-2 py-0.5 rounded-lg shrink-0 animate-pulse">12</span>
+            </button>
+
+            <button onclick="switchAppView('users')" id="nav-users" class="side-nav-btn w-full nav-item flex items-center gap-3 px-3 py-3 md:py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white rounded-xl font-medium transition-all group">
+                <span class="material-symbols-rounded icon-outline text-xl shrink-0 group-hover:scale-110 transition-transform">group</span>
+                <span class="sidebar-text transition-opacity">المستخدمين</span>
+            </button>
+
+            <p class="nav-title px-2 text-xs font-bold text-slate-400 mt-6 mb-2 uppercase tracking-wider transition-opacity">تطوير مستقبلي</p>
+
+            <button onclick="switchAppView('settings')" id="nav-settings" class="side-nav-btn w-full nav-item flex items-center gap-3 px-3 py-3 md:py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white rounded-xl font-medium transition-all group opacity-70">
+                <span class="material-symbols-rounded icon-outline text-xl shrink-0 group-hover:scale-110 transition-transform">settings</span>
+                <span class="sidebar-text transition-opacity">إعدادات النظام</span>
+            </button>
+        </nav>
+    </aside>
+
+    <!-- منطقة المحتوى الرئيسية -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        
+        <!-- الشريط العلوي (Header) -->
+        <header class="h-16 md:h-20 bg-surface-light/90 dark:bg-surface-darkDim/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-8 z-10 shrink-0">
+            
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 md:hidden rounded-lg bg-primary-600 flex items-center justify-center text-white shadow-glow shrink-0">
+                    <span class="material-symbols-rounded text-sm">real_estate_agent</span>
+                </div>
+
+                <!-- يتم تغيير العنوان برمجياً -->
+                <div>
+                    <h1 id="header-title" class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        نظرة عامة
+                    </h1>
+                    <p id="header-subtitle" class="text-xs text-slate-500 hidden sm:block">مرحباً بك مجدداً في لوحة التحكم، إليك ملخص اليوم.</p>
+                </div>
+            </div>
+
+            <!-- أدوات الشريط العلوي -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <a href="/" class="hidden lg:flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary-600 hover:bg-primary-50 dark:hover:text-primary-400 dark:hover:bg-primary-900/30 rounded-xl text-sm font-bold transition-all border border-transparent hover:border-primary-200 dark:hover:border-primary-800/50">
+                    <span class="material-symbols-rounded text-lg">public</span>
+                    <span>العودة للموقع</span>
+                </a>
+
+                <div class="w-px h-6 bg-slate-200 dark:bg-slate-700 hidden md:block mx-1"></div>
+
+                <div class="hidden md:flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl px-3 py-2 w-48 xl:w-64 border border-transparent focus-within:border-primary-500 focus-within:bg-white dark:focus-within:bg-slate-900 transition-all">
+                    <span class="material-symbols-rounded icon-outline text-slate-400 text-xl">search</span>
+                    <input type="text" placeholder="بحث عام..." class="bg-transparent border-none outline-none focus:ring-0 text-sm w-full px-2 text-slate-700 dark:text-slate-200 placeholder-slate-400">
+                </div>
+
+                <button class="md:hidden w-10 h-10 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                    <span class="material-symbols-rounded icon-outline">search</span>
+                </button>
+
+                <button id="theme-toggle" class="w-10 h-10 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors" title="تغيير المظهر">
+                    <span class="material-symbols-rounded icon-outline" id="theme-icon">dark_mode</span>
+                </button>
+
+                <div class="w-px h-6 bg-slate-200 dark:bg-slate-700 hidden sm:block mx-1"></div>
+
+                <div class="flex items-center gap-3 cursor-pointer p-1 pr-2 md:pr-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <div class="hidden sm:block text-left">
+                        <p class="text-sm font-bold text-slate-900 dark:text-white">أحمد مدير</p>
+                        <p class="text-[10px] text-slate-500 text-emerald-500 font-bold">Admin</p>
+                    </div>
+                    <div class="relative">
+                        <img src="https://i.pravatar.cc/150?img=11" alt="Admin" class="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white dark:border-slate-800 shadow-sm object-cover">
+                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-surface-darkDim rounded-full"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- منطقة المحتوى القابلة للتمرير (تتغير داخلياً) -->
+        <div class="flex-1 overflow-y-auto no-scrollbar p-4 lg:p-8 pb-24 md:pb-8 scroll-smooth">
+            
+            <!-- ==============================
+                 1. شاشة نظرة عامة (Dashboard) - مطابقة لـ page.tsx
+                 ============================== -->
+            <div id="view-dashboard" class="main-view active max-w-7xl mx-auto space-y-6 md:space-y-8">
+                
+                <!-- المهام السريعة (للمستقبل) -->
+                <div>
+                    <h2 class="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-3 md:mb-4">المهام السريعة</h2>
+                    <div class="flex overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 md:mx-0 md:px-0 gap-3 lg:gap-4 snap-x snap-mandatory md:grid md:grid-cols-3 lg:grid-cols-5 opacity-80">
+                        <button onclick="switchAppView('properties')" class="snap-center shrink-0 w-32 md:w-full flex flex-col items-center justify-center gap-2 p-4 bg-surface-light dark:bg-surface-darkDim rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
+                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary-50 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center"><span class="material-symbols-rounded text-xl">add_home</span></div>
+                            <span class="text-xs md:text-sm font-semibold">إضافة عقار</span>
+                        </button>
+                        <button onclick="switchAppView('users')" class="snap-center shrink-0 w-32 md:w-full flex flex-col items-center justify-center gap-2 p-4 bg-surface-light dark:bg-surface-darkDim rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
+                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 flex items-center justify-center"><span class="material-symbols-rounded text-xl">person_add</span></div>
+                            <span class="text-xs md:text-sm font-semibold">مستخدم جديد</span>
+                        </button>
+                        <button onclick="switchAppView('payments')" class="snap-center shrink-0 w-32 md:w-full flex flex-col items-center justify-center gap-2 p-4 bg-surface-light dark:bg-surface-darkDim rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
+                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center"><span class="material-symbols-rounded text-xl">payments</span></div>
+                            <span class="text-xs md:text-sm font-semibold">مراجعة الدفع</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- الإحصائيات الـ 4 الأساسية -->
+                <div>
+                    <h2 class="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-3 md:mb-4">إحصائيات النظام</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                        <!-- Card 1: Pending Properties -->
+                        <div onclick="switchAppView('properties')" class="bg-surface-light dark:bg-surface-darkDim p-5 rounded-2xl shadow-soft border border-amber-100 dark:border-amber-900/30 relative overflow-hidden group cursor-pointer hover:shadow-md transition-all">
+                            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-50 dark:bg-amber-900/10 rounded-full blur-2xl"></div>
+                            <div class="flex justify-between items-start mb-2 relative z-10">
+                                <div><p class="text-xs text-slate-500 font-medium mb-1">عقارات معلقة</p><h3 class="text-3xl font-bold text-slate-900 dark:text-white">8</h3></div>
+                                <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 flex items-center justify-center"><span class="material-symbols-rounded">pending_actions</span></div>
+                            </div>
+                        </div>
+                        <!-- Card 2: Total Properties -->
+                        <div onclick="switchAppView('properties')" class="bg-surface-light dark:bg-surface-darkDim p-5 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800/60 relative overflow-hidden group cursor-pointer hover:shadow-md transition-all">
+                            <div class="flex justify-between items-start mb-2 relative z-10">
+                                <div><p class="text-xs text-slate-500 font-medium mb-1">إجمالي العقارات</p><h3 class="text-3xl font-bold text-slate-900 dark:text-white">1,284</h3></div>
+                                <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center"><span class="material-symbols-rounded">apartment</span></div>
+                            </div>
+                        </div>
+                        <!-- Card 3: Pending Payments -->
+                        <div onclick="switchAppView('payments')" class="bg-surface-light dark:bg-surface-darkDim p-5 rounded-2xl shadow-soft border border-rose-100 dark:border-rose-900/30 relative overflow-hidden group cursor-pointer hover:shadow-md transition-all">
+                            <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-rose-50 dark:bg-rose-900/10 rounded-full blur-2xl"></div>
+                            <div class="flex justify-between items-start mb-2 relative z-10">
+                                <div><p class="text-xs text-slate-500 font-medium mb-1">طلبات الدفع المعلقة</p><h3 class="text-3xl font-bold text-slate-900 dark:text-white">12</h3></div>
+                                <div class="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-600 flex items-center justify-center"><span class="material-symbols-rounded animate-pulse">payments</span></div>
+                            </div>
+                        </div>
+                        <!-- Card 4: Total Users -->
+                        <div onclick="switchAppView('users')" class="bg-surface-light dark:bg-surface-darkDim p-5 rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800/60 relative overflow-hidden group cursor-pointer hover:shadow-md transition-all">
+                            <div class="flex justify-between items-start mb-2 relative z-10">
+                                <div><p class="text-xs text-slate-500 font-medium mb-1">إجمالي المستخدمين</p><h3 class="text-3xl font-bold text-slate-900 dark:text-white">8,392</h3></div>
+                                <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center"><span class="material-symbols-rounded">group</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- أحدث العقارات المعلقة (حد أقصى 5) -->
+                <div>
+                    <div class="bg-surface-light dark:bg-surface-darkDim rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800/60 overflow-hidden">
+                        <div class="p-4 md:p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                            <h2 class="text-base md:text-lg font-bold">أحدث العقارات المعلقة</h2>
+                            <button onclick="switchAppView('properties')" class="text-xs md:text-sm text-primary-600 font-semibold hover:underline">عرض الكل</button>
+                        </div>
+                        <div class="overflow-x-auto no-scrollbar">
+                            <table class="w-full text-right border-collapse min-w-[600px]">
+                                <thead><tr class="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 text-sm border-b dark:border-slate-800"><th class="p-4">العقار</th><th class="p-4">السعر</th><th class="p-4 text-center">الحالة</th></tr></thead>
+                                <tbody class="divide-y dark:divide-slate-800">
+                                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                        <td class="p-4 flex items-center gap-3">
+                                            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=100&q=80" class="w-10 h-10 rounded-lg object-cover">
+                                            <span class="font-bold text-sm">فيلا سياحية - المنطقة 1</span>
+                                        </td>
+                                        <td class="p-4 text-sm font-bold text-slate-700 dark:text-slate-300">1,200 ج.م <span class="text-xs font-normal text-slate-500">/ ليلة</span></td>
+                                        <td class="p-4 text-center"><span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700">معلق</span></td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                        <td class="p-4 flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400"><span class="material-symbols-rounded">apartment</span></div>
+                                            <span class="font-bold text-sm">شقة فندقية - شارع البحر</span>
+                                        </td>
+                                        <td class="p-4 text-sm font-bold text-slate-700 dark:text-slate-300">800 ج.م <span class="text-xs font-normal text-slate-500">/ ليلة</span></td>
+                                        <td class="p-4 text-center"><span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700">معلق</span></td>
+                                    </tr>
+                                    <!-- بحد أقصى 5 عناصر هنا -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==============================
+                 2. شاشة العقارات (Properties) - مطابقة لـ properties/page.tsx
+                 ============================== -->
+            <div id="view-properties" class="main-view max-w-7xl mx-auto space-y-6">
+                <!-- الفلاتر -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex overflow-x-auto no-scrollbar gap-2 pb-1 scroll-fade-right -mx-4 px-4 md:mx-0 md:px-0 flex-1">
+                        <button class="shrink-0 px-4 py-2 bg-primary-600 text-white rounded-full text-sm font-bold shadow-sm">الكل (All)</button>
+                        <button class="shrink-0 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded-full text-sm font-bold">معلق (Pending)</button>
+                        <button class="shrink-0 px-4 py-2 bg-surface-light dark:bg-surface-darkDim border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-sm font-medium">متاح (Available)</button>
+                        <button class="shrink-0 px-4 py-2 bg-surface-light dark:bg-surface-darkDim border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-sm font-medium">مرفوض (Rejected)</button>
+                    </div>
+                </div>
+
+                <!-- قائمة العقارات -->
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    
+                    <!-- Property 1 (Pending - المعلق يظهر له أزرار الإجراءات) -->
+                    <div class="bg-amber-50/30 dark:bg-amber-900/10 rounded-2xl shadow-soft border border-amber-100 dark:border-amber-800/50 overflow-hidden flex flex-col sm:flex-row hover:shadow-md transition-all">
+                        <div class="sm:w-56 h-48 sm:h-auto relative bg-slate-100 shrink-0">
+                            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80" class="absolute inset-0 w-full h-full object-cover">
+                            <div class="absolute top-3 right-3 px-2 py-1 bg-amber-500 text-white text-[10px] font-bold rounded-lg shadow-sm">معلق</div>
+                        </div>
+                        <div class="p-4 flex-1 flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-start mb-1">
+                                    <h3 class="font-bold text-sm line-clamp-1">فيلا سياحية بحديقة</h3>
+                                    <!-- شارة التوثيق للعقار -->
+                                    <span class="text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center gap-1" title="عقار موثق"><span class="material-symbols-rounded text-[12px]">verified</span> موثق</span>
+                                </div>
+                                <div class="flex flex-wrap gap-2 text-xs text-slate-500 mb-3">
+                                    <span class="flex items-center gap-1"><span class="material-symbols-rounded text-[14px]">category</span> فيلا</span>
+                                    <span class="flex items-center gap-1"><span class="material-symbols-rounded text-[14px]">location_on</span> المنطقة الأولى</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-slate-600 dark:text-slate-300 text-[11px] font-medium mb-4">
+                                    <div class="flex items-center gap-1 bg-white dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700"><span class="material-symbols-rounded text-[14px]">bed</span> 3 غرف</div>
+                                    <div class="flex items-center gap-1 bg-white dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700 text-primary-600 font-bold">1,200 ج.م</div>
+                                </div>
+                            </div>
+                            <!-- أزرار المعلق: موافقة، رفض، معاينة -->
+                            <div class="pt-3 border-t border-amber-200/50 dark:border-amber-800/50 flex gap-2">
+                                <button onclick="openModal('approve-property-modal', 'فيلا سياحية بحديقة')" class="flex-1 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 hover:bg-emerald-700 transition-colors"><span class="material-symbols-rounded text-[16px]">check_circle</span> موافقة</button>
+                                <button onclick="openModal('reject-property-modal', 'فيلا سياحية بحديقة')" class="flex-1 py-1.5 bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 rounded-lg text-xs font-bold flex items-center justify-center gap-1 hover:bg-rose-100 transition-colors"><span class="material-symbols-rounded text-[16px]">cancel</span> رفض</button>
+                                <a href="#" target="_blank" class="w-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 transition-colors" title="معاينة العقار كزائر"><span class="material-symbols-rounded text-[18px]">visibility</span></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Property 2 (Available - المتاح يظهر له أزرار عادية) -->
+                    <div class="bg-surface-light dark:bg-surface-darkDim rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800/60 overflow-hidden flex flex-col sm:flex-row hover:shadow-md transition-all">
+                        <div class="sm:w-56 h-48 sm:h-auto relative bg-slate-100 shrink-0">
+                            <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80" class="absolute inset-0 w-full h-full object-cover">
+                            <div class="absolute top-3 right-3 px-2 py-1 bg-blue-500 text-white text-[10px] font-bold rounded-lg shadow-sm">متاح</div>
+                        </div>
+                        <div class="p-4 flex-1 flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-start mb-1">
+                                    <h3 class="font-bold text-sm line-clamp-1">شقة سكنية - شارع البحر</h3>
+                                    <span class="text-slate-400 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1" title="غير موثق"><span class="material-symbols-rounded text-[12px]">gpp_bad</span> غير موثق</span>
+                                </div>
+                                <div class="flex flex-wrap gap-2 text-xs text-slate-500 mb-3">
+                                    <span class="flex items-center gap-1"><span class="material-symbols-rounded text-[14px]">category</span> شقة</span>
+                                    <span class="flex items-center gap-1"><span class="material-symbols-rounded text-[14px]">location_on</span> شارع البحر</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-slate-600 dark:text-slate-300 text-[11px] font-medium mb-4">
+                                    <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md"><span class="material-symbols-rounded text-[14px]">bed</span> 2 غرف</div>
+                                    <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md text-primary-600 font-bold">800 ج.م</div>
+                                </div>
+                            </div>
+                            <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-1">
+                                <a href="#" target="_blank" class="px-3 py-1.5 text-[11px] font-bold bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center gap-1 hover:bg-slate-200 transition-colors"><span class="material-symbols-rounded text-[14px]">open_in_new</span> عرض الصفحة</a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ==============================
+                 3. شاشة طلبات الدفع (Payments) - مطابقة لـ payments/page.tsx
+                 ============================== -->
+            <div id="view-payments" class="main-view max-w-7xl mx-auto space-y-6">
+                <!-- الفلاتر -->
+                <div class="flex overflow-x-auto no-scrollbar gap-2 pb-1 scroll-fade-right">
+                    <button class="shrink-0 px-4 py-2 bg-primary-600 text-white rounded-full text-sm font-bold shadow-sm">الكل (All)</button>
+                    <button class="shrink-0 px-4 py-2 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 rounded-full text-sm font-bold flex items-center gap-1.5">معلق (Pending) <span class="bg-rose-500 text-white text-[10px] px-1.5 rounded-md font-bold animate-pulse">12</span></button>
+                    <button class="shrink-0 px-4 py-2 bg-surface-light dark:bg-surface-darkDim border border-slate-200 dark:border-slate-700 rounded-full text-sm font-medium">مقبول (Approved)</button>
+                    <button class="shrink-0 px-4 py-2 bg-surface-light dark:bg-surface-darkDim border border-slate-200 dark:border-slate-700 rounded-full text-sm font-medium">مرفوض (Rejected)</button>
+                </div>
+
+                <!-- جدول طلبات الدفع -->
+                <div class="bg-surface-light dark:bg-surface-darkDim rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800/60 overflow-hidden">
+                    <div class="overflow-x-auto no-scrollbar">
+                        <table class="w-full text-right min-w-[900px]">
+                            <thead class="bg-slate-50/50 dark:bg-slate-800/30 text-sm border-b dark:border-slate-800">
+                                <tr><th class="p-4">الإيصال والعقار</th><th class="p-4">المستخدم</th><th class="p-4">تفاصيل الدفع</th><th class="p-4 text-center">الإجراء (للمعلق فقط)</th></tr>
+                            </thead>
+                            <tbody class="divide-y dark:divide-slate-800/60">
+                                <!-- طلب معلق -->
+                                <tr class="bg-rose-50/30 dark:bg-rose-900/10">
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center cursor-pointer hover:bg-blue-200 transition-colors" title="عرض الإيصال المرفق"><span class="material-symbols-rounded">receipt_long</span></div>
+                                            <div>
+                                                <p class="text-sm font-bold line-clamp-1">شقة فندقية - شارع البحر</p>
+                                                <span class="text-[10px] px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded-md font-bold">معلق (Pending)</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4"><p class="text-sm font-bold">محمد أحمد</p></td>
+                                    <td class="p-4">
+                                        <p class="text-sm font-bold text-primary-600">50 ج.م</p>
+                                        <p class="text-xs text-slate-500">فودافون كاش • 15 يوليو 2026</p>
+                                    </td>
+                                    <td class="p-4 text-center">
+                                        <div class="flex justify-center gap-2">
+                                            <button onclick="openModal('approve-payment-modal', 'محمد أحمد')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"><span class="material-symbols-rounded text-[16px]">lock_open</span> قبول وفتح العقار</button>
+                                            <button onclick="openModal('reject-payment-modal')" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 rounded-lg text-xs font-bold transition-colors">رفض</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- طلب مقبول -->
+                                <tr>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center"><span class="material-symbols-rounded">receipt_long</span></div>
+                                            <div>
+                                                <p class="text-sm font-bold line-clamp-1">فيلا المنطقة 1</p>
+                                                <span class="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-md font-bold">مقبول (Approved)</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4"><p class="text-sm font-bold">سارة محمود</p></td>
+                                    <td class="p-4">
+                                        <p class="text-sm font-bold text-primary-600">50 ج.م</p>
+                                        <p class="text-xs text-slate-500">انستا باي • 10 يوليو 2026</p>
+                                    </td>
+                                    <td class="p-4 text-center"><span class="text-xs text-slate-400 font-medium">مكتمل</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==============================
+                 4. شاشة المستخدمين (Users) - مطابقة لـ users/page.tsx
+                 ============================== -->
+            <div id="view-users" class="main-view max-w-7xl mx-auto space-y-6">
+                <!-- الإحصائيات والأدوات -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="bg-surface-light dark:bg-surface-darkDim px-4 py-2 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800/60 font-bold text-sm">
+                        إجمالي المستخدمين: <span class="text-primary-600">8,392</span>
+                    </div>
+                    <div class="flex-1 md:w-64 flex items-center bg-surface-light dark:bg-surface-darkDim border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2">
+                        <span class="material-symbols-rounded icon-outline text-slate-400">search</span>
+                        <input type="text" placeholder="بحث بالاسم أو رقم الهاتف..." class="bg-transparent border-none outline-none text-sm w-full px-2">
+                    </div>
+                </div>
+
+                <!-- جدول المستخدمين -->
+                <div class="bg-surface-light dark:bg-surface-darkDim rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800/60 overflow-hidden">
+                    <div class="overflow-x-auto no-scrollbar">
+                        <table class="w-full text-right min-w-[800px]">
+                            <thead class="bg-slate-50/50 dark:bg-slate-800/30 text-sm border-b dark:border-slate-800">
+                                <tr><th class="p-4">المستخدم</th><th class="p-4">الدور</th><th class="p-4">رقم الهاتف</th><th class="p-4 text-center">التوثيق (الهوية)</th><th class="p-4 text-center">إجراءات</th></tr>
+                            </thead>
+                            <tbody class="divide-y dark:divide-slate-800/60">
+                                <!-- User 1 (Admin & Verified) -->
+                                <tr>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">أ</div>
+                                            <div><p class="text-sm font-bold">أحمد مدير</p></div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4"><span class="px-2 py-1 rounded-lg text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-100">Admin</span></td>
+                                    <td class="p-4"><p class="text-sm font-mono text-slate-600">01012345678</p></td>
+                                    <td class="p-4 text-center"><span class="inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md text-xs font-bold"><span class="material-symbols-rounded text-[14px]">verified</span> موثق</span></td>
+                                    <td class="p-4 text-center">
+                                        <!-- Actions for Admin -->
+                                        <button class="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-bold hover:bg-slate-200 transition-colors">إزالة Admin</button>
+                                    </td>
+                                </tr>
+                                <!-- User 2 (Tenant - Not verified) -->
+                                <tr>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <img src="https://i.pravatar.cc/150?img=33" class="w-10 h-10 rounded-full object-cover border border-slate-200">
+                                            <div><p class="text-sm font-bold">سعيد المختار</p></div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4"><span class="px-2 py-1 rounded-lg text-[11px] font-bold bg-teal-50 text-teal-700 border border-teal-100">مستأجر</span></td>
+                                    <td class="p-4"><p class="text-sm font-mono text-slate-600">01298765432</p></td>
+                                    <td class="p-4 text-center"><span class="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-1 rounded-md text-xs font-bold"><span class="material-symbols-rounded text-[14px]">gpp_bad</span> غير موثق</span></td>
+                                    <td class="p-4 text-center flex justify-center gap-2">
+                                        <button onclick="openModal('verify-user-modal', 'سعيد المختار')" class="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100">توثيق</button>
+                                        <button class="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-bold hover:bg-purple-100 transition-colors border border-purple-100">ترقية لـ Admin</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==============================
+                 5. شاشة الإعدادات (Settings) - للمستقبل
+                 ============================== -->
+            <div id="view-settings" class="main-view max-w-6xl mx-auto">
+                <div class="flex flex-col md:flex-row gap-6 lg:gap-8">
+                    <div class="w-full md:w-64 shrink-0">
+                        <div class="bg-surface-light dark:bg-surface-darkDim rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800/60 p-2 md:p-3 flex md:flex-col gap-1 overflow-x-auto no-scrollbar scroll-fade-right">
+                            <button onclick="switchSettingTab('platform')" id="btn-platform" class="setting-tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap bg-primary-50 text-primary-600">
+                                <span class="material-symbols-rounded text-[20px]">admin_panel_settings</span>إعدادات (للمستقبل)
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <div id="tab-platform" class="tab-content active space-y-6">
+                            <div class="bg-surface-light dark:bg-surface-darkDim rounded-2xl shadow-soft border border-slate-100 dark:border-slate-800/60 p-10 text-center text-slate-500">
+                                <span class="material-symbols-rounded text-4xl mb-2 opacity-50">build</span>
+                                <p>هذه الواجهة جاهزة للتطوير المستقبلي.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- شريط التنقل السفلي المخصص للجوال (PWA Style) -->
+    <nav class="md:hidden fixed bottom-0 inset-x-0 bg-surface-light/90 dark:bg-surface-darkDim/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 z-40 flex justify-around items-end pb-safe pt-2 px-2 shadow-bottom-nav">
+        
+        <button onclick="switchAppView('dashboard')" id="mob-nav-dashboard" class="mob-nav-btn flex flex-col items-center p-2 text-primary-600 w-16">
+            <span class="material-symbols-rounded text-2xl mb-1">dashboard</span><span class="text-[10px] font-bold">الرئيسية</span>
+        </button>
+        
+        <button onclick="switchAppView('properties')" id="mob-nav-properties" class="mob-nav-btn flex flex-col items-center p-2 text-slate-400 hover:text-slate-600 w-16">
+            <span class="material-symbols-rounded text-2xl icon-outline mb-1">domain</span><span class="text-[10px] font-medium">العقارات</span>
+        </button>
+
+        <!-- FAB الديناميكي -->
+        <div class="relative -top-6">
+            <button id="mob-fab" onclick="alert('إجراء سريع')" class="w-14 h-14 bg-primary-600 hover:bg-primary-700 rounded-full flex items-center justify-center text-white shadow-[0_8px_20px_rgba(37,99,235,0.4)] border-4 border-surface-dim dark:border-surface-dark active:scale-90 transition-all">
+                <span class="material-symbols-rounded text-[28px]" id="mob-fab-icon">add</span>
+            </button>
+        </div>
+
+        <button onclick="switchAppView('payments')" id="mob-nav-payments" class="mob-nav-btn flex flex-col items-center p-2 text-slate-400 hover:text-slate-600 w-16 relative">
+            <span class="material-symbols-rounded text-2xl icon-outline mb-1">payments</span>
+            <span class="absolute top-1.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white dark:border-surface-darkDim"></span>
+            <span class="text-[10px] font-medium">المدفوعات</span>
+        </button>
+
+        <button onclick="toggleMobileMenu()" class="flex flex-col items-center p-2 text-slate-400 hover:text-slate-600 w-16">
+            <span class="material-symbols-rounded text-2xl icon-outline mb-1">menu</span><span class="text-[10px] font-medium">القائمة</span>
+        </button>
+    </nav>
+
+    <!-- النوافذ المنبثقة (Modals) المجمعة الخاصة بـ Next.js Backend -->
+    
+    <!-- 1. موافقة على عقار (Approve Property) -->
+    <div id="approve-property-modal" class="custom-modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="modal-content bg-surface-light dark:bg-surface-darkDim w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden transform scale-95 transition-transform duration-300 p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center mb-4"><span class="material-symbols-rounded text-3xl">check_circle</span></div>
+            <h3 class="text-lg font-bold mb-2">موافقة على العقار</h3>
+            <p class="text-sm text-slate-500 mb-6">هل أنت متأكد من الموافقة ونشر العقار: <span class="modal-data font-bold text-slate-800 dark:text-slate-200"></span>؟ سيتم إرسال إشعار للمالك.</p>
+            <div class="flex gap-3"><button onclick="closeModal('approve-property-modal')" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">إلغاء</button><button onclick="closeModal('approve-property-modal')" class="flex-1 py-2 bg-emerald-600 text-white rounded-xl font-bold">تأكيد الموافقة</button></div>
+        </div>
+    </div>
+
+    <!-- 2. رفض عقار (Reject Property) -->
+    <div id="reject-property-modal" class="custom-modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="modal-content bg-surface-light dark:bg-surface-darkDim w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-6 text-center transform scale-95 transition-transform">
+            <div class="w-16 h-16 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center mb-4"><span class="material-symbols-rounded text-3xl">cancel</span></div>
+            <h3 class="text-lg font-bold mb-2">رفض العقار</h3>
+            <p class="text-sm text-slate-500 mb-4">أدخل سبب رفض العقار <span class="modal-data font-bold"></span> ليتم إرساله للمالك.</p>
+            <textarea rows="2" class="w-full bg-slate-50 border rounded-xl px-3 py-2 text-sm mb-4" placeholder="السبب (اختياري)..."></textarea>
+            <div class="flex gap-3"><button onclick="closeModal('reject-property-modal')" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">إلغاء</button><button onclick="closeModal('reject-property-modal')" class="flex-1 py-2 bg-rose-600 text-white rounded-xl font-bold">تأكيد الرفض</button></div>
+        </div>
+    </div>
+
+    <!-- 3. قبول طلب الدفع وفتح العقار (Approve Payment) -->
+    <div id="approve-payment-modal" class="custom-modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="modal-content bg-surface-light dark:bg-surface-darkDim w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-6 text-center transform scale-95 transition-transform">
+            <div class="w-16 h-16 rounded-full bg-blue-100 text-blue-600 mx-auto flex items-center justify-center mb-4"><span class="material-symbols-rounded text-3xl">lock_open</span></div>
+            <h3 class="text-lg font-bold mb-2">قبول وفتح العقار</h3>
+            <p class="text-sm text-slate-500 mb-6">سيتم قبول دفعة (50 ج.م) من <span class="modal-data font-bold text-slate-800 dark:text-slate-200"></span> وفتح تواصل العقار له. سيتم إرسال إشعار نجاح.</p>
+            <div class="flex gap-3"><button onclick="closeModal('approve-payment-modal')" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">إلغاء</button><button onclick="closeModal('approve-payment-modal')" class="flex-1 py-2 bg-blue-600 text-white rounded-xl font-bold">تأكيد الفتح</button></div>
+        </div>
+    </div>
+
+    <!-- 4. رفض طلب الدفع -->
+    <div id="reject-payment-modal" class="custom-modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="modal-content bg-surface-light dark:bg-surface-darkDim w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-6 text-center transform scale-95 transition-transform">
+            <div class="w-16 h-16 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center mb-4"><span class="material-symbols-rounded text-3xl">money_off</span></div>
+            <h3 class="font-bold mb-2">رفض طلب الدفع</h3>
+            <p class="text-sm text-slate-500 mb-6">سيتم رفض الإيصال وتغيير حالة الطلب لإرسال إشعار بالرفض للمستخدم.</p>
+            <div class="flex gap-3"><button onclick="closeModal('reject-payment-modal')" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">إلغاء</button><button onclick="closeModal('reject-payment-modal')" class="flex-1 py-2 bg-rose-600 text-white rounded-xl font-bold">تأكيد الرفض</button></div>
+        </div>
+    </div>
+
+    <!-- 5. توثيق مستخدم -->
+    <div id="verify-user-modal" class="custom-modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="modal-content bg-surface-light dark:bg-surface-darkDim w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-6 text-center transform scale-95 transition-transform">
+            <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center mb-4"><span class="material-symbols-rounded text-3xl">verified_user</span></div>
+            <h3 class="font-bold mb-2">توثيق الهوية الوطنية</h3>
+            <p class="text-sm text-slate-500 mb-6">هل تم التأكد من هوية المستخدم <span class="modal-data font-bold text-slate-800 dark:text-slate-200"></span>؟ سيتم منحه شارة موثق.</p>
+            <div class="flex gap-3"><button onclick="closeModal('verify-user-modal')" class="flex-1 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold">إلغاء</button><button onclick="closeModal('verify-user-modal')" class="flex-1 py-2 bg-emerald-600 text-white rounded-xl font-bold">تأكيد التوثيق</button></div>
+        </div>
+    </div>
+
+    <!-- سكربتات SPA والتفاعلات -->
+    <script>
+        // إعدادات الصفحات (Titles & FAB actions)
+        const appViews = {
+            'dashboard': { title: 'نظرة عامة', subtitle: 'مرحباً بك مجدداً في لوحة التحكم، إليك ملخص اليوم.', fab: 'add' },
+            'properties': { title: 'إدارة العقارات', subtitle: 'مراجعة طلبات نشر العقارات وتغيير حالتها.', fab: 'add_home' },
+            'payments': { title: 'طلبات الدفع', subtitle: 'مراجعة إيصالات جدية الحجز (50 ج.م) وفتح العقارات.', fab: 'receipt_long' },
+            'users': { title: 'إدارة المستخدمين', subtitle: 'إدارة الأدوار، التوثيق بالهوية الوطنية للمستخدمين.', fab: 'person_add' },
+            'settings': { title: 'إعدادات النظام', subtitle: 'واجهة مخصصة للتطوير المستقبلي.', fab: 'home' }
+        };
+
+        // تبديل الشاشات الأساسية (SPA Router)
+        function switchAppView(viewId) {
+            // إخفاء كافة الشاشات
+            document.querySelectorAll('.main-view').forEach(el => el.classList.remove('active'));
+            // إظهار الشاشة المطلوبة
+            document.getElementById('view-' + viewId).classList.add('active');
+
+            // تحديث العناوين
+            document.getElementById('header-title').innerHTML = appViews[viewId].title;
+            document.getElementById('header-subtitle').innerHTML = appViews[viewId].subtitle;
+
+            // تحديث الزر العائم (FAB) للموبايل
+            const fabIcon = document.getElementById('mob-fab-icon');
+            fabIcon.textContent = appViews[viewId].fab;
+            if(viewId === 'settings') {
+                document.getElementById('mob-fab').onclick = () => switchAppView('dashboard');
+            } else {
+                document.getElementById('mob-fab').onclick = () => alert('تم الضغط على الزر السريع');
+            }
+
+            // تحديث ألوان القائمة الجانبية
+            document.querySelectorAll('.side-nav-btn').forEach(btn => {
+                btn.classList.remove('bg-primary-50', 'dark:bg-primary-900/20', 'text-primary-600', 'dark:text-primary-400', 'font-bold');
+                btn.classList.add('text-slate-600', 'dark:text-slate-400', 'font-medium');
+                btn.querySelector('.material-symbols-rounded').classList.add('icon-outline');
+            });
+            const activeSide = document.getElementById('nav-' + viewId);
+            if(activeSide) {
+                activeSide.classList.add('bg-primary-50', 'dark:bg-primary-900/20', 'text-primary-600', 'dark:text-primary-400', 'font-bold');
+                activeSide.querySelector('.material-symbols-rounded').classList.remove('icon-outline');
+            }
+
+            // تحديث ألوان القائمة السفلية (للموبايل)
+            document.querySelectorAll('.mob-nav-btn').forEach(btn => {
+                btn.classList.remove('text-primary-600', 'dark:text-primary-400');
+                btn.classList.add('text-slate-400');
+                btn.querySelector('span:last-child').classList.replace('font-bold', 'font-medium');
+                const icon = btn.querySelector('.material-symbols-rounded');
+                if(icon) icon.classList.add('icon-outline');
+            });
+            const activeMob = document.getElementById('mob-nav-' + viewId);
+            if(activeMob) {
+                activeMob.classList.remove('text-slate-400');
+                activeMob.classList.add('text-primary-600', 'dark:text-primary-400');
+                activeMob.querySelector('span:last-child').classList.replace('font-medium', 'font-bold');
+                activeMob.querySelector('.material-symbols-rounded').classList.remove('icon-outline');
+            }
+
+            // إغلاق المنيو في الموبايل إذا كان مفتوحاً
+            if(!document.getElementById('sidebar').classList.contains('translate-x-full')) {
+                toggleMobileMenu();
+            }
+        }
+
+        // التبويبات الداخلية في صفحة الإعدادات
+        function switchSettingTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.setting-tab-btn').forEach(el => {
+                el.classList.remove('bg-primary-50', 'text-primary-600', 'font-bold');
+                el.classList.add('text-slate-600', 'font-medium');
+                el.querySelector('.material-symbols-rounded').classList.add('icon-outline');
+            });
+            document.getElementById('tab-' + tabId).classList.add('active');
+            const btn = document.getElementById('btn-' + tabId);
+            btn.classList.add('bg-primary-50', 'text-primary-600', 'font-bold');
+            btn.querySelector('.material-symbols-rounded').classList.remove('icon-outline');
+        }
+
+        // إدارة المودال (Modals)
+        function openModal(modalId, data = '') {
+            const modal = document.getElementById(modalId);
+            const dataSpan = modal.querySelector('.modal-data');
+            if(dataSpan) dataSpan.textContent = data;
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('.modal-content').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('opacity-0');
+            modal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        // إغلاق المودال بالضغط على الخلفية
+        document.querySelectorAll('.custom-modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal(modal.id);
+            });
+        });
+
+        // المظهر والقائمة الجانبية
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            document.getElementById('theme-icon').textContent = document.documentElement.classList.contains('dark') ? 'light_mode' : 'dark_mode';
+        });
+
+        const sidebar = document.getElementById('sidebar');
+        const mobileBackdrop = document.getElementById('mobile-backdrop');
+        function toggleMobileMenu() {
+            if (sidebar.classList.contains('translate-x-full')) {
+                mobileBackdrop.classList.remove('hidden');
+                setTimeout(() => mobileBackdrop.classList.remove('opacity-0'), 10);
+                sidebar.classList.remove('translate-x-full');
+            } else {
+                sidebar.classList.add('translate-x-full');
+                mobileBackdrop.classList.add('opacity-0');
+                setTimeout(() => mobileBackdrop.classList.add('hidden'), 300);
+            }
+        }
+        
+        document.getElementById('sidebar-toggle').addEventListener('click', () => {
+            sidebar.classList.toggle('sidebar-collapsed');
+            document.getElementById('sidebar-toggle-icon').textContent = sidebar.classList.contains('sidebar-collapsed') ? 'chevron_left' : 'chevron_right';
+        });
+    </script>
+</body>
+</html>

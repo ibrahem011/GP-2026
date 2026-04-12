@@ -1,88 +1,88 @@
-# Gamasa Supabase — دليل الملفات النظيفة
+# Gamasa Supabase Guide
 
-## 📁 هيكل الملفات
+## الهيكل المعتمد
 
-```
-clean_supabase/
-├── MASTER_SCHEMA.sql     ← الملف الرئيسي (شغّله مرة واحدة على مشروع جديد)
-├── functions.sql         ← الدوال فقط (للتحديث السريع بدون إعادة الـ schema)
-├── README.md             ← هذا الملف
-└── migrations/           ← ملفات الـ migrations للـ Supabase CLI (مرتبة ونظيفة)
-    ├── 001_schema.sql
+```text
+supabase/
+├── README.md
+├── manual/
+│   ├── MASTER_SCHEMA.sql
+│   └── functions.sql
+└── migrations/
+    ├── 001_base_schema.sql
     ├── 002_bookings_alignment.sql
-    ├── 003_property_contacts.sql
-    ├── 004_admin_features.sql
-    ├── 005_location_split.sql
-    └── 006_storage_bucket.sql
+    ├── 003_normalize_feature_ids.sql
+    ├── 004_split_property_location.sql
+    ├── 005_storage_bucket.sql
+    ├── 006_user_data_fetch.sql
+    ├── 007_booking_availability_consistency.sql
+    └── 008_booking_storage_hardening.sql
 ```
 
----
+## معنى كل ملف
 
-## 🚀 طريقة الاستخدام
+- `supabase/migrations/`
+  المصدر الرسمي للتغييرات التراكمية على قاعدة البيانات.
+- `supabase/migrations/001_base_schema.sql`
+  baseline داخل تاريخ المايغريشن فقط. ليس ملف رفع يدوي لمشروع قائم.
+- `supabase/manual/MASTER_SCHEMA.sql`
+  snapshot كامل لمشروع جديد من الصفر عبر Supabase Dashboard.
+- `supabase/manual/functions.sql`
+  hotfix يدوي للدوال والتريجرات فقط.
 
-### للمشاريع الجديدة (Fresh Install)
-1. افتح **Supabase Dashboard → SQL Editor**
-2. شغّل الملف `MASTER_SCHEMA.sql` كاملاً
+## المصدر الرسمي للحقيقة
 
-### لتحديث الدوال فقط
-- شغّل `functions.sql` في SQL Editor
+- للمشروع القائم: الحقيقة الرسمية هي `migrations/`.
+- للمشروع الجديد اليدوي عبر Dashboard: الحقيقة العملية هي `manual/MASTER_SCHEMA.sql`.
+- `manual/functions.sql` ليس بديلًا عن migrations، ولا بديلًا عن `MASTER_SCHEMA.sql`.
 
-### للـ Supabase CLI
-```bash
-supabase db push
-```
+## ماذا أرفع إلى Supabase؟
 
----
+### 1. مشروع جديد من الصفر
 
-## 🗑️ الملفات المحذوفة (كانت في المشروع القديم)
+- شغّل `supabase/manual/MASTER_SCHEMA.sql` مرة واحدة فقط في `SQL Editor`.
+- لا تشغّل بعده `001` إلى `008` يدويًا فوقه.
 
-| الملف | السبب |
-|-------|--------|
-| `20240311_P0-01_rls_properties.sql` | قديم — مُستبدَل بـ RLS أحدث |
-| `20240311_P0-02_storage_policies.sql` | قديم — مُستبدَل بـ storage bucket migration |
-| `20240311_P0-03_database_indexes.sql` | مُدمَج في MASTER_SCHEMA |
-| `20240311_P3-01_increment_views_function.sql` | قديم — يحتوي على `last_viewed_at` غير موجود |
-| `20240311_P3-02_user_stats_function.sql` | قديم — مُستبدَل |
-| `20240311_P3-03_updated_at_trigger.sql` | قديم — مُستبدَل |
-| `20260206230932_add_missing_columns_to_properties.sql` | مُدمَج في الـ schema الرئيسي |
-| `20260206232511_update_constraints_for_arabic_support.sql` | مُستبدَل — constraints بالإنجليزية الآن |
-| `20260208000001_add_payment_consumed.sql` | **مكرر** من `20260222125400` |
-| `20260208000003_extend_bookings.sql` | **مكرر** من `20260222125401` |
-| `20260208010000_fix_enum_values.sql` | مُستبدَل بـ constraints نهائية |
-| `20260208143453_fix_enum_values_final.sql` | **مكرر** من السابق |
-| `20260208162503_add_payment_consumed_column.sql` | **مكرر** |
-| `20260208162511_add_unlock_property_function.sql` | مُستبدَل بـ functions.sql |
-| `20260208162520_extend_bookings_schema.sql` | **مكرر** |
-| `20260211224620_.sql` | تجربة `user_roles` غير مُكملة — لا يستخدمها الكود |
-| `20260222125354_initial_schema_sync_retry_2.sql` | مُدمَج في MASTER_SCHEMA |
-| `20260222125400_migration_001_payment_consumed_retry_2.sql` | مُدمَج |
-| `20260222125401_migration_003_extend_bookings_retry_2.sql` | مُدمَج |
-| `20260222125424_functions_sync_v3_fixed_params.sql` | مُستبدَل بـ functions.sql |
-| `20260227010036_sync_schema_from_local.sql` | **مكرر** من `20260222125354` |
-| `20260227010052_sync_functions_..._really_final.sql` | مُستبدَل بـ functions.sql |
-| `20260304235520_align_bookings_status.sql` | **مكرر** من `20260305000001` |
-| `20260304235521_add_bookings_indexes.sql` | **مكرر** من `20260305000003` |
-| `20260308001123_fix_bookings_rls_v2.sql` | **مكرر** من `20260305000002` |
-| `20260308001124_role_enum_unification.sql` | **مكرر** من `20260305000004` |
-| `20260308001127_fix_handle_new_user_role_default.sql` | ملف فارغ |
-| `20260308002000_sync_functions_sql_snapshot.sql` | مُستبدَل بـ functions.sql |
+### 2. مشروع قائم بالفعل
 
----
+- شغّل فقط الـmigration المطلوبة من `supabase/migrations/`.
+- في الحالة الحالية، ملف الرفع الرئيسي لتغييرات hardening هو:
+  `supabase/migrations/008_booking_storage_hardening.sql`
+- إذا كان المشروع متأخرًا عن أكثر من migration، شغّل الملفات الناقصة بالترتيب الرقمي.
 
-## ✅ الجداول الموجودة في MASTER_SCHEMA
+### 3. تعديل دوال فقط
 
-| الجدول | الوصف |
-|--------|--------|
-| `profiles` | بيانات المستخدمين |
-| `properties` | العقارات |
-| `bookings` | الحجوزات |
-| `payment_requests` | طلبات الدفع |
-| `reviews` | التقييمات |
-| `notifications` | الإشعارات |
-| `favorites` | المفضلات |
-| `unlocked_properties` | العقارات المفتوحة |
-| `conversations` | المحادثات |
-| `messages` | الرسائل |
-| `property_status_history` | سجل تغيير حالة العقار |
-| `admin_audit_logs` | سجل العمليات الإدارية |
-| `property_contacts` | بيانات التواصل للعقارات |
+- شغّل `supabase/manual/functions.sql` فقط إذا كان التعديل محصورًا في:
+  `FUNCTION`, `TRIGGER`, أو `GRANT/REVOKE` المرتبط بها.
+- لا تستخدمه إذا كان التغيير يشمل:
+  `ALTER TABLE`, `CREATE POLICY`, `INSERT INTO storage.buckets`, أو أي تغيير schema.
+
+## لا تشغّل هذه الملفات في هذه الحالات
+
+- لا تشغّل `supabase/manual/MASTER_SCHEMA.sql` على مشروع قائم.
+- لا تشغّل `supabase/migrations/001_base_schema.sql` يدويًا على مشروع قائم.
+- لا تشغّل `supabase/manual/functions.sql` لتطبيق تغييرات storage أو RLS أو schema.
+
+## الملفات الأهم حاليًا
+
+- `supabase/migrations/005_storage_bucket.sql`
+  بداية bucket setup القديم لصور العقارات.
+- `supabase/migrations/007_booking_availability_consistency.sql`
+  تحسينات سابقة على التحقق من توافر الحجز.
+- `supabase/migrations/008_booking_storage_hardening.sql`
+  التغييرات الحالية الأهم:
+  hardening للحجوزات، RPC flows، private storage، وسياسات القراءة/الرفع الجديدة.
+
+## Run This / Do Not Run This
+
+| الحالة | شغّل | لا تشغّل |
+|---|---|---|
+| مشروع جديد عبر Dashboard | `supabase/manual/MASTER_SCHEMA.sql` | `001` إلى `008` يدويًا فوقه |
+| مشروع قائم | الـmigration المطلوبة فقط | `manual/MASTER_SCHEMA.sql` |
+| hotfix دوال فقط | `supabase/manual/functions.sql` | أي migration فيها schema أو policies |
+
+## ملاحظات تنظيمية
+
+- لا نضيف تغييرات جديدة داخل `001_base_schema.sql` بعد الآن.
+- أي تعديل جديد على المشروع القائم يدخل كـ migration جديدة فقط.
+- إذا احتجت snapshot يدوي جديد، حدّث ملفات `manual/` من الحالة النهائية الحالية بدل تعديل `001`.

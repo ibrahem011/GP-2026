@@ -47,10 +47,15 @@ export interface Database {
                     full_name: string | null;
                     avatar_url: string | null;
                     phone: string | null;
-                    national_id: string | null;
                     role: 'tenant' | 'landlord' | 'admin';
                     is_verified: boolean;
                     is_admin: boolean;
+                    is_super_admin: boolean;
+                    is_blocked: boolean;
+                    blocked_at: string | null;
+                    blocked_reason: string | null;
+                    archived_at: string | null;
+                    archived_reason: string | null;
                     updated_at: string;
                     created_at: string;
                 };
@@ -59,10 +64,15 @@ export interface Database {
                     full_name?: string | null;
                     avatar_url?: string | null;
                     phone?: string | null;
-                    national_id?: string | null;
                     role?: 'tenant' | 'landlord' | 'admin';
                     is_verified?: boolean;
                     is_admin?: boolean;
+                    is_super_admin?: boolean;
+                    is_blocked?: boolean;
+                    blocked_at?: string | null;
+                    blocked_reason?: string | null;
+                    archived_at?: string | null;
+                    archived_reason?: string | null;
                     updated_at?: string;
                     created_at?: string;
                 };
@@ -71,10 +81,15 @@ export interface Database {
                     full_name?: string | null;
                     avatar_url?: string | null;
                     phone?: string | null;
-                    national_id?: string | null;
                     role?: 'tenant' | 'landlord' | 'admin';
                     is_verified?: boolean;
                     is_admin?: boolean;
+                    is_super_admin?: boolean;
+                    is_blocked?: boolean;
+                    blocked_at?: string | null;
+                    blocked_reason?: string | null;
+                    archived_at?: string | null;
+                    archived_reason?: string | null;
                     updated_at?: string;
                     created_at?: string;
                 };
@@ -428,6 +443,75 @@ export interface Database {
                     media_url?: string | null;
                     duration?: number | null;
                     metadata?: Json | null;
+                };
+            };
+            user_secrets: {
+                Row: {
+                    user_id: string;
+                    national_id: string | null;
+                    created_at: string;
+                    updated_at: string;
+                };
+                Insert: {
+                    user_id: string;
+                    national_id?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+                Update: {
+                    user_id?: string;
+                    national_id?: string | null;
+                    created_at?: string;
+                    updated_at?: string;
+                };
+            };
+            system_settings: {
+                Row: {
+                    key: string;
+                    value: Json;
+                    description: string | null;
+                    updated_at: string;
+                };
+                Insert: {
+                    key: string;
+                    value?: Json;
+                    description?: string | null;
+                    updated_at?: string;
+                };
+                Update: {
+                    key?: string;
+                    value?: Json;
+                    description?: string | null;
+                    updated_at?: string;
+                };
+            };
+            admin_audit_logs: {
+                Row: {
+                    id: string;
+                    action: string;
+                    actor_user_id: string;
+                    target_type: string;
+                    target_id: string;
+                    metadata: Json | null;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    action: string;
+                    actor_user_id: string;
+                    target_type: string;
+                    target_id: string;
+                    metadata?: Json | null;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    action?: string;
+                    actor_user_id?: string;
+                    target_type?: string;
+                    target_id?: string;
+                    metadata?: Json | null;
+                    created_at?: string;
                 };
             };
         };

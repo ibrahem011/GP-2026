@@ -6,6 +6,7 @@ import type { Property as PropertyRow } from '@/types/database.types';
 import type { Message } from '@/types/messaging';
 import { fromPropertyRow, toPropertyInsert } from './propertyMapper';
 import { STORAGE_BUCKET } from './storageBucket';
+import { buildStorageObjectPath, extractStoragePath } from './storagePaths';
 
 // مفاتيح التخزين
 const STORAGE_KEYS = {
@@ -50,8 +51,9 @@ function setItem<T>(key: string, value: T): void {
 export async function uploadImage(file: File): Promise<string> {
     try {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `${fileName}`;
+        const filePath = buildStorageObjectPath(
+            `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`,
+        );
 
         const { error: uploadError } = await supabase.storage
             .from(STORAGE_BUCKET)
@@ -61,11 +63,7 @@ export async function uploadImage(file: File): Promise<string> {
             throw uploadError;
         }
 
-        const { data } = supabase.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(filePath);
-
-        return data.publicUrl;
+        return filePath;
     } catch (error) {
         console.error('Error uploading image:', error);
         throw error;
@@ -78,11 +76,14 @@ export async function uploadPropertyImages(files: File[]): Promise<string[]> {
         throw new Error('يجب تسجيل الدخول لرفع الصور');
     }
 
-    const uploadedUrls: string[] = [];
+    const uploadedPaths: string[] = [];
 
     for (const file of files) {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const fileName = buildStorageObjectPath(
+            user.id,
+            `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`,
+        );
 
         const { error: uploadError } = await supabase.storage
             .from(STORAGE_BUCKET)
@@ -92,24 +93,15 @@ export async function uploadPropertyImages(files: File[]): Promise<string[]> {
             throw new Error(`فشل رفع الصورة: ${uploadError.message}`);
         }
 
-        const { data } = supabase.storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(fileName);
-
-        uploadedUrls.push(data.publicUrl);
+        uploadedPaths.push(fileName);
     }
 
-    return uploadedUrls;
+    return uploadedPaths;
 }
 
 export async function deletePropertyImages(urls: string[]): Promise<void> {
     const pathsToDelete = urls
-        .filter(url => url.includes('supabase'))
-        .map(url => {
-            const bucketIndex = url.indexOf('properties-images/');
-            if (bucketIndex === -1) return null;
-            return url.substring(bucketIndex + 'properties-images/'.length);
-        })
+        .map((url) => extractStoragePath(url, STORAGE_BUCKET) || url)
         .filter(Boolean) as string[];
 
     if (pathsToDelete.length === 0) {

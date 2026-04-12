@@ -1,18 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { supabaseService } from "@/services/supabaseService";
-import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { isDisplayableUrl } from "@/lib/storagePaths";
+import { cn } from "@/lib/utils";
+import { supabaseService } from "@/services/supabaseService";
+import {
+    CATEGORY_AR,
+    PRICE_UNIT_AR,
+    type PriceUnit,
+    type PropertyCategory,
+    type PropertyStatus,
+} from "@/types";
 
 interface PropertyCardProps {
     id: string;
     title: string;
     location: string;
     price: number;
-    priceUnit?: string;
+    priceUnit?: PriceUnit | string;
     image: string;
     bedrooms?: number;
     bathrooms?: number;
@@ -21,177 +30,281 @@ interface PropertyCardProps {
     isVerified?: boolean;
     isFeatured?: boolean;
     discount?: number;
+    category?: PropertyCategory;
+    status?: PropertyStatus;
+    features?: string[];
+    viewsCount?: number;
+    variant?: "default" | "favorites";
+    initialIsFavorite?: boolean;
+    onFavoriteChange?: (isFavorite: boolean) => void;
 }
+
+function formatRating(rating: number) {
+    return Number.isInteger(rating) ? rating.toString() : rating.toFixed(1);
+}
+
+const AR = {
+    confirmLogin:
+        "\u064A\u062C\u0628 \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0644\u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0639\u0642\u0627\u0631\u0627\u062A \u0625\u0644\u0649 \u0627\u0644\u0645\u0641\u0636\u0644\u0629. \u0627\u0644\u0627\u0646\u062A\u0642\u0627\u0644 \u0625\u0644\u0649 \u0635\u0641\u062D\u0629 \u0627\u0644\u062F\u062E\u0648\u0644\u061F",
+    rooms: "\u063A\u0631\u0641",
+    bathrooms: "\u062D\u0645\u0627\u0645",
+    areaUnit: "\u0645\u00B2",
+    propertyImage: "\u0635\u0648\u0631\u0629 \u0627\u0644\u0639\u0642\u0627\u0631",
+    viewDetails: "\u0639\u0631\u0636 \u062A\u0641\u0627\u0635\u064A\u0644",
+    discount: "\u062E\u0635\u0645",
+    verified: "\u0645\u0648\u062B\u0642",
+    removeFavorite: "\u0625\u0632\u0627\u0644\u0629 \u0645\u0646 \u0627\u0644\u0645\u0641\u0636\u0644\u0629",
+    addFavorite: "\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u0627\u0644\u0645\u0641\u0636\u0644\u0629",
+    startsFrom: "\u064A\u0628\u062F\u0623 \u0645\u0646",
+    currency: "\u062C.\u0645",
+    per: "\u0644\u0643\u0644",
+};
 
 export function PropertyCard({
     id,
     title,
     location,
     price,
-    priceUnit = "ليلة",
+    priceUnit = "day",
     image,
     bedrooms,
     bathrooms,
     area,
     rating,
     isVerified = false,
-    isFeatured = false,
     discount,
+    category,
+    variant = "default",
+    initialIsFavorite,
+    onFavoriteChange,
 }: PropertyCardProps) {
-    const [isFavorite, setIsFavorite] = useState(false);
+    const [isFavorite, setIsFavorite] = useState(Boolean(initialIsFavorite));
+    const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
     const { user, isAuthenticated } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (user) {
-            checkFavoriteStatus();
-        }
-    }, [user, id]);
+        setIsFavorite(Boolean(initialIsFavorite));
+    }, [initialIsFavorite]);
 
-    const checkFavoriteStatus = async () => {
+    const checkFavoriteStatus = useCallback(async () => {
         if (!user) return;
+
         const { data } = await supabaseService.getFavorites(user.id);
-        setIsFavorite(data.some((favorite) => favorite.id === id));
-    };
+        setIsFavorite((data ?? []).some((favorite) => favorite.id === id));
+    }, [id, user]);
+
+    useEffect(() => {
+        if (!user || initialIsFavorite !== undefined) {
+            return;
+        }
+
+        void checkFavoriteStatus();
+    }, [checkFavoriteStatus, initialIsFavorite, user]);
 
     const handleFavoriteClick = async (e: React.MouseEvent) => {
+        // Keep favorite click independent from card-wide navigation link.
         e.preventDefault();
         e.stopPropagation();
 
+        if (isTogglingFavorite) {
+            return;
+        }
+
         if (!isAuthenticated || !user) {
-            if (confirm("يجب تسجيل الدخول لإضافة العقارات للمفضلة. الذهاب لصفحة الدخول؟")) {
+            if (confirm(AR.confirmLogin)) {
                 router.push("/auth");
             }
             return;
         }
 
-        // Optimistic update
-        const newState = !isFavorite;
-        setIsFavorite(newState);
+        const nextState = !isFavorite;
+        setIsFavorite(nextState);
+        setIsTogglingFavorite(true);
 
         try {
             await supabaseService.toggleFavorite(user.id, id);
+            onFavoriteChange?.(nextState);
         } catch (error) {
-            // Revert on error
-            setIsFavorite(!newState);
+            setIsFavorite(!nextState);
             console.error("Error toggling favorite:", error);
+        } finally {
+            setIsTogglingFavorite(false);
         }
     };
 
-    const imageSrc = image && image.trim() !== "" ? image : "/images/placeholder.jpg";
+    const imageSrc =
+        image && isDisplayableUrl(image.trim()) ? image.trim() : "/images/placeholder.jpg";
+
+    const metaItems = useMemo(
+        () =>
+            [
+                bedrooms
+                    ? {
+                          icon: "bed",
+                          label: `${bedrooms.toLocaleString("ar-EG")} ${AR.rooms}`,
+                      }
+                    : null,
+                bathrooms
+                    ? {
+                          icon: "bathtub",
+                          label: `${bathrooms.toLocaleString("ar-EG")} ${AR.bathrooms}`,
+                      }
+                    : null,
+                area
+                    ? {
+                          icon: "straighten",
+                          label: `${area.toLocaleString("ar-EG")} ${AR.areaUnit}`,
+                      }
+                    : null,
+            ].filter(Boolean) as Array<{ icon: string; label: string }>,
+        [area, bathrooms, bedrooms],
+    );
+
+    const categoryLabel = category ? CATEGORY_AR[category] : null;
+    const hasLocation = location.trim().length > 0;
+    const priceUnitLabel =
+        typeof priceUnit === "string" && priceUnit in PRICE_UNIT_AR
+            ? PRICE_UNIT_AR[priceUnit as PriceUnit]
+            : priceUnit;
+    const cardHeightClass =
+        variant === "favorites"
+            ? "h-[clamp(380px,44vw,440px)]"
+            : "h-[clamp(360px,42vw,420px)]";
 
     return (
-        <div className="group bg-surface-light dark:bg-surface-dark rounded-2xl p-3 shadow-sm border border-border-light dark:border-border-dark transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-primary/20">
-            <div className="relative w-full h-48 rounded-xl overflow-hidden mb-3 group/image">
-                <Link href={`/property/${id}`} className="block w-full h-full">
-                    <Image
-                        src={imageSrc}
-                        alt={title || "Property Image"}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover/image:scale-110"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                </Link>
-
-                {/* Favorite Button */}
-                <button
-                    onClick={handleFavoriteClick}
-                    className={`absolute top-3 right-3 size-8 backdrop-blur-md rounded-full flex items-center justify-center transition-all z-10 ${isFavorite
-                        ? "bg-white text-error shadow-sm transform scale-110"
-                        : "bg-white/30 text-white hover:bg-white hover:text-error"
-                        }`}
-                >
-                    <span
-                        className="material-symbols-outlined text-[20px] transition-colors"
-                        style={{ fontVariationSettings: `'FILL' ${isFavorite ? 1 : 0}` }}
-                    >
-                        favorite
-                    </span>
-                </button>
-
-                {/* Verified Badge */}
-                {isVerified && (
-                    <div className="absolute bottom-3 right-3 bg-success/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded flex items-center gap-1 font-medium pointer-events-none">
-                        <span className="material-symbols-outlined text-[14px]">verified</span>
-                        موثوق
-                    </div>
+        <article className="group relative h-full w-full cursor-pointer rounded-[2rem] border border-slate-100 bg-white p-2 shadow-sm transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-15px_rgba(15,23,42,0.18)] dark:border-white/5 dark:bg-zinc-900">
+            <div
+                className={cn(
+                    "relative flex w-full flex-col overflow-hidden rounded-[1.5rem]",
+                    cardHeightClass,
                 )}
+            >
+                <Image
+                    src={imageSrc}
+                    alt={title || AR.propertyImage}
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                />
 
-                {/* Rating Badge */}
-                {rating && (
-                    <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/70 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 pointer-events-none">
-                        <span className="material-symbols-outlined text-yellow-500 text-[16px] fill-current">
-                            star
-                        </span>
-                        <span className="text-xs font-bold text-gray-900 dark:text-white">{rating}</span>
-                    </div>
-                )}
-
-                {/* Discount Badge */}
-                {discount && (
-                    <div className="absolute bottom-3 left-3 bg-primary text-white px-3 py-1 rounded-lg text-sm font-bold shadow-lg pointer-events-none">
-                        -{discount}% خصم
-                    </div>
-                )}
-            </div>
-
-            <div className="px-1">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h3 className="font-bold text-lg text-text-main line-clamp-1">
-                            {title}
-                        </h3>
-                        <p className="text-sm text-text-muted flex items-center mt-1">
-                            <span className="material-symbols-outlined text-[16px] text-primary ml-1">
-                                location_on
-                            </span>
-                            {location}
-                        </p>
-                    </div>
-                    <div className="text-left shrink-0">
-                        <span className="block text-primary font-bold text-xl">
-                            {price.toLocaleString("ar-EG")} <span className="text-xs">ج.م</span>
-                        </span>
-                        <span className="text-xs text-text-muted">في {priceUnit}</span>
-                    </div>
-                </div>
-
-                {/* Features */}
-                <div className="flex gap-4 mt-4 py-3 border-t border-dashed border-border-light dark:border-border-dark">
-                    {bedrooms && (
-                        <div className="flex items-center gap-1.5 text-text-muted">
-                            <span className="material-symbols-outlined text-[18px]">bed</span>
-                            <span className="text-xs font-medium">{bedrooms} غرف</span>
-                        </div>
-                    )}
-                    {bathrooms && (
-                        <div className="flex items-center gap-1.5 text-text-muted">
-                            <span className="material-symbols-outlined text-[18px]">
-                                bathtub
-                            </span>
-                            <span className="text-xs font-medium">{bathrooms} حمام</span>
-                        </div>
-                    )}
-                    {area && (
-                        <div className="flex items-center gap-1.5 text-text-muted">
-                            <span className="material-symbols-outlined text-[18px]">
-                                straighten
-                            </span>
-                            <span className="text-xs font-medium">{area} م²</span>
-                        </div>
-                    )}
-                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/30 to-transparent mix-blend-multiply transition-opacity duration-500 group-hover:opacity-90" />
 
                 <Link
                     href={`/property/${id}`}
-                    className="w-full mt-1 bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                    className="absolute inset-0 z-10"
+                    aria-label={`${AR.viewDetails} ${title}`}
+                />
+
+                <div className="absolute left-3 top-3 z-20 flex flex-col gap-1.5 pointer-events-none">
+                    {typeof discount === "number" && discount > 0 ? (
+                        <span className="inline-flex items-center rounded-full border border-rose-200/60 bg-rose-500/90 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+                            {AR.discount} {discount}%
+                        </span>
+                    ) : null}
+                    {isVerified ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/40 bg-emerald-500/85 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+                            <span className="material-symbols-outlined text-[13px]">verified</span>
+                            {AR.verified}
+                        </span>
+                    ) : null}
+                </div>
+
+                <button
+                    onClick={handleFavoriteClick}
+                    disabled={isTogglingFavorite}
+                    aria-label={isFavorite ? AR.removeFavorite : AR.addFavorite}
+                    className={cn(
+                        "absolute right-3 top-3 z-20 flex size-10 items-center justify-center rounded-full bg-white/90 text-rose-500 shadow-md backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-white active:scale-95 disabled:cursor-wait disabled:opacity-80",
+                        isFavorite && "shadow-rose-500/20",
+                    )}
                 >
-                    عرض التفاصيل
-                    <span className="material-symbols-outlined text-[18px] rtl:rotate-180 transition-transform duration-300 group-hover:-translate-x-1">
-                        arrow_right_alt
+                    <span
+                        className={cn(
+                            "material-symbols-outlined text-[22px]",
+                            isTogglingFavorite && "animate-spin",
+                        )}
+                        style={{
+                            fontVariationSettings:
+                                isFavorite && !isTogglingFavorite ? "'FILL' 1" : "'FILL' 0",
+                        }}
+                    >
+                        {isTogglingFavorite ? "progress_activity" : "favorite"}
                     </span>
-                </Link>
+                </button>
+
+                <div className="absolute bottom-0 left-0 z-10 flex w-full flex-col justify-end p-2.5 pointer-events-none">
+                    <div className="relative w-full overflow-hidden rounded-[1.25rem] border border-white/20 bg-white/15 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.1)] transition-colors duration-300 group-hover:bg-white/20 dark:border-white/10 dark:bg-black/15 dark:group-hover:bg-black/25">
+                        <div className="p-4">
+                            <div className="mb-3 flex items-start justify-between gap-3">
+                                <div className="text-right">
+                                    {categoryLabel ? (
+                                        <span className="mb-1 block text-[11px] font-bold text-slate-300">
+                                            {categoryLabel}
+                                        </span>
+                                    ) : null}
+                                    <h3 className="line-clamp-1 text-xl font-black text-white drop-shadow-sm">
+                                        {title}
+                                    </h3>
+                                    {hasLocation ? (
+                                        <div className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-slate-200/95 drop-shadow-sm">
+                                            <span className="material-symbols-outlined text-[14px]">
+                                                location_on
+                                            </span>
+                                            <span className="line-clamp-1">{location}</span>
+                                        </div>
+                                    ) : null}
+                                </div>
+                                {typeof rating === "number" && rating > 0 ? (
+                                    <div className="flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/20 px-2 py-1 text-sm font-bold text-white shadow-sm backdrop-blur-md">
+                                        <span className="mt-0.5">{formatRating(rating)}</span>
+                                        <span className="material-symbols-outlined text-[15px] text-amber-300">
+                                            star
+                                        </span>
+                                    </div>
+                                ) : null}
+                            </div>
+
+                            <div className="mb-4 flex items-end justify-between gap-3">
+                                <div className="flex flex-col gap-0.5 text-right">
+                                    <p className="text-[11px] font-medium text-slate-300 drop-shadow-sm">
+                                        {AR.startsFrom}
+                                    </p>
+                                    <div className="flex items-baseline gap-1.5 text-white">
+                                        <span className="text-[26px] font-black tracking-tight drop-shadow-md">
+                                            {price.toLocaleString("ar-EG")}
+                                        </span>
+                                        <span className="text-xs font-bold text-slate-200">
+                                            {AR.currency}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-bold text-slate-100 shadow-sm backdrop-blur-md">
+                                    {AR.per} {priceUnitLabel}
+                                </div>
+                            </div>
+
+                            {metaItems.length > 0 ? (
+                                <div className="flex w-full items-center justify-between gap-2">
+                                    {metaItems.map((item) => (
+                                        <div
+                                            key={item.label}
+                                            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/10 py-2 shadow-sm backdrop-blur-md transition-colors group-hover:bg-white/20 dark:bg-white/5"
+                                        >
+                                            <span className="whitespace-nowrap text-[11px] font-bold text-white">
+                                                {item.label}
+                                            </span>
+                                            <span className="material-symbols-outlined text-[16px] text-white/90">
+                                                {item.icon}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </article>
     );
 }

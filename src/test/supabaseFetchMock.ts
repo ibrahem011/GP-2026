@@ -74,12 +74,17 @@ export function installSupabaseFetchMock() {
             const payload = req.body ? await req.json().catch(() => ({})) : {}
 
             // دعم عام لسيناريو "consume + unlock"
-            if (fn === 'unlock_property_with_payment' || (fn?.toLowerCase().includes('consume') && fn.toLowerCase().includes('unlock'))) {
+            if (
+                fn === 'unlock_property_with_payment' ||
+                fn === 'approve_payment_request_and_unlock' ||
+                (fn?.toLowerCase().includes('consume') && fn.toLowerCase().includes('unlock'))
+            ) {
                 const paymentId = payload.p_payment_id || payload.payment_id || payload.paymentId
                 const pr = db.payment_requests.find((x) => x.id === paymentId)
                 if (!pr) return json(400, { message: 'payment not found' })
                 if (pr.is_consumed) return json(400, { message: 'payment already consumed' })
 
+                pr.status = 'approved'
                 pr.is_consumed = true
                 db.unlocked_properties.push({
                     id: uuid(),
@@ -87,6 +92,10 @@ export function installSupabaseFetchMock() {
                     property_id: pr.property_id,
                     unlocked_at: now(),
                 })
+                return json(200, { ok: true })
+            }
+
+            if (fn === 'transition_booking_status' || fn === 'attach_booking_payment_proof') {
                 return json(200, { ok: true })
             }
 

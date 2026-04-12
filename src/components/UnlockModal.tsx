@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { uploadImage, unlockProperty as unlockPropertyInMock, addNotification } from '@/lib/storage';
+import { unlockProperty as unlockPropertyInMock, addNotification } from '@/lib/storage';
 import { useUser } from '@/hooks/useUser';
 import { supabaseService } from '@/services/supabaseService';
 import { getIsMockMode } from '@/config/constants';
@@ -26,14 +26,14 @@ export function UnlockModal({ propertyId, onClose, onSuccess }: UnlockModalProps
         setUploading(true);
 
         try {
-            const receiptUrl = await uploadImage(file);
+            const receiptPath = await supabaseService.uploadUnlockPaymentReceipt(propertyId, user.id, file);
 
             await supabaseService.createPaymentRequest({
                 userId: user.id,
                 propertyId,
                 amount: UNLOCK_AMOUNT,
                 paymentMethod: 'vodafone_cash',
-                receiptImage: receiptUrl,
+                receiptImage: receiptPath,
             });
 
             if (getIsMockMode()) {

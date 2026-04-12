@@ -14,6 +14,12 @@ export interface UserProfile {
     role: UserRole;
     is_verified: boolean;
     is_admin: boolean;
+    is_super_admin: boolean;
+    is_blocked: boolean;
+    blocked_at: string | null;
+    blocked_reason: string | null;
+    archived_at: string | null;
+    archived_reason: string | null;
 }
 
 // Backward-compatible user type that matches the old interface
@@ -26,6 +32,13 @@ export interface AppUser {
     role: UserRole;
     nationalId?: string;
     isVerified: boolean;
+    isAdmin?: boolean;
+    isSuperAdmin?: boolean;
+    isBlocked?: boolean;
+    blockedAt?: string;
+    blockedReason?: string;
+    archivedAt?: string;
+    archivedReason?: string;
     favorites: string[];
     unlockedProperties: string[];
     createdAt: string;
@@ -47,10 +60,15 @@ export function useUser() {
         full_name: string | null;
         avatar_url: string | null;
         phone: string | null;
-        national_id: string | null;
         role: string | null;
         is_verified: boolean;
         is_admin: boolean;
+        is_super_admin: boolean;
+        is_blocked: boolean;
+        blocked_at: string | null;
+        blocked_reason: string | null;
+        archived_at: string | null;
+        archived_reason: string | null;
         created_at: string;
         updated_at: string;
     }
@@ -76,6 +94,9 @@ export function useUser() {
                     email: authUser.email,
                     role: 'tenant',
                     isVerified: false,
+                    isAdmin: false,
+                    isSuperAdmin: false,
+                    isBlocked: false,
                     favorites: [],
                     unlockedProperties: [],
                     createdAt: authUser.created_at,
@@ -98,8 +119,14 @@ export function useUser() {
                 email: authUser.email,
                 avatar: profile.avatar_url || undefined,
                 role: profileRole,
-                nationalId: profile.national_id || undefined,
                 isVerified: profile.is_verified || false,
+                isAdmin: profile.is_admin || false,
+                isSuperAdmin: profile.is_super_admin || false,
+                isBlocked: profile.is_blocked || false,
+                blockedAt: profile.blocked_at || undefined,
+                blockedReason: profile.blocked_reason || undefined,
+                archivedAt: profile.archived_at || undefined,
+                archivedReason: profile.archived_reason || undefined,
                 favorites: [], // Will be fetched separately
                 unlockedProperties: [], // Will be fetched separately
                 createdAt: profile.created_at,

@@ -50,29 +50,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return callbackUrl.toString();
     }, [sanitizeRedirectPath]);
 
-    const getCanonicalRole = useCallback(async (u: any): Promise<UserRole> => {
+    const getCanonicalProfile = useCallback(async (u: any): Promise<Partial<User>> => {
         const metadataRole = normalizeRole(u.user_metadata?.role as string | undefined);
 
         if (getIsMockMode()) {
-            return metadataRole;
+            return {
+                role: metadataRole,
+                isAdmin: metadataRole === 'admin',
+                isSuperAdmin: false,
+                isBlocked: false,
+            };
         }
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, is_admin, is_super_admin, is_blocked, blocked_at, blocked_reason, archived_at, archived_reason')
             .eq('id', u.id)
             .maybeSingle();
 
         if (error) {
-            console.warn('[AuthContext] Failed to resolve role from profiles, using metadata role', error);
-            return metadataRole;
+            console.warn('[AuthContext] Failed to resolve profile, using metadata', error);
+            return {
+                role: metadataRole,
+                isAdmin: metadataRole === 'admin',
+                isSuperAdmin: false,
+                isBlocked: false,
+            };
         }
 
-        return normalizeRole((data as { role?: string } | null)?.role ?? metadataRole);
+        const row = data as any;
+        const normalizedRole = normalizeRole(row?.role ?? metadataRole);
+        return {
+            role: normalizedRole,
+            isAdmin: row?.is_admin || normalizedRole === 'admin',
+            isSuperAdmin: row?.is_super_admin || false,
+            isBlocked: row?.is_blocked || false,
+            blockedAt: row?.blocked_at || undefined,
+            blockedReason: row?.blocked_reason || undefined,
+            archivedAt: row?.archived_at || undefined,
+            archivedReason: row?.archived_reason || undefined,
+        };
     }, []);
 
     const mapSupabaseUser = useCallback(async (u: any): Promise<User> => {
-        const role = await getCanonicalRole(u);
+        const profileData = await getCanonicalProfile(u);
 
         return {
             id: u.id,
@@ -80,15 +101,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             phone: (u.user_metadata?.phone as string) || '',
             email: u.email || '',
             avatar: (u.user_metadata?.avatar_url as string) || undefined,
-            role,
+            ...profileData,
+            role: profileData.role || 'tenant', // Fallback role
             favorites: [],
             unlockedProperties: [],
             isVerified: false,
             createdAt: new Date().toISOString(),
             memberSince: new Date().toISOString(),
             lastLogin: new Date().toISOString(),
-        };
-    }, [getCanonicalRole]);
+        } as User;
+    }, [getCanonicalProfile]);
 
     // Initial Load & Event Listeners
     useEffect(() => {

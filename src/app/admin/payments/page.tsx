@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { supabaseService } from '@/services/supabaseService';
-import { GlassCard, GlassButton } from '@/components/ui/glass';
+import { GlassCard } from '@/components/ui/glass';
 
 interface PaymentRequest {
     id: string;
@@ -15,48 +15,42 @@ interface PaymentRequest {
     status: 'pending' | 'approved' | 'rejected';
     admin_note: string | null;
     created_at: string;
-    // Joined data
     property_title?: string;
     user_name?: string;
 }
 
 export default function AdminPaymentsPage() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    
+    const initialStatus = (searchParams.get('status') as any) || 'pending';
+    const initialQ = searchParams.get('q') || '';
+
     const [payments, setPayments] = useState<PaymentRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+    const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected' | 'all'>(initialStatus);
+    const [searchQuery, setSearchQuery] = useState(initialQ);
 
     useEffect(() => {
         loadPayments();
     }, [filter]);
 
+    const handleFilterChange = (newFilter: typeof filter) => {
+        setFilter(newFilter);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('status', newFilter);
+        router.push(`?${params.toString()}`);
+    };
+
     const loadPayments = async () => {
         setLoading(true);
         try {
-            let query = supabase
-                .from('payment_requests')
-                .select(`
-                    *,
-                    properties:property_id(title),
-                    profiles:user_id(full_name)
-                `)
-                .order('created_at', { ascending: false });
+            const data = await supabaseService.getPaymentRequests(
+                filter === 'all' ? undefined : { status: filter }
+            );
 
-            if (filter !== 'all') {
-                query = query.eq('status', filter);
-            }
-
-            const { data, error } = await query;
-
-            if (error) throw error;
-
-            const formatted = (data || []).map((p: Record<string, unknown>) => ({
-                ...p,
-                property_title: (p.properties as { title?: string })?.title,
-                user_name: (p.profiles as { full_name?: string })?.full_name,
-            })) as PaymentRequest[];
-
-            setPayments(formatted);
+            setPayments(data as PaymentRequest[]);
         } catch (error) {
             console.error('Error loading payments:', error);
         } finally {
@@ -69,14 +63,11 @@ export default function AdminPaymentsPage() {
         try {
             if (newStatus === 'approved') {
                 try {
-                    // Unlock the property for the user (now secure)
                     await supabaseService.approvePaymentAndUnlock(
                         payment.id,
                         payment.user_id,
                         payment.property_id
                     );
-
-                    // Send success notification
                     await supabaseService.createNotification({
                         userId: payment.user_id,
                         title: 'تم قبول طلب الدفع!',
@@ -86,31 +77,12 @@ export default function AdminPaymentsPage() {
                     });
                 } catch (unlockError) {
                     console.error('Failed to unlock property:', unlockError);
-                    
-                    // Revert payment status if unlock fails
-                    await supabase
-                        .from('payment_requests')
-                        .update({ status: 'pending', processed_at: null, is_consumed: false })
-                        .eq('id', payment.id);
-                    
                     alert('فشل فتح العقار. يرجى المحاولة مرة أخرى.');
                     loadPayments();
                     return;
                 }
             } else {
-                const { error: updateError } = await supabase
-                    .from('payment_requests')
-                    .update({
-                        status: newStatus,
-                        processed_at: new Date().toISOString(),
-                    })
-                    .eq('id', payment.id);
-
-                if (updateError) {
-                    throw updateError;
-                }
-
-                // Send rejection notification
+                await supabaseService.rejectPaymentRequest(payment.id);
                 await supabaseService.createNotification({
                     userId: payment.user_id,
                     title: 'تم رفض طلب الدفع',
@@ -137,128 +109,157 @@ export default function AdminPaymentsPage() {
         }
     };
 
-    const getStatusBadge = (status: string) => {
+    const getStatusStyle = (status: string) => {
         switch (status) {
-            case 'pending':
-                return <span className="px-2 py-1 rounded-full bg-amber-500/20 text-amber-500 text-xs font-medium">معلق</span>;
-            case 'approved':
-                return <span className="px-2 py-1 rounded-full bg-green-500/20 text-green-500 text-xs font-medium">مقبول</span>;
-            case 'rejected':
-                return <span className="px-2 py-1 rounded-full bg-red-500/20 text-red-500 text-xs font-medium">مرفوض</span>;
-            default:
-                return null;
+            case 'approved': return 'bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-500 border-green-200 dark:border-green-500/20';
+            case 'pending': return 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-200 dark:border-amber-500/20';
+            case 'rejected': return 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500 border-red-200 dark:border-red-500/20';
+            default: return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700';
         }
     };
 
+    const filteredPayments = useMemo(() => {
+        if (!searchQuery) return payments;
+        const q = searchQuery.toLowerCase();
+        return payments.filter(p => 
+            (p.property_title?.toLowerCase() || '').includes(q) ||
+            (p.user_name?.toLowerCase() || '').includes(q) ||
+            p.id.toLowerCase().includes(q)
+        );
+    }, [payments, searchQuery]);
+
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">طلبات الدفع</h1>
-                <div className="flex gap-2">
-                    {(['pending', 'approved', 'rejected', 'all'] as const).map(f => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f
-                                    ? 'bg-primary text-white'
-                                    : 'bg-white/50 dark:bg-white/10 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-white/20'
-                                }`}
-                        >
-                            {f === 'pending' ? 'معلقة' : f === 'approved' ? 'مقبولة' : f === 'rejected' ? 'مرفوضة' : 'الكل'}
-                        </button>
-                    ))}
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-surface-darkDim p-2 rounded-2xl shadow-soft border border-slate-100 dark:border-white/5">
+                <div className="relative w-full sm:w-1/3 min-w-[250px] admin-search-input">
+                    <span className="material-symbols-rounded absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                    <input 
+                        type="text" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="ابحث بواسطة العقار أو المستخدم..."
+                        className="w-full bg-slate-50 dark:bg-slate-800 text-sm border-none rounded-xl py-2.5 pr-10 pl-4 focus:ring-2 focus:ring-primary/50 text-slate-700 dark:text-slate-200"
+                    />
+                </div>
+
+                <div className="w-full sm:w-auto overflow-x-auto flex items-center gap-1.5 sm:mr-auto pb-1 sm:pb-0 scrollbar-hide">
+                    {(['pending', 'approved', 'rejected', 'all'] as const).map(f => {
+                        const count = f === 'all' ? payments.length : payments.filter(p => p.status === f).length;
+                        return (
+                            <button
+                                key={f}
+                                onClick={() => handleFilterChange(f)}
+                                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${filter === f
+                                        ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-md'
+                                        : 'bg-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                    }`}
+                            >
+                                {f === 'pending' ? 'معلقة' : f === 'approved' ? 'مقبولة' : f === 'rejected' ? 'مرفوضة' : 'الكل'}
+                                {filter === f && (
+                                    <span className={`px-1.5 py-0.5 rounded-lg text-[10px] ${filter === f ? 'bg-white/20 dark:bg-black/20 text-current' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                                        {count}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
-            {loading ? (
-                <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                        <div key={i} className="h-32 bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
-                    ))}
-                </div>
-            ) : payments.length > 0 ? (
-                <div className="space-y-4">
-                    {payments.map(payment => (
-                        <GlassCard key={payment.id} variant="elevated" padding="md">
-                            <div className="flex gap-4">
-                                {/* Receipt Image */}
-                                <div className="w-32 h-32 rounded-xl bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0">
-                                    {payment.receipt_image ? (
-                                        <a href={payment.receipt_image} target="_blank" rel="noopener noreferrer">
-                                            <img src={payment.receipt_image} alt="إيصال" className="w-full h-full object-cover hover:scale-105 transition-transform" />
-                                        </a>
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-gray-400 text-3xl">receipt_long</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Info */}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div>
-                                            <h3 className="font-bold text-gray-900 dark:text-white">
-                                                {payment.property_title || 'عقار'}
-                                            </h3>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                من: {payment.user_name || 'مستخدم'}
-                                            </p>
-                                            <div className="flex items-center gap-3 mt-2">
-                                                <span className="text-primary font-bold">{payment.amount} ج.م</span>
-                                                <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
-                                                    {getPaymentMethodLabel(payment.payment_method)}
-                                                </span>
+            <div className="bg-white dark:bg-surface-darkDim rounded-[24px] shadow-soft border border-slate-100 dark:border-white/5 overflow-hidden">
+                <div className="overflow-x-auto text-sm">
+                    <table className="w-full text-right">
+                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium">
+                            <tr>
+                                <th className="p-4 border-b border-slate-100 dark:border-white/5">المستند</th>
+                                <th className="p-4 border-b border-slate-100 dark:border-white/5">التفاصيل</th>
+                                <th className="p-4 border-b border-slate-100 dark:border-white/5">المبلغ وطريقة التحويل</th>
+                                <th className="p-4 border-b border-slate-100 dark:border-white/5">الحالة</th>
+                                <th className="p-4 border-b border-slate-100 dark:border-white/5 whitespace-nowrap">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                            {loading ? (
+                                <tr><td colSpan={5} className="p-10 text-center text-slate-500"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div></td></tr>
+                            ) : filteredPayments.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="p-16 text-center">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center mb-4">
+                                                <span className="material-symbols-rounded text-[32px] text-slate-300 dark:text-slate-600">receipt_long</span>
                                             </div>
-                                            <p className="text-xs text-gray-400 mt-2">
-                                                {new Date(payment.created_at).toLocaleDateString('ar-EG', {
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                })}
-                                            </p>
+                                            <p className="text-slate-500 dark:text-slate-400 font-medium">لا توجد طلبات دفع حالياً.</p>
                                         </div>
-                                        {getStatusBadge(payment.status)}
-                                    </div>
-
-                                    {/* Actions */}
-                                    {payment.status === 'pending' && (
-                                        <div className="flex gap-2 mt-3">
-                                            <GlassButton
-                                                variant="primary"
-                                                size="sm"
-                                                onClick={() => handleAction(payment, 'approved')}
-                                                loading={actionLoading === payment.id}
-                                                disabled={actionLoading === payment.id}
-                                            >
-                                                <span className="material-symbols-outlined text-sm">check</span>
-                                                قبول وفتح العقار
-                                            </GlassButton>
-                                            <GlassButton
-                                                variant="secondary"
-                                                size="sm"
-                                                onClick={() => handleAction(payment, 'rejected')}
-                                                disabled={actionLoading === payment.id}
-                                                className="!text-red-400 hover:!bg-red-500/20"
-                                            >
-                                                <span className="material-symbols-outlined text-sm">close</span>
-                                                رفض
-                                            </GlassButton>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </GlassCard>
-                    ))}
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredPayments.map((payment) => (
+                                    <tr key={payment.id} className="hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors group">
+                                        <td className="p-4">
+                                            <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 relative">
+                                                {payment.receipt_image ? (
+                                                    <a href={payment.receipt_image} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                                                        <img src={payment.receipt_image} alt="إيصال" className="w-full h-full object-cover hover:scale-110 transition-transform" />
+                                                    </a>
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <span className="material-symbols-rounded text-slate-300 dark:text-slate-600">image_not_supported</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="font-bold text-slate-800 dark:text-white line-clamp-1">{payment.property_title || 'عقار'}</div>
+                                            <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                                <span className="material-symbols-rounded text-[14px]">person</span>
+                                                {payment.user_name || 'مستخدم'}
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="font-bold text-primary dark:text-primary-light">
+                                                {payment.amount} ج.م
+                                            </div>
+                                            <div className="text-xs text-slate-500 mt-1 inline-flex bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                                                {getPaymentMethodLabel(payment.payment_method)}
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold border ${getStatusStyle(payment.status)}`}>
+                                                {payment.status === 'pending' ? 'معلق' : payment.status === 'approved' ? 'مقبول' : 'مرفوض'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4">
+                                            {payment.status === 'pending' ? (
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => handleAction(payment, 'approved')} 
+                                                        disabled={actionLoading === payment.id}
+                                                        className="h-8 px-3 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center justify-center text-xs font-bold disabled:opacity-50 gap-1"
+                                                    >
+                                                        {actionLoading === payment.id ? (
+                                                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                                                        ) : <span className="material-symbols-rounded text-[16px]">lock_open</span>}
+                                                        فتح العقار
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleAction(payment, 'rejected')} 
+                                                        disabled={actionLoading === payment.id}
+                                                        className="w-8 h-8 rounded-lg bg-white dark:bg-transparent border border-red-200 dark:border-red-500/30 text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center disabled:opacity-50"
+                                                    >
+                                                        <span className="material-symbols-rounded text-[16px]">close</span>
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-300 dark:text-slate-600 text-xs">-</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            ) : (
-                <GlassCard variant="subtle" padding="lg" className="text-center">
-                    <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">payments</span>
-                    <p className="text-gray-500">لا توجد طلبات دفع {filter === 'pending' ? 'معلقة' : ''}</p>
-                </GlassCard>
-            )}
+            </div>
         </div>
     );
 }

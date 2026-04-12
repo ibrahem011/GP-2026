@@ -104,23 +104,14 @@ describe('Payment Security Tests', () => {
 
     it('should approve and unlock through the admin flow', async () => {
         const testPaymentId = 'pay-123';
-        const pendingPayment = { id: testPaymentId, amount: 50, status: 'pending', property_id: testPropertyId, user_id: testUserId };
-        const approvedPayment = { id: testPaymentId, amount: 50, status: 'approved', property_id: testPropertyId, user_id: testUserId, is_consumed: false };
-        
-        let paymentCallCount = 0;
-        mockFrom.mockImplementation((table) => {
-            if (table === 'payment_requests') {
-                paymentCallCount++;
-                // 1: initial load. 2: update select. 3: verify check. 4: unlockProperty check.
-                // We return approved for ALL calls after the first one to be safe.
-                return createChain({ data: paymentCallCount === 1 ? pendingPayment : approvedPayment, error: null });
-            }
-            return createChain({ data: null, error: null });
-        });
+        mockRpc.mockResolvedValueOnce({ data: null, error: null });
 
       await expect(
         supabaseService.approvePaymentAndUnlock(testPaymentId, testUserId, testPropertyId)
       ).resolves.toBeUndefined();
+      expect(mockRpc).toHaveBeenCalledWith('approve_payment_request_and_unlock', {
+        p_payment_id: testPaymentId,
+      });
     });
   });
 });

@@ -20,6 +20,11 @@
   --color-surface-dark: 30 33 48;
   /* #1e2130 */
 
+  --color-surface-dim: 248 250 252;
+  /* #f8fafc */
+  --color-surface-darkDim: 30 41 59;
+  /* #1e293b */
+
   --color-border-light: 208 213 231;
   /* #d0d5e7 */
   --color-border-dark: 42 49 66;

@@ -7,21 +7,30 @@ import { useEffect, ReactNode } from 'react';
 
 interface AdminGuardProps {
     children: ReactNode;
+    requireSuperAdmin?: boolean;
 }
 
-export default function AdminGuard({ children }: AdminGuardProps) {
+export default function AdminGuard({ children, requireSuperAdmin = false }: AdminGuardProps) {
     const { user, loading, isAuthenticated } = useAuth();
     const router = useRouter();
+
+    const hasAdminAccess = user?.isAdmin || isAdminRole(user?.role);
+    const hasSuperAdminAccess = user?.isSuperAdmin;
+    const isBlocked = user?.isBlocked;
 
     useEffect(() => {
         if (!loading) {
             if (!isAuthenticated) {
                 router.push('/auth');
-            } else if (!isAdminRole(user?.role)) {
+            } else if (isBlocked) {
                 router.push('/');
+            } else if (!hasAdminAccess) {
+                router.push('/');
+            } else if (requireSuperAdmin && !hasSuperAdminAccess) {
+                router.push('/admin');
             }
         }
-    }, [user, loading, isAuthenticated, router]);
+    }, [user, loading, isAuthenticated, router, hasAdminAccess, hasSuperAdminAccess, isBlocked, requireSuperAdmin]);
 
     if (loading) {
         return (
@@ -36,7 +45,7 @@ export default function AdminGuard({ children }: AdminGuardProps) {
         );
     }
 
-    if (!isAuthenticated || !isAdminRole(user?.role)) {
+    if (!isAuthenticated || isBlocked || !hasAdminAccess || (requireSuperAdmin && !hasSuperAdminAccess)) {
         return null;
     }
 

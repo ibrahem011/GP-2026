@@ -23,7 +23,20 @@ vi.mock('@/context/AuthContext', () => ({
 }));
 
 vi.mock('@/components/PropertyCard', () => ({
-    PropertyCard: ({ title }: { title: string }) => <div data-testid="property-card">{title}</div>,
+    PropertyCard: ({
+        title,
+        onFavoriteChange,
+    }: {
+        title: string;
+        onFavoriteChange?: (isFavorite: boolean) => void;
+    }) => (
+        <div>
+            <div data-testid="property-card">{title}</div>
+            <button type="button" aria-label={`remove-${title}`} onClick={() => onFavoriteChange?.(false)}>
+                remove
+            </button>
+        </div>
+    ),
 }));
 
 import FavoritesPage from '../page';
@@ -67,6 +80,9 @@ describe('FavoritesPage', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        mockGetFavorites.mockReset();
+        mockFromPropertyRow.mockReset();
+        mockUseAuth.mockReset();
         mockUseAuth.mockReturnValue({
             user: { id: 'user-123' },
             isAuthenticated: true,
@@ -90,7 +106,7 @@ describe('FavoritesPage', () => {
         render(<FavoritesPage />);
 
         expect(await screen.findByTestId('property-card')).toHaveTextContent('Property 1');
-        expect(screen.getByText('1')).toBeInTheDocument();
+        expect(screen.getAllByText('١').length).toBeGreaterThan(0);
     });
 
     it('renders an empty state when there are no favorites', async () => {
@@ -121,10 +137,31 @@ describe('FavoritesPage', () => {
 
         expect(await screen.findByText('فشل جلب المفضلات. يرجى المحاولة مرة أخرى.')).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'إعادة المحاولة' }));
+        await user.click(screen.getByRole('button', { name: /إعادة المحاولة/ }));
 
         await waitFor(() => {
             expect(screen.getByTestId('property-card')).toHaveTextContent('Property 2');
         });
+    });
+
+    it('removes a property from the page when it is unfavorited from the card', async () => {
+        const user = userEvent.setup();
+
+        mockGetFavorites.mockResolvedValueOnce({
+            data: [{ id: 'p1', title: 'Property 1', images: ['img1.jpg'] }],
+            error: null,
+        });
+
+        render(<FavoritesPage />);
+
+        expect(await screen.findByTestId('property-card')).toHaveTextContent('Property 1');
+
+        await user.click(screen.getByRole('button', { name: 'remove-Property 1' }));
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('property-card')).not.toBeInTheDocument();
+        });
+
+        expect(screen.getByText('لا توجد عقارات مفضلة')).toBeInTheDocument();
     });
 });

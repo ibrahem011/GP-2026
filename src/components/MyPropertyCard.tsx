@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Property, CATEGORY_AR, STATUS_AR, PropertyStatus } from '@/types';
+import { isDisplayableUrl } from '@/lib/storagePaths';
 
 interface MyPropertyCardProps {
     property: Property;
@@ -36,12 +37,16 @@ function MyPropertyCardComponent({ property, onDelete, onStatusChange, isDeletin
         onDelete(property.id);
     };
 
+    const imageSrc = property.images[0] && isDisplayableUrl(property.images[0].trim())
+        ? property.images[0].trim()
+        : '/placeholder-house.jpg';
+
     return (
         <div className="group bg-white dark:bg-zinc-900/50 backdrop-blur-md rounded-[1.5rem] p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 dark:border-white/5 flex flex-col sm:flex-row gap-5">
             {/* Image */}
             <div className="relative w-full sm:w-48 h-48 sm:h-auto shrink-0 rounded-[1.1rem] overflow-hidden bg-gray-100 dark:bg-zinc-800">
                 <Image
-                    src={property.images[0] || '/placeholder-house.jpg'}
+                    src={imageSrc}
                     alt={property.title}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-110"

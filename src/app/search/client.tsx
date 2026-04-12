@@ -23,6 +23,16 @@ type FiltersState = {
   features?: string; // csv
 };
 
+type SearchFiltersInput = {
+  category?: string;
+  minPrice?: string | number;
+  maxPrice?: string | number;
+  bedrooms?: string | number;
+  bathrooms?: string | number;
+  area?: string;
+  features?: string[];
+};
+
 interface SearchPageClientProps {
   initialProperties: Property[];
   initialSearchParams: {
@@ -122,7 +132,7 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
   }, [searchParams]);
 
   // Called from SearchFilters (debounced inside it)
-  const handleFilterChange = (next: any) => {
+  const handleFilterChange = (next: SearchFiltersInput) => {
     const featuresCsv = Array.isArray(next.features) ? next.features.join(',') : '';
 
     const merged: FiltersState = {
@@ -160,10 +170,10 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
   }, [properties, sort]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black pb-6 md:pb-6">
+    <div className="min-h-screen bg-gray-50 pb-28 dark:bg-black md:pb-6">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-xl px-4 py-4 border-b border-gray-200 dark:border-white/10 transition-all duration-300">
-        <div className="flex items-center gap-3 max-w-5xl mx-auto">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 xl:max-w-[1400px]">
           <button onClick={handleBack} className="h-11 w-11 rounded-2xl bg-gray-100 dark:bg-white/10 flex items-center justify-center shrink-0" aria-label="رجوع">
             <span className="material-symbols-outlined">arrow_forward</span>
           </button>
@@ -183,7 +193,7 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
       </div>
 
       {/* Desktop filters (optional) */}
-      <div className="hidden md:block px-4 py-4 max-w-5xl mx-auto">
+      <div className="mx-auto hidden max-w-7xl px-4 py-4 md:block xl:max-w-[1400px]">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             عرض {sortedProperties.length} مسكن
@@ -215,9 +225,9 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
       </div>
 
       {/* Results */}
-      <div className="px-4 py-4 max-w-5xl mx-auto">
+      <div className="mx-auto max-w-7xl px-4 py-4 xl:max-w-[1400px]">
         {viewMode === 'list' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-8 xl:grid-cols-4">
             {sortedProperties.map((property) => (
               <PropertyCard
                 key={property.id}
@@ -226,7 +236,7 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
                 location={property.location.address}
                 price={property.price}
                 priceUnit={property.priceUnit}
-                image={property.images[0] || '/placeholder.jpg'}
+                image={property.images[0] || ''}
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
                 area={property.area}

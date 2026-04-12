@@ -41,8 +41,8 @@ export function toRoleLabel(roleLike: string | null | undefined): string {
     return ROLE_LABELS_AR[normalizeRole(roleLike)];
 }
 
-export function isAdminRole(roleLike: string | null | undefined): boolean {
-    return normalizeRole(roleLike) === 'admin';
+export function isAdminRole(roleLike: string | null | undefined, is_admin_flag?: boolean): boolean {
+    return normalizeRole(roleLike) === 'admin' || is_admin_flag === true;
 }
 
 export function isLandlordRole(roleLike: string | null | undefined): boolean {

@@ -31,11 +31,11 @@ export function useMyProperties(userId: string | undefined, callbacks?: UseMyPro
             let lastError: any = null;
             for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
                 try {
-                    const controller = new AbortController();
-                    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-                    const rows = await supabaseService.getProperties({ ownerId: userId });
-                    clearTimeout(timer);
+                    const rows = await supabaseService.getProperties({
+                        ownerId: userId,
+                        timeoutMs: TIMEOUT_MS,
+                        logLevel: 'warn',
+                    });
 
                     setProperties(rows.map(fromPropertyRow));
                     lastError = null;

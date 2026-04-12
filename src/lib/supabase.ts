@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { STORAGE_BUCKET } from './storageBucket';
+import { buildStorageObjectPath, extractStoragePath } from './storagePaths';
 
 // التحقق من وجود المتغيرات (Fail-Fast Guard)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -39,7 +40,10 @@ export { STORAGE_BUCKET };
 // دوال مساعدة للتخزين
 export async function uploadImage(file: File, pathPrefix: string = ''): Promise<string> {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${pathPrefix}${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const fileName = buildStorageObjectPath(
+        pathPrefix,
+        `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`,
+    );
 
     const { error: uploadError } = await supabase.storage
         .from(STORAGE_BUCKET)
@@ -52,15 +56,11 @@ export async function uploadImage(file: File, pathPrefix: string = ''): Promise<
         throw new Error(`فشل رفع الصورة: ${uploadError.message}`);
     }
 
-    const { data } = supabase.storage
-        .from(STORAGE_BUCKET)
-        .getPublicUrl(fileName);
-
-    return data.publicUrl;
+    return fileName;
 }
 
-export async function deleteImage(url: string): Promise<void> {
-    const fileName = url.split('/').pop();
+export async function deleteImage(pathOrUrl: string): Promise<void> {
+    const fileName = extractStoragePath(pathOrUrl, STORAGE_BUCKET) || pathOrUrl.trim();
     if (!fileName) return;
 
     const { error } = await supabase.storage

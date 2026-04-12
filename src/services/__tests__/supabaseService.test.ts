@@ -21,6 +21,11 @@ vi.mock('@/lib/supabase', () => ({
             from: vi.fn(() => ({
                 upload: vi.fn(),
                 getPublicUrl: vi.fn(() => ({ data: { publicUrl: 'https://example.com/image.jpg' } })),
+                createSignedUrl: vi.fn((path: string) => ({ data: { signedUrl: `https://example.com/${path}` }, error: null })),
+                createSignedUrls: vi.fn((paths: string[]) => ({
+                    data: paths.map((path) => ({ path, signedUrl: `https://example.com/${path}` })),
+                    error: null,
+                })),
                 remove: vi.fn(),
             })),
         },

@@ -7,11 +7,19 @@
 -- ================================================================
 
 
+-- BASELINE FILE NOTE:
+-- This file is part of migration history only.
+-- Keep all new changes in later numbered migrations.
+
 -- ============================================================
 -- SECTION 1: الجداول الأساسية (Tables)
 -- ============================================================
 
 -- 1.1 جدول الملفات الشخصية (Profiles)
+-- BASELINE ONLY:
+-- This file is the migration-history baseline.
+-- Do not run it manually on an existing project.
+-- For a fresh Dashboard install use supabase/manual/MASTER_SCHEMA.sql.
 CREATE TABLE IF NOT EXISTS public.profiles (
   id              UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   full_name       TEXT,
@@ -899,5 +907,9 @@ LEFT JOIN profiles   po ON p.owner_id    = po.id;
 -- ============================================================
 -- ✅ انتهى بنجاح — MASTER_SCHEMA.sql
 -- ============================================================
+
+-- END NOTE:
+-- Fresh manual bootstrap lives in supabase/manual/MASTER_SCHEMA.sql.
+-- Existing projects should continue with later migrations only.
 
 NOTIFY pgrst, 'reload schema';

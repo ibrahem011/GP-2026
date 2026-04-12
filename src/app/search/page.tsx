@@ -51,18 +51,13 @@ async function getInitialProperties(searchParams: {
 
     if (searchParams.q && searchParams.q.trim()) filters.q = searchParams.q.trim();
 
-    const TIMEOUT_MS = 15_000;
-    const fetchPromise = supabaseService.getProperties({
+    const rows = await supabaseService.getProperties({
       ...filters,
       limit: PAGE_SIZE + 1,
       offset,
+      timeoutMs: 10_000,
+      logLevel: 'warn',
     });
-
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS)
-    );
-
-    const rows = await Promise.race([fetchPromise, timeoutPromise]);
 
     const hasMore = rows.length > PAGE_SIZE;
     const slice = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
@@ -71,7 +66,7 @@ async function getInitialProperties(searchParams: {
 
     return { properties, hasMore };
   } catch (error) {
-    console.error('Failed to fetch initial properties:', error);
+    console.warn('Failed to fetch initial properties:', error);
     return { properties: [], hasMore: false };
   }
 }
