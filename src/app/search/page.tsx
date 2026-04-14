@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { normalizeFeatureIds } from '@/config/features';
+import { isPropertyCollection } from '@/lib/propertyCollections';
 import { fromPropertyRow } from '@/lib/propertyMapper';
 import { supabaseService } from '@/services/supabaseService';
 import SearchPageClient from './client';
@@ -21,12 +22,16 @@ async function getInitialProperties(searchParams: {
   bathrooms?: string;
   area?: string;
   features?: string;
+  collection?: string;
   page?: string;
 }): Promise<{ properties: Property[]; hasMore: boolean }> {
   try {
     const PAGE_SIZE = 12;
     const page = Math.max(1, Number(searchParams.page || '1') || 1);
     const offset = (page - 1) * PAGE_SIZE;
+    const collection = isPropertyCollection(searchParams.collection)
+      ? searchParams.collection
+      : undefined;
 
     const filters: Parameters<typeof supabaseService.getProperties>[0] = { status: 'available' };
 
@@ -50,6 +55,7 @@ async function getInitialProperties(searchParams: {
     }
 
     if (searchParams.q && searchParams.q.trim()) filters.q = searchParams.q.trim();
+    if (collection) filters.collection = collection;
 
     const rows = await supabaseService.getProperties({
       ...filters,
@@ -83,6 +89,7 @@ export default async function SearchPage({
     bathrooms?: string;
     area?: string;
     features?: string;
+    collection?: string;
     page?: string;
   }>;
 }) {

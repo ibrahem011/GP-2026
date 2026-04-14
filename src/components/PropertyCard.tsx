@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { isDisplayableUrl } from "@/lib/storagePaths";
+import { PROPERTY_IMAGE_PLACEHOLDER, normalizePropertyImageSrc } from "@/lib/propertyImages";
 import { cn } from "@/lib/utils";
 import { supabaseService } from "@/services/supabaseService";
 import {
@@ -34,7 +34,7 @@ interface PropertyCardProps {
     status?: PropertyStatus;
     features?: string[];
     viewsCount?: number;
-    variant?: "default" | "favorites";
+    variant?: "default" | "favorites" | "spotlight";
     initialIsFavorite?: boolean;
     onFavoriteChange?: (isFavorite: boolean) => void;
 }
@@ -80,12 +80,17 @@ export function PropertyCard({
 }: PropertyCardProps) {
     const [isFavorite, setIsFavorite] = useState(Boolean(initialIsFavorite));
     const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+    const [imgError, setImgError] = useState(false);
     const { user, isAuthenticated } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
         setIsFavorite(Boolean(initialIsFavorite));
     }, [initialIsFavorite]);
+
+    useEffect(() => {
+        setImgError(false);
+    }, [image]);
 
     const checkFavoriteStatus = useCallback(async () => {
         if (!user) return;
@@ -133,8 +138,7 @@ export function PropertyCard({
         }
     };
 
-    const imageSrc =
-        image && isDisplayableUrl(image.trim()) ? image.trim() : "/images/placeholder.jpg";
+    const imageSrc = imgError ? PROPERTY_IMAGE_PLACEHOLDER : normalizePropertyImageSrc(image);
 
     const metaItems = useMemo(
         () =>
@@ -162,21 +166,36 @@ export function PropertyCard({
     );
 
     const categoryLabel = category ? CATEGORY_AR[category] : null;
-    const hasLocation = location.trim().length > 0;
+    const trimmedLocation = location.trim();
+    const locationLabel = trimmedLocation || categoryLabel;
     const priceUnitLabel =
         typeof priceUnit === "string" && priceUnit in PRICE_UNIT_AR
             ? PRICE_UNIT_AR[priceUnit as PriceUnit]
             : priceUnit;
-    const cardHeightClass =
-        variant === "favorites"
-            ? "h-[clamp(380px,44vw,440px)]"
-            : "h-[clamp(360px,42vw,420px)]";
+    const isSpotlight = variant === "spotlight";
+    const isFavorites = variant === "favorites";
+    const showSpotlightCategory = isSpotlight && Boolean(categoryLabel) && Boolean(trimmedLocation);
+    const cardHeightClass = isSpotlight
+        ? "h-[380px] sm:h-[400px] md:h-[420px]"
+        : isFavorites
+          ? "h-[340px] sm:h-[360px] md:h-[380px]"
+          : "h-[360px] sm:h-[380px] md:h-[400px]";
+    const imageSizes = isSpotlight
+        ? "(max-width: 768px) 100vw, (max-width: 1440px) 50vw, 46vw"
+        : "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw";
 
     return (
-        <article className="group relative h-full w-full cursor-pointer rounded-[2rem] border border-slate-100 bg-white p-2 shadow-sm transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-15px_rgba(15,23,42,0.18)] dark:border-white/5 dark:bg-zinc-900">
+        <article
+            className={cn(
+                "group relative h-full w-full cursor-pointer rounded-[2rem] border border-slate-100 bg-white p-2 shadow-sm transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-15px_rgba(15,23,42,0.18)] dark:border-white/5 dark:bg-zinc-900",
+                isSpotlight &&
+                    "rounded-[2.25rem] border-slate-200/80 bg-white/95 p-2.5 shadow-[0_18px_44px_-20px_rgba(15,23,42,0.26)] hover:shadow-[0_28px_56px_-24px_rgba(15,23,42,0.34)] dark:border-white/10 dark:bg-zinc-900/95",
+            )}
+        >
             <div
                 className={cn(
                     "relative flex w-full flex-col overflow-hidden rounded-[1.5rem]",
+                    isSpotlight && "rounded-[1.65rem]",
                     cardHeightClass,
                 )}
             >
@@ -185,10 +204,19 @@ export function PropertyCard({
                     alt={title || AR.propertyImage}
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                    sizes={imageSizes}
+                    onError={() => {
+                        if (imageSrc !== PROPERTY_IMAGE_PLACEHOLDER) {
+                            setImgError(true);
+                        }
+                    }}
                 />
 
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/30 to-transparent mix-blend-multiply transition-opacity duration-500 group-hover:opacity-90" />
+                <div
+                    className={cn(
+                        "absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/20 transition-opacity duration-500 group-hover:opacity-60",
+                    )}
+                />
 
                 <Link
                     href={`/property/${id}`}
@@ -196,7 +224,12 @@ export function PropertyCard({
                     aria-label={`${AR.viewDetails} ${title}`}
                 />
 
-                <div className="absolute left-3 top-3 z-20 flex flex-col gap-1.5 pointer-events-none">
+                <div
+                    className={cn(
+                        "pointer-events-none absolute z-20 flex flex-col",
+                        isSpotlight ? "left-4 top-4 gap-2" : "left-3 top-3 gap-1.5",
+                    )}
+                >
                     {typeof discount === "number" && discount > 0 ? (
                         <span className="inline-flex items-center rounded-full border border-rose-200/60 bg-rose-500/90 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
                             {AR.discount} {discount}%
@@ -215,13 +248,15 @@ export function PropertyCard({
                     disabled={isTogglingFavorite}
                     aria-label={isFavorite ? AR.removeFavorite : AR.addFavorite}
                     className={cn(
-                        "absolute right-3 top-3 z-20 flex size-10 items-center justify-center rounded-full bg-white/90 text-rose-500 shadow-md backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-white active:scale-95 disabled:cursor-wait disabled:opacity-80",
+                        "absolute z-20 flex items-center justify-center rounded-full bg-white/90 text-rose-500 backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-white active:scale-95 disabled:cursor-wait disabled:opacity-80",
+                        isSpotlight ? "right-4 top-4 size-10 shadow-md" : "right-3 top-3 size-9 shadow-sm",
                         isFavorite && "shadow-rose-500/20",
                     )}
                 >
                     <span
                         className={cn(
-                            "material-symbols-outlined text-[22px]",
+                            "material-symbols-outlined",
+                            isSpotlight ? "text-[22px]" : "text-[20px]",
                             isTogglingFavorite && "animate-spin",
                         )}
                         style={{
@@ -233,74 +268,80 @@ export function PropertyCard({
                     </span>
                 </button>
 
-                <div className="absolute bottom-0 left-0 z-10 flex w-full flex-col justify-end p-2.5 pointer-events-none">
-                    <div className="relative w-full overflow-hidden rounded-[1.25rem] border border-white/20 bg-white/15 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.1)] transition-colors duration-300 group-hover:bg-white/20 dark:border-white/10 dark:bg-black/15 dark:group-hover:bg-black/25">
-                        <div className="p-4">
-                            <div className="mb-3 flex items-start justify-between gap-3">
-                                <div className="text-right">
-                                    {categoryLabel ? (
-                                        <span className="mb-1 block text-[11px] font-bold text-slate-300">
-                                            {categoryLabel}
-                                        </span>
-                                    ) : null}
-                                    <h3 className="line-clamp-1 text-xl font-black text-white drop-shadow-sm">
+                <div
+                    className={cn(
+                        "pointer-events-none absolute bottom-0 left-0 z-10 flex w-full flex-col justify-end",
+                        isSpotlight ? "p-3 md:p-4" : "p-2 sm:p-2.5",
+                    )}
+                >
+                    <div
+                        className={cn(
+                            "relative w-full overflow-hidden border transition-all duration-500",
+                            isSpotlight
+                                ? "rounded-[1.75rem] border-white/60 bg-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-zinc-900/80 group-hover:bg-white/80"
+                                : "rounded-[1.5rem] border-white/60 bg-white/70 shadow-[0_4px_20px_rgb(0,0,0,0.06)] backdrop-blur-2xl dark:border-white/10 dark:bg-zinc-900/80 group-hover:bg-white/80",
+                        )}
+                    >
+                        <div className={isSpotlight ? "p-4 sm:p-5" : "p-3 sm:p-4"}>
+                            <div className="mb-1 flex items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                    <div className="mb-2 flex items-center justify-between">
+                                        {categoryLabel ? (
+                                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary dark:bg-primary/20 dark:text-blue-300">
+                                                {categoryLabel}
+                                            </span>
+                                        ) : <div />}
+                                        {typeof rating === "number" && rating > 0 ? (
+                                            <div className="flex shrink-0 items-center justify-center gap-0.5 rounded-full bg-amber-100/60 px-2 py-0.5 text-[11px] font-bold text-amber-700 backdrop-blur-sm dark:bg-amber-500/10 dark:text-amber-400">
+                                                <span className="mt-0.5">{formatRating(rating)}</span>
+                                                <span className="material-symbols-outlined text-[13px]">star</span>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                    <h3
+                                        className={cn(
+                                            "font-extrabold tracking-tight text-slate-900 dark:text-white",
+                                            isSpotlight ? "mb-1.5 line-clamp-2 text-xl md:text-2xl" : "mb-1 line-clamp-1 text-base sm:text-lg",
+                                        )}
+                                    >
                                         {title}
                                     </h3>
-                                    {hasLocation ? (
-                                        <div className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-slate-200/95 drop-shadow-sm">
-                                            <span className="material-symbols-outlined text-[14px]">
-                                                location_on
-                                            </span>
-                                            <span className="line-clamp-1">{location}</span>
+                                    {locationLabel ? (
+                                        <div className="flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300 text-[12px] sm:text-[13px]">
+                                            <span className="material-symbols-outlined text-[15px]">location_on</span>
+                                            <span className="truncate">{locationLabel}</span>
                                         </div>
                                     ) : null}
                                 </div>
-                                {typeof rating === "number" && rating > 0 ? (
-                                    <div className="flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/20 px-2 py-1 text-sm font-bold text-white shadow-sm backdrop-blur-md">
-                                        <span className="mt-0.5">{formatRating(rating)}</span>
-                                        <span className="material-symbols-outlined text-[15px] text-amber-300">
-                                            star
+                            </div>
+
+                            <hr className={cn("border-slate-300/40 dark:border-white/10", isSpotlight ? "my-3 sm:my-4" : "my-2.5 sm:my-3.5")} />
+
+                            <div className="flex items-end justify-between gap-2">
+                                <div className="flex flex-col">
+                                    <span className="mb-0.5 text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                        {AR.startsFrom || "يبدأ من"}
+                                    </span>
+                                    <div className="flex items-baseline gap-1 text-primary dark:text-blue-400">
+                                        <span className={cn("font-black tracking-tighter", isSpotlight ? "text-2xl md:text-3xl" : "text-lg sm:text-xl")}>
+                                            {price.toLocaleString("ar-EG")}
                                         </span>
+                                        <span className="text-xs font-bold">{AR.currency}</span>
+                                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mx-0.5">/ {priceUnitLabel}</span>
+                                    </div>
+                                </div>
+
+                                {metaItems.length > 0 ? (
+                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                        {metaItems.slice(0, 3).map((item) => (
+                                            <div key={item.label} className="flex items-center gap-1 bg-slate-100/50 dark:bg-white/5 px-1.5 sm:px-2 py-1 rounded-lg border border-white/40 dark:border-white/5 shadow-sm">
+                                                <span className="text-[10px] sm:text-[12px] font-bold text-slate-800 dark:text-slate-200">{item.label.split(' ')[0]}</span>
+                                                <span className="material-symbols-outlined text-[13px] sm:text-[16px] text-slate-500 dark:text-slate-400">{item.icon}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : null}
                             </div>
-
-                            <div className="mb-4 flex items-end justify-between gap-3">
-                                <div className="flex flex-col gap-0.5 text-right">
-                                    <p className="text-[11px] font-medium text-slate-300 drop-shadow-sm">
-                                        {AR.startsFrom}
-                                    </p>
-                                    <div className="flex items-baseline gap-1.5 text-white">
-                                        <span className="text-[26px] font-black tracking-tight drop-shadow-md">
-                                            {price.toLocaleString("ar-EG")}
-                                        </span>
-                                        <span className="text-xs font-bold text-slate-200">
-                                            {AR.currency}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-bold text-slate-100 shadow-sm backdrop-blur-md">
-                                    {AR.per} {priceUnitLabel}
-                                </div>
-                            </div>
-
-                            {metaItems.length > 0 ? (
-                                <div className="flex w-full items-center justify-between gap-2">
-                                    {metaItems.map((item) => (
-                                        <div
-                                            key={item.label}
-                                            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/10 py-2 shadow-sm backdrop-blur-md transition-colors group-hover:bg-white/20 dark:bg-white/5"
-                                        >
-                                            <span className="whitespace-nowrap text-[11px] font-bold text-white">
-                                                {item.label}
-                                            </span>
-                                            <span className="material-symbols-outlined text-[16px] text-white/90">
-                                                {item.icon}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : null}
                         </div>
                     </div>
                 </div>

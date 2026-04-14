@@ -1,6 +1,12 @@
 import { supabase, STORAGE_BUCKET, uploadImage, deleteImage } from '@/lib/supabase';
 import { signPathsWithServiceRole } from '@/lib/serverSupabase';
 import {
+    compareFeaturedPropertyRows,
+    compareRecentPropertyRows,
+    type PropertyCollection,
+} from '@/lib/propertyCollections';
+import { normalizePropertyImageList } from '@/lib/propertyImages';
+import {
     STORAGE_BUCKETS,
     type StorageBucketName,
     buildStorageObjectPath,
@@ -50,6 +56,7 @@ export interface GetPropertiesFilters {
     features?: string[];
     ownerId?: string;
     q?: string;
+    collection?: PropertyCollection;
     limit?: number;
     offset?: number;
     signal?: AbortSignal;
@@ -434,11 +441,13 @@ async function hydratePropertyRows(rows: PropertyRow[]): Promise<PropertyRow[]> 
 
     return rows.map((row) => ({
         ...row,
-        images: (row.images || []).map(() => {
-            const resolved = signedImages[imageIndex];
-            imageIndex += 1;
-            return resolved || '';
-        }).filter(Boolean),
+        images: normalizePropertyImageList(
+            (row.images || []).map(() => {
+                const resolved = signedImages[imageIndex];
+                imageIndex += 1;
+                return resolved || '';
+            }),
+        ),
     }));
 }
 
@@ -470,14 +479,23 @@ async function hydrateBookingsWithPropertyImages<T extends {
             ...booking,
             property: {
                 ...booking.property,
-                images: (booking.property.images || []).map(() => {
-                    const resolved = signedImages[imageIndex];
-                    imageIndex += 1;
-                    return resolved || '';
-                }).filter(Boolean),
+                images: normalizePropertyImageList(
+                    (booking.property.images || []).map(() => {
+                        const resolved = signedImages[imageIndex];
+                        imageIndex += 1;
+                        return resolved || '';
+                    }),
+                ),
             },
         };
     });
+}
+
+function normalizePropertyRowImages<T extends { images?: string[] | null }>(row: T): T {
+    return {
+        ...row,
+        images: normalizePropertyImageList(row.images || []),
+    };
 }
 
 function isMissingRpcFunctionError(error: any, functionName: string): boolean {
@@ -1070,18 +1088,23 @@ export const supabaseService = {
                     (property.area || '').toLowerCase().includes(normalizedQuery),
                 );
             }
+            if (filters?.collection === 'featured') {
+                filtered = filtered.filter((property) => property.is_verified);
+                filtered.sort(compareFeaturedPropertyRows);
+            } else {
+                filtered.sort(compareRecentPropertyRows);
+            }
             if (typeof filters?.offset === 'number' || typeof filters?.limit === 'number') {
                 const start = Math.max(filters?.offset ?? 0, 0);
                 const end = typeof filters?.limit === 'number' ? start + filters.limit : undefined;
                 filtered = filtered.slice(start, end);
             }
-            return filtered;
+            return filtered.map((property) => normalizePropertyRowImages(property));
         }
 
         let query = supabase
             .from('properties')
-            .select('*')
-            .order('created_at', { ascending: false });
+            .select('*');
 
         if (filters?.status) query = query.eq('status', filters.status);
         if (filters?.category) query = query.eq('category', filters.category);
@@ -1095,6 +1118,14 @@ export const supabaseService = {
         if (filters?.q?.trim()) {
             const searchQuery = filters.q.trim();
             query = query.or(`title.ilike.%${searchQuery}%,address.ilike.%${searchQuery}%,area.ilike.%${searchQuery}%`);
+        }
+        if (filters?.collection === 'featured') {
+            query = query
+                .eq('is_verified', true)
+                .order('views_count', { ascending: false })
+                .order('created_at', { ascending: false });
+        } else {
+            query = query.order('created_at', { ascending: false });
         }
         if (typeof filters?.limit === 'number') {
             const offset = Math.max(filters.offset ?? 0, 0);
@@ -1129,7 +1160,8 @@ export const supabaseService = {
 
     async getPropertyById(id: string): Promise<PropertyRow | null> {
         if (shouldShortCircuitMock()) {
-            return MOCK_PROPERTIES.find(p => p.id === id) || null;
+            const property = MOCK_PROPERTIES.find(p => p.id === id) || null;
+            return property ? normalizePropertyRowImages(property) : null;
         }
 
         const { data, error } = await supabase
@@ -1171,7 +1203,7 @@ export const supabaseService = {
             const idx = MOCK_PROPERTIES.findIndex(p => p.id === id);
             if (idx !== -1) {
                 MOCK_PROPERTIES[idx] = { ...MOCK_PROPERTIES[idx], ...updates };
-                return MOCK_PROPERTIES[idx];
+                return normalizePropertyRowImages(MOCK_PROPERTIES[idx]);
             }
             return null;
         }

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { UnlockModal } from '@/components/UnlockModal';
 import { resolveFeature } from '@/config/features';
 import { ImageSkeleton } from '@/components/ImageSkeleton';
+import { normalizePropertyImageList } from '@/lib/propertyImages';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { supabaseService } from '@/services/supabaseService';
@@ -29,8 +30,6 @@ const PropertyLocationMap = dynamic(() => import('@/components/PropertyLocationM
 interface ClientPropertyDetailsProps {
     initialProperty: Property;
 }
-
-const IMAGE_PLACEHOLDER = '/images/placeholder.jpg';
 
 const formatDate = (value: string) =>
     new Date(`${value}T00:00:00`).toLocaleDateString('ar-EG', {
@@ -120,10 +119,10 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
     const { user, isAuthenticated } = useAuth();
     const router = useRouter();
 
-    const galleryImages = useMemo(() => {
-        const sanitizedImages = initialProperty.images.filter((image) => image.trim() !== '');
-        return sanitizedImages.length > 0 ? sanitizedImages : [IMAGE_PLACEHOLDER];
-    }, [initialProperty.images]);
+    const galleryImages = useMemo(
+        () => normalizePropertyImageList(initialProperty.images),
+        [initialProperty.images],
+    );
     const propertyFeatures = useMemo(
         () => initialProperty.features.map((feature) => resolveFeature(feature)),
         [initialProperty.features],

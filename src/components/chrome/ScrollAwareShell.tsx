@@ -1,13 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import Header from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 export default function ScrollAwareShell({ children }: { children: ReactNode }) {
+    const pathname = usePathname();
+    const isDesktop = useMediaQuery('(min-width: 768px)');
     const [hidden, setHidden] = useState(false);
     const prevScrollY = useRef(0);
     const scrollTimeout = useRef<number | null>(null);
+    const hideFavoritesChrome = pathname === '/favorites' && !isDesktop;
 
     useEffect(() => {
         const handleScroll = () => {
@@ -39,23 +44,27 @@ export default function ScrollAwareShell({ children }: { children: ReactNode }) 
 
     return (
         <>
-            <div
-                className={`fixed top-0 inset-x-0 z-[100] transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'
-                    }`}
-            >
-                <Header />
-            </div>
+            {!hideFavoritesChrome ? (
+                <div
+                    className={`fixed top-0 inset-x-0 z-[100] transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'
+                        }`}
+                >
+                    <Header />
+                </div>
+            ) : null}
 
-            <main className="min-h-screen pb-[var(--chrome-bottom)] md:pb-0">
+            <main className={hideFavoritesChrome ? 'min-h-screen' : 'min-h-screen pb-[var(--chrome-bottom)] md:pb-0'}>
                 {children}
             </main>
 
-            <div
-                className={`fixed bottom-0 inset-x-0 z-[100] transition-transform duration-300 md:hidden pointer-events-none ${hidden ? 'translate-y-24' : 'translate-y-0'
-                    }`}
-            >
-                <BottomNav />
-            </div>
+            {!hideFavoritesChrome ? (
+                <div
+                    className={`fixed bottom-0 inset-x-0 z-[100] transition-transform duration-300 md:hidden pointer-events-none ${hidden ? 'translate-y-24' : 'translate-y-0'
+                        }`}
+                >
+                    <BottomNav />
+                </div>
+            ) : null}
         </>
     );
 }

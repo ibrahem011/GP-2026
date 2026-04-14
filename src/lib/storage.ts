@@ -343,7 +343,7 @@ const mockProperties: Property[] = [
         priceUnit: 'day',
         category: 'room',
         status: 'available',
-        images: ['/images/property2.jpg'],
+        images: ['/images/property2.png'],
         location: {
             lat: 31.4450,
             lng: 31.5360,
@@ -371,7 +371,7 @@ const mockProperties: Property[] = [
         priceUnit: 'day',
         category: 'studio',
         status: 'available',
-        images: ['/images/property3.jpg'],
+        images: ['/images/property3.png'],
         location: {
             lat: 31.4420,
             lng: 31.5380,
@@ -399,7 +399,7 @@ const mockProperties: Property[] = [
         priceUnit: 'day',
         category: 'villa',
         status: 'available',
-        images: ['/images/property4.jpg'],
+        images: ['/images/property4.png'],
         location: {
             lat: 31.4400,
             lng: 31.5320,
@@ -427,7 +427,7 @@ const mockProperties: Property[] = [
         priceUnit: 'day',
         category: 'chalet',
         status: 'rented',
-        images: ['/images/property5.jpg'],
+        images: ['/images/property-placeholder.svg'],
         location: {
             lat: 31.4460,
             lng: 31.5300,

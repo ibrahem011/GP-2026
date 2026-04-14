@@ -73,8 +73,6 @@ export function useMyProperties(userId: string | undefined, callbacks?: UseMyPro
     }, [loadProperties]);
 
     const deleteProperty = useCallback(async (id: string) => {
-        if (!window.confirm('هل أنت متأكد من حذف هذا العقار؟')) return;
-
         setDeletingId(id);
         try {
             const success = await supabaseService.deleteProperty(id);

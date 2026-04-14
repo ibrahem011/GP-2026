@@ -5,8 +5,8 @@ import '@/lib/leafletDefaultIcon';
 import { MapContainer, Marker, Popup, TileLayer } from 'react-leaflet';
 import Link from 'next/link';
 import Image from 'next/image';
+import { normalizePropertyImageSrc } from '@/lib/propertyImages';
 import { PRICE_UNIT_AR, type Property } from '@/types';
-import { isDisplayableUrl } from '@/lib/storagePaths';
 
 interface PropertyMapProps {
     properties: Property[];
@@ -43,11 +43,7 @@ export default function PropertyMap({ properties, center = DEFAULT_CENTER, zoom 
                                  * normalized or when signing is unavailable.
                                  */}
                                 <Image
-                                    src={
-                                        property.images[0] && isDisplayableUrl(property.images[0].trim())
-                                            ? property.images[0].trim()
-                                            : '/images/placeholder.jpg'
-                                    }
+                                    src={normalizePropertyImageSrc(property.images[0])}
                                     alt={property.title}
                                     fill
                                     className="object-cover"

@@ -1,18 +1,45 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Property, CATEGORY_AR, STATUS_AR, PropertyStatus } from '@/types';
-import { isDisplayableUrl } from '@/lib/storagePaths';
+import { PROPERTY_IMAGE_PLACEHOLDER, normalizePropertyImageSrc } from '@/lib/propertyImages';
+import { cn } from '@/lib/utils';
+import { Property, CATEGORY_AR, PRICE_UNIT_AR, STATUS_AR, PropertyStatus } from '@/types';
 
 interface MyPropertyCardProps {
     property: Property;
     onDelete: (id: string) => void;
     onStatusChange?: (id: string, status: PropertyStatus) => void;
     isDeleting?: boolean;
+    layout?: 'mobile' | 'grid' | 'list';
 }
 
-function MyPropertyCardComponent({ property, onDelete, onStatusChange, isDeleting }: MyPropertyCardProps) {
+const statusTone: Record<PropertyStatus, string> = {
+    available:
+        'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300',
+    pending:
+        'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300',
+    rented:
+        'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300',
+    rejected:
+        'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-300',
+};
+
+const statusDotTone: Record<PropertyStatus, string> = {
+    available: 'bg-emerald-500',
+    pending: 'bg-amber-500',
+    rented: 'bg-sky-500',
+    rejected: 'bg-rose-500',
+};
+
+function MyPropertyCardComponent({
+    property,
+    onDelete,
+    onStatusChange,
+    isDeleting,
+    layout = 'mobile',
+}: MyPropertyCardProps) {
     const [showStatusMenu, setShowStatusMenu] = useState(false);
+    const [imageErrored, setImageErrored] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -24,6 +51,10 @@ function MyPropertyCardComponent({ property, onDelete, onStatusChange, isDeletin
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        setImageErrored(false);
+    }, [property.id, property.images[0]]);
 
     const handleStatusChange = (status: PropertyStatus) => {
         if (onStatusChange && property.status !== status) {
@@ -37,56 +68,199 @@ function MyPropertyCardComponent({ property, onDelete, onStatusChange, isDeletin
         onDelete(property.id);
     };
 
-    const imageSrc = property.images[0] && isDisplayableUrl(property.images[0].trim())
-        ? property.images[0].trim()
-        : '/placeholder-house.jpg';
+    const imageSrc = imageErrored
+        ? PROPERTY_IMAGE_PLACEHOLDER
+        : normalizePropertyImageSrc(property.images[0]);
+    const imageSizes =
+        layout === 'grid'
+            ? '(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw'
+            : layout === 'list'
+              ? '(max-width: 1024px) 100vw, 360px'
+              : '(max-width: 768px) 100vw, 420px';
+    const priceUnitLabel = PRICE_UNIT_AR[property.priceUnit] ?? property.priceUnit;
+    const locationLabel = property.location.address || property.location.area;
+    const createdAtLabel = new Date(property.createdAt).toLocaleDateString('ar-EG');
+    const layoutClasses = {
+        mobile: 'flex flex-col gap-3.5 p-3.5',
+        grid: 'flex h-full flex-col gap-3.5 p-3.5',
+        list: 'flex flex-col gap-4 p-4 lg:flex-row',
+    } as const;
+    const imageWrapperClasses = {
+        mobile: 'aspect-[4/3] w-full',
+        grid: 'aspect-[4/3] w-full',
+        list: 'aspect-[4/3] w-full lg:h-48 lg:w-56 lg:shrink-0 lg:aspect-auto',
+    } as const;
+    const infoChips = useMemo(
+        () => [
+            {
+                key: 'views',
+                icon: 'visibility',
+                label: `${property.viewsCount.toLocaleString('ar-EG')} مشاهدة`,
+            },
+            {
+                key: 'date',
+                icon: 'calendar_today',
+                label: createdAtLabel,
+            },
+            {
+                key: 'area',
+                icon: 'straighten',
+                label: `${property.area.toLocaleString('ar-EG')} م²`,
+            },
+        ],
+        [createdAtLabel, property.area, property.viewsCount],
+    );
+    const featureChips = useMemo(
+        () =>
+            [
+                property.bedrooms
+                    ? {
+                          key: 'bedrooms',
+                          icon: 'bed',
+                          value: property.bedrooms.toLocaleString('ar-EG'),
+                          label: 'غرف',
+                      }
+                    : null,
+                property.bathrooms
+                    ? {
+                          key: 'bathrooms',
+                          icon: 'bathtub',
+                          value: property.bathrooms.toLocaleString('ar-EG'),
+                          label: 'حمامات',
+                      }
+                    : null,
+                property.floor
+                    ? {
+                          key: 'floor',
+                          icon: 'layers',
+                          value: property.floor.toLocaleString('ar-EG'),
+                          label: 'الدور',
+                      }
+                    : null,
+            ].filter(Boolean) as Array<{
+                key: string;
+                icon: string;
+                value: string;
+                label: string;
+            }>,
+        [property.bathrooms, property.bedrooms, property.floor],
+    );
 
     return (
-        <div className="group bg-white dark:bg-zinc-900/50 backdrop-blur-md rounded-[1.5rem] p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 dark:border-white/5 flex flex-col sm:flex-row gap-5">
-            {/* Image */}
-            <div className="relative w-full sm:w-48 h-48 sm:h-auto shrink-0 rounded-[1.1rem] overflow-hidden bg-gray-100 dark:bg-zinc-800">
+        <article
+            data-layout={layout}
+            className={cn(
+                'group rounded-[1.8rem] border border-slate-200/75 bg-white/95 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-24px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-zinc-900/90',
+                layoutClasses[layout],
+            )}
+        >
+            <div
+                className={cn(
+                    'relative overflow-hidden rounded-[1.45rem] bg-gray-100 dark:bg-zinc-800',
+                    imageWrapperClasses[layout],
+                )}
+            >
                 <Image
                     src={imageSrc}
                     alt={property.title}
                     fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width: 640px) 100vw, 192px"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    sizes={imageSizes}
+                    onError={() => {
+                        if (imageSrc !== PROPERTY_IMAGE_PLACEHOLDER) {
+                            setImageErrored(true);
+                        }
+                    }}
                 />
-                <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">
-                    {CATEGORY_AR[property.category]}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-black/10" />
+                <div className="absolute right-3 top-3 flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-white/40 bg-black/55 px-3 py-1.5 text-xs font-bold text-white backdrop-blur">
+                        {CATEGORY_AR[property.category]}
+                    </span>
+                    {property.isVerified ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/40 bg-emerald-500/85 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+                            <span className="material-symbols-outlined text-[14px]">verified</span>
+                            موثق
+                        </span>
+                    ) : null}
+                </div>
+
+                <div className="absolute bottom-3 left-3">
+                    <Link
+                        href={`/property/${property.id}`}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/30 bg-white/88 px-4 text-sm font-bold text-slate-800 backdrop-blur transition-all hover:bg-white"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">visibility</span>
+                        عرض التفاصيل
+                    </Link>
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 flex flex-col justify-between py-1">
+            <div className="flex min-h-0 flex-1 flex-col">
                 <div>
-                    <div className="flex items-start justify-between mb-3">
-                        <Link href={`/property/${property.id}`} className="font-black text-lg text-gray-900 dark:text-white line-clamp-1 hover:text-primary transition-colors">
-                            {property.title}
-                        </Link>
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary dark:bg-primary/20 dark:text-blue-300">
+                                    {CATEGORY_AR[property.category]}
+                                </span>
+                                {locationLabel ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100/80 px-3 py-1 text-xs font-semibold text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">
+                                        <span className="material-symbols-outlined text-[15px]">
+                                            location_on
+                                        </span>
+                                        <span className="truncate">{locationLabel}</span>
+                                    </span>
+                                ) : null}
+                            </div>
+
+                            <Link
+                                href={`/property/${property.id}`}
+                                className="line-clamp-2 text-lg font-black text-slate-900 transition-colors hover:text-primary dark:text-white"
+                            >
+                                {property.title}
+                            </Link>
+                        </div>
+
                         <div className="relative z-10" ref={menuRef}>
                             <button
+                                type="button"
                                 onClick={() => setShowStatusMenu(!showStatusMenu)}
                                 disabled={!onStatusChange}
-                                className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full font-bold cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-sm ${property.status === 'available'
-                                        ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 border border-green-200 dark:border-green-500/20'
-                                        : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border border-red-200 dark:border-red-500/20'
-                                    }`}
+                                className={cn(
+                                    'inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:cursor-default disabled:hover:scale-100',
+                                    statusTone[property.status],
+                                )}
                             >
-                                <span className={`w-1.5 h-1.5 rounded-full ${property.status === 'available' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                                <span
+                                    className={cn(
+                                        'h-2 w-2 rounded-full',
+                                        statusDotTone[property.status],
+                                        property.status === 'available' && 'animate-pulse',
+                                    )}
+                                />
                                 {STATUS_AR[property.status]}
-                                {onStatusChange && <span className="material-symbols-outlined text-[14px]">expand_more</span>}
+                                {onStatusChange ? (
+                                    <span className="material-symbols-outlined text-[16px]">
+                                        expand_more
+                                    </span>
+                                ) : null}
                             </button>
                             {showStatusMenu && onStatusChange && (
-                                <div className="absolute top-full left-0 mt-2 bg-white/90 dark:bg-zinc-800/95 backdrop-blur-xl rounded-2xl shadow-xl shadow-black/10 border border-gray-100 dark:border-white/10 p-1 z-20 min-w-[140px] animate-in slide-in-from-top-2 fade-in zoom-in-95 duration-200">
-                                    {(Object.keys(STATUS_AR) as PropertyStatus[]).map(status => (
+                                <div className="absolute left-0 top-full z-20 mt-2 min-w-[170px] rounded-2xl border border-gray-100 bg-white/95 p-1 shadow-xl shadow-black/10 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-800/95">
+                                    {(Object.keys(STATUS_AR) as PropertyStatus[]).map((status) => (
                                         <button
                                             key={status}
+                                            type="button"
                                             onClick={() => handleStatusChange(status)}
-                                            className="w-full text-right px-4 py-2.5 text-sm font-semibold rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center justify-between group/btn"
+                                            className="flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-right text-sm font-semibold transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
                                         >
                                             {STATUS_AR[status]}
-                                            {property.status === status && <span className="material-symbols-outlined text-[16px] text-primary">check</span>}
+                                            {property.status === status ? (
+                                                <span className="material-symbols-outlined text-[16px] text-primary">
+                                                    check
+                                                </span>
+                                            ) : null}
                                         </button>
                                     ))}
                                 </div>
@@ -94,52 +268,83 @@ function MyPropertyCardComponent({ property, onDelete, onStatusChange, isDeletin
                         </div>
                     </div>
 
-                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[16px] opacity-70">location_on</span>
-                        {property.location.area}
-                    </div>
-
-                    <div className="flex items-center gap-5 text-xs text-gray-400 dark:text-gray-500 font-medium">
-                        <span className="flex items-center gap-1.5 bg-gray-50 dark:bg-white/5 px-2.5 py-1 rounded-lg">
-                            <span className="material-symbols-outlined text-[14px]">visibility</span>
-                            {property.viewsCount} مشاهدة
-                        </span>
-                        <span className="flex items-center gap-1.5 bg-gray-50 dark:bg-white/5 px-2.5 py-1 rounded-lg">
-                            <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                            {new Date(property.createdAt).toLocaleDateString('ar-EG')}
-                        </span>
+                    <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-500 dark:text-slate-300">
+                        {infoChips.map((item) => (
+                            <span
+                                key={item.key}
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100/80 px-3 py-2 dark:bg-white/[0.05]"
+                            >
+                                <span className="material-symbols-outlined text-[16px] text-slate-400 dark:text-slate-300">
+                                    {item.icon}
+                                </span>
+                                {item.label}
+                            </span>
+                        ))}
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-gray-100 dark:border-white/5 pt-4 mt-4 gap-4">
-                    <span className="font-black text-xl text-primary">
-                        {property.price} <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">ج.م / {property.priceUnit}</span>
-                    </span>
+                <div className="mt-4 border-t border-slate-200/80 pt-4 dark:border-white/10">
+                    <div className="mb-4 flex flex-wrap items-center gap-2">
+                        {featureChips.map((item) => (
+                            <span
+                                key={item.key}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-xs font-bold text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100"
+                            >
+                                <span className="material-symbols-outlined text-[16px] text-primary">
+                                    {item.icon}
+                                </span>
+                                <span>{item.value}</span>
+                                <span className="text-slate-400 dark:text-slate-300">
+                                    {item.label}
+                                </span>
+                            </span>
+                        ))}
+                    </div>
 
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        <button
-                            onClick={handleDeleteClick}
-                            disabled={isDeleting}
-                            className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group/del"
-                            title="حذف العقار"
-                        >
-                            {isDeleting ? (
-                                <span className="material-symbols-outlined text-[22px] animate-spin">hourglass_empty</span>
-                            ) : (
-                                <span className="material-symbols-outlined text-[22px] group-hover/del:scale-110 transition-transform">delete</span>
-                            )}
-                        </button>
-                        <Link
-                            href={`/add-property?edit=${property.id}`}
-                            className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl text-gray-600 dark:text-gray-300 bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10 transition-colors group/edit"
-                            title="تعديل العقار"
-                        >
-                            <span className="material-symbols-outlined text-[22px] group-hover/edit:scale-110 transition-transform">edit</span>
-                        </Link>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-slate-400">السعر الحالي</span>
+                            <div className="mt-1 flex items-baseline gap-1 text-primary dark:text-blue-300">
+                                <span className="text-2xl font-black tracking-tight">
+                                    {property.price.toLocaleString('ar-EG')}
+                                </span>
+                                <span className="text-sm font-bold">ج.م</span>
+                                <span className="text-xs font-semibold text-slate-500 dark:text-slate-300">
+                                    / {priceUnitLabel}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 sm:w-auto sm:flex-row">
+                            <Link
+                                href={`/add-property?edit=${property.id}`}
+                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-bold text-white transition-all hover:bg-primary/90 active:scale-[0.98]"
+                                title="تعديل العقار"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">edit</span>
+                                <span>تعديل</span>
+                            </Link>
+                            <button
+                                type="button"
+                                onClick={handleDeleteClick}
+                                disabled={isDeleting}
+                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 text-sm font-bold text-rose-600 transition-all hover:bg-rose-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-500/20 dark:bg-transparent dark:text-rose-300 dark:hover:bg-rose-500/10"
+                                title="حذف العقار"
+                            >
+                                {isDeleting ? (
+                                    <span className="material-symbols-outlined animate-spin text-[20px]">
+                                        progress_activity
+                                    </span>
+                                ) : (
+                                    <span className="material-symbols-outlined text-[20px]">delete</span>
+                                )}
+                                <span>حذف</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </article>
     );
 }
 

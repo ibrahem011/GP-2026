@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { isDisplayableUrl } from "@/lib/storagePaths";
+import { normalizePropertyImageSrc } from "@/lib/propertyImages";
 
 /**
  * Card component for displaying recent property listings in a vertical list.
@@ -44,7 +44,7 @@ export function RecentPropertyCard({
     isVerified,
     onFavoriteClick,
 }: RecentPropertyCardProps) {
-    const imageSrc = image && isDisplayableUrl(image.trim()) ? image.trim() : "/images/placeholder.jpg";
+    const imageSrc = normalizePropertyImageSrc(image);
 
     return (
         <div className="bg-surface-light dark:bg-surface-dark rounded-2xl p-3 shadow-sm border border-border-light dark:border-border-dark hover:shadow-md transition-shadow">

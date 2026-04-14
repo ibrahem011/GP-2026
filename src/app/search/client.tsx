@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PropertyCard } from '@/components/PropertyCard';
 import { normalizeFeatureIds } from '@/config/features';
+import { isPropertyCollection } from '@/lib/propertyCollections';
 
 import { Property } from '@/types';
 import SearchFilters from '@/components/SearchFilters';
@@ -44,6 +45,7 @@ interface SearchPageClientProps {
     bathrooms?: string;
     area?: string;
     features?: string;
+    collection?: string;
   };
 }
 
@@ -52,6 +54,8 @@ const normalizeFeatureCsv = (value?: string) => normalizeFeatureIds(value?.split
 export default function SearchPageClient({ initialProperties, initialSearchParams }: SearchPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const collectionParam = searchParams.get('collection');
+  const collection = isPropertyCollection(collectionParam) ? collectionParam : null;
 
   const normalizeAll = (v?: string) => (!v || v === 'الكل' ? 'all' : v);
   const handleBack = () => router.back();
@@ -86,6 +90,7 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
     const params = new URLSearchParams();
 
     if (q) params.set('q', q);
+    if (collection) params.set('collection', collection);
 
     if (f.category && f.category !== 'all') params.set('category', f.category);
     if (f.minPrice) params.set('minPrice', f.minPrice);
@@ -233,7 +238,7 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
                 key={property.id}
                 id={property.id}
                 title={property.title}
-                location={property.location.address}
+                location={property.location.address || property.location.area}
                 price={property.price}
                 priceUnit={property.priceUnit}
                 image={property.images[0] || ''}
@@ -241,6 +246,7 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
                 bathrooms={property.bathrooms}
                 area={property.area}
                 isVerified={property.isVerified}
+                category={property.category}
               />
             ))}
           </div>

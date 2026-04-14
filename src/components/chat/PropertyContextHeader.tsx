@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { PROPERTY_IMAGE_PLACEHOLDER, normalizePropertyImageSrc } from '@/lib/propertyImages';
 import { supabase } from '@/lib/supabase';
 import { supabaseService } from '@/services/supabaseService';
 
@@ -119,6 +120,8 @@ export function PropertyContextHeader({
         </div>
     );
 
+    const propertyImageSrc = normalizePropertyImageSrc(property.images?.[0]);
+
     return (
         <div className="sticky top-0 z-50 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 shadow-sm">
             <div className="max-w-2xl mx-auto px-4 py-3">
@@ -139,9 +142,16 @@ export function PropertyContextHeader({
                     >
                         <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-gray-100 dark:border-zinc-800 group-hover:border-blue-500 transition-colors">
                             <img
-                                src={property.images?.[0] || '/placeholder.jpg'}
+                                src={propertyImageSrc}
                                 alt={property.title}
                                 className="w-full h-full object-cover группhover:scale-110 transition-transform duration-300"
+                                onError={(event) => {
+                                    if (event.currentTarget.dataset.fallbackApplied === 'true') {
+                                        return;
+                                    }
+                                    event.currentTarget.dataset.fallbackApplied = 'true';
+                                    event.currentTarget.src = PROPERTY_IMAGE_PLACEHOLDER;
+                                }}
                             />
                         </div>
                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

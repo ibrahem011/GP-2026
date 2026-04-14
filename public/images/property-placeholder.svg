@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-labelledby="title desc">
+  <title id="title">Property image placeholder</title>
+  <desc id="desc">Stylized placeholder illustration for missing property photos.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e2e8f0" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#f8fafc" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+  <rect width="640" height="480" rx="40" fill="url(#bg)" />
+  <circle cx="522" cy="108" r="52" fill="#f8fafc" opacity="0.65" />
+  <circle cx="118" cy="92" r="26" fill="#ffffff" opacity="0.35" />
+  <rect x="84" y="78" width="472" height="324" rx="30" fill="url(#card)" />
+  <rect x="124" y="124" width="392" height="188" rx="22" fill="#dbe4f0" />
+  <path d="M124 278l88-86c12-12 31-12 43 0l64 63 48-48c12-12 31-12 43 0l106 105H124z" fill="#94a3b8" opacity="0.9" />
+  <circle cx="428" cy="182" r="26" fill="#f8fafc" />
+  <path d="M232 360h176" stroke="#94a3b8" stroke-width="18" stroke-linecap="round" />
+  <path d="M268 92l52-40 52 40" fill="#bfdbfe" opacity="0.85" />
+</svg>

@@ -52,6 +52,36 @@ function createInQuery(result: { data: any; error: any }) {
     };
 }
 
+function createPropertiesQuery(result: { data: any; error: any }) {
+    const builder: any = {
+        eq: vi.fn(() => builder),
+        gte: vi.fn(() => builder),
+        lte: vi.fn(() => builder),
+        contains: vi.fn(() => builder),
+        or: vi.fn(() => builder),
+        range: vi.fn(() => builder),
+        order: vi.fn(() => builder),
+        abortSignal: vi.fn(() => builder),
+        then: (onFulfilled: (value: any) => any, onRejected?: (reason: any) => any) =>
+            Promise.resolve(result).then(onFulfilled, onRejected),
+    };
+
+    return {
+        select: vi.fn(() => builder),
+        builder,
+    };
+}
+
+function createMaybeSingleQuery(result: { data: any; error: any }) {
+    const maybeSingle = vi.fn().mockResolvedValue(result);
+    const eq = vi.fn(() => ({ maybeSingle }));
+    return {
+        select: vi.fn(() => ({ eq })),
+        eq,
+        maybeSingle,
+    };
+}
+
 describe('supabaseService RPC methods', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -282,6 +312,133 @@ describe('supabaseService RPC methods', () => {
             expect(error).toBeNull();
             expect(data.map((item) => item.id)).toEqual(['p2', 'p1']);
             expect(data[0].title).toBe('Property 2');
+        });
+    });
+
+    describe('getProperties collections', () => {
+        it('normalizes legacy local property image paths when fetching collections', async () => {
+            const propertiesQuery = createPropertiesQuery({
+                data: [
+                    {
+                        id: 'p1',
+                        title: 'Legacy local image',
+                        images: ['/images/property1.jpg', '/images/property5.jpg'],
+                        is_verified: true,
+                        views_count: 250,
+                        created_at: '2026-04-01T10:00:00Z',
+                    },
+                ],
+                error: null,
+            });
+
+            mockFrom.mockImplementationOnce((table: string) => {
+                expect(table).toBe('properties');
+                return propertiesQuery;
+            });
+
+            const rows = await supabaseService.getProperties({ collection: 'featured' });
+
+            expect(rows[0].images).toEqual([
+                '/images/property1.png',
+                '/images/property-placeholder.svg',
+            ]);
+        });
+
+        it('applies featured collection filtering and sorting on the query', async () => {
+            const propertiesQuery = createPropertiesQuery({
+                data: [
+                    {
+                        id: 'p1',
+                        title: 'Featured property',
+                        images: [],
+                        is_verified: true,
+                        views_count: 250,
+                        created_at: '2026-04-01T10:00:00Z',
+                    },
+                ],
+                error: null,
+            });
+
+            mockFrom.mockImplementationOnce((table: string) => {
+                expect(table).toBe('properties');
+                return propertiesQuery;
+            });
+
+            const rows = await supabaseService.getProperties({
+                status: 'available',
+                collection: 'featured',
+            });
+
+            expect(propertiesQuery.select).toHaveBeenCalledWith('*');
+            expect(propertiesQuery.builder.eq).toHaveBeenCalledWith('status', 'available');
+            expect(propertiesQuery.builder.eq).toHaveBeenCalledWith('is_verified', true);
+            expect(propertiesQuery.builder.order).toHaveBeenNthCalledWith(1, 'views_count', {
+                ascending: false,
+            });
+            expect(propertiesQuery.builder.order).toHaveBeenNthCalledWith(2, 'created_at', {
+                ascending: false,
+            });
+            expect(rows[0].id).toBe('p1');
+        });
+
+        it('applies recent collection sorting by creation date', async () => {
+            const propertiesQuery = createPropertiesQuery({
+                data: [
+                    {
+                        id: 'p2',
+                        title: 'Recent property',
+                        images: [],
+                        is_verified: false,
+                        views_count: 10,
+                        created_at: '2026-04-02T10:00:00Z',
+                    },
+                ],
+                error: null,
+            });
+
+            mockFrom.mockImplementationOnce((table: string) => {
+                expect(table).toBe('properties');
+                return propertiesQuery;
+            });
+
+            const rows = await supabaseService.getProperties({
+                collection: 'recent',
+            });
+
+            expect(propertiesQuery.select).toHaveBeenCalledWith('*');
+            expect(propertiesQuery.builder.eq).not.toHaveBeenCalledWith('is_verified', true);
+            expect(propertiesQuery.builder.order).toHaveBeenCalledTimes(1);
+            expect(propertiesQuery.builder.order).toHaveBeenCalledWith('created_at', {
+                ascending: false,
+            });
+            expect(rows[0].id).toBe('p2');
+        });
+    });
+
+    describe('getPropertyById', () => {
+        it('normalizes legacy local image paths for a single property fetch', async () => {
+            const propertyQuery = createMaybeSingleQuery({
+                data: {
+                    id: 'property-1',
+                    title: 'Details property',
+                    images: ['/images/property4.jpg', '/images/property5.jpg'],
+                },
+                error: null,
+            });
+
+            mockFrom.mockImplementationOnce((table: string) => {
+                expect(table).toBe('properties');
+                return propertyQuery;
+            });
+
+            const property = await supabaseService.getPropertyById('property-1');
+
+            expect(propertyQuery.select).toHaveBeenCalledWith('*');
+            expect(propertyQuery.eq).toHaveBeenCalledWith('id', 'property-1');
+            expect(property?.images).toEqual([
+                '/images/property4.png',
+                '/images/property-placeholder.svg',
+            ]);
         });
     });
 });

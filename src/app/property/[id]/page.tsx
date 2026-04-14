@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-
 import { Metadata } from 'next';
 import { fromPropertyRow } from '@/lib/propertyMapper';
 import { supabaseService } from '@/services/supabaseService';
@@ -8,67 +5,12 @@ import ClientPropertyDetails from './client';
 import { notFound } from 'next/navigation';
 import { Property, CATEGORY_AR } from '@/types';
 
-const PUBLIC_DIR = path.join(process.cwd(), 'public');
-const LOCAL_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.avif'];
-const PUBLIC_IMAGE_PREFIX = '/images/';
-
-function isRemoteImage(value: string): boolean {
-    return /^(https?:|\/\/|data:)/i.test(value);
-}
-
-function resolvePublicImagePath(value: string): string {
-    const normalized = value.startsWith('/') ? value : `/${value}`;
-    const questionIndex = normalized.indexOf('?');
-    const pathOnly = questionIndex === -1 ? normalized : normalized.slice(0, questionIndex);
-    const search = questionIndex === -1 ? '' : normalized.slice(questionIndex);
-
-    if (!pathOnly.startsWith(PUBLIC_IMAGE_PREFIX)) {
-        return `${pathOnly}${search}`;
-    }
-
-    const relativePath = pathOnly.slice(1);
-    const resolvedPath = path.join(PUBLIC_DIR, relativePath);
-
-    if (fs.existsSync(resolvedPath)) {
-        return `${pathOnly}${search}`;
-    }
-
-    const currentExt = path.extname(pathOnly).toLowerCase();
-    const basePath = currentExt ? pathOnly.slice(0, -currentExt.length) : pathOnly;
-
-    for (const ext of LOCAL_IMAGE_EXTENSIONS) {
-        if (ext === currentExt) continue;
-        const candidatePathOnly = `${basePath}${ext}`;
-        const candidateRelative = candidatePathOnly.slice(1);
-        if (fs.existsSync(path.join(PUBLIC_DIR, candidateRelative))) {
-            return `${candidatePathOnly}${search}`;
-        }
-    }
-
-    return `${pathOnly}${search}`;
-}
-
-function sanitizePropertyImages(property: Property): Property {
-    if (property.images.length === 0) {
-        return property;
-    }
-
-    return {
-        ...property,
-        images: property.images.map((image) => {
-            if (!image) return image;
-            if (isRemoteImage(image)) return image;
-            return resolvePublicImagePath(image);
-        }),
-    };
-}
-
 async function getProperty(id: string): Promise<Property | null> {
     const propertyRow = await supabaseService.getPropertyById(id);
 
     if (!propertyRow) return null;
 
-    return sanitizePropertyImages(fromPropertyRow(propertyRow));
+    return fromPropertyRow(propertyRow);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {

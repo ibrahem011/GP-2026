@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PROPERTY_IMAGE_PLACEHOLDER, normalizePropertyImageSrc } from '@/lib/propertyImages';
 import { Property, PRICE_UNIT_AR } from '@/types';
 import type { PriceUnit } from '@/types/database.types';
 
@@ -9,14 +10,23 @@ interface PropertyContextCardProps {
 export const PropertyContextCard = ({ property }: PropertyContextCardProps) => {
     if (!property) return null;
 
+    const propertyImageSrc = normalizePropertyImageSrc(property.images?.[0]);
+
     return (
         <div className="bg-white dark:bg-zinc-800 border-b border-gray-100 dark:border-zinc-700 py-2 px-4 shadow-sm z-10">
             <Link href={`/property/${property.id}`} className="flex items-center gap-3 group">
                 <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-gray-100 dark:border-zinc-700">
                     <img
-                        src={property.images?.[0] || '/placeholder-property.jpg'}
+                        src={propertyImageSrc}
                         alt={property.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        onError={(event) => {
+                            if (event.currentTarget.dataset.fallbackApplied === 'true') {
+                                return;
+                            }
+                            event.currentTarget.dataset.fallbackApplied = 'true';
+                            event.currentTarget.src = PROPERTY_IMAGE_PLACEHOLDER;
+                        }}
                     />
                 </div>
 
