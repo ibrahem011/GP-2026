@@ -1,0 +1,3 @@
+## 2024-05-14 - Parallelize independent Database Reads
+**Learning:** Found sequential independent network requests (e.g. `buyer` vs `owner` conversations) artificially doubling the latency for `getUserConversations` and potentially other database interactions. In this codebase's architecture, heavy database service methods are consolidated in `supabaseService.ts`, making them prone to sequential execution if not carefully managed.
+**Action:** When refactoring or building new data-fetching methods in `supabaseService.ts` that require independent sets of data from the same table or different tables, always wrap the Supabase client `.select()` promises in `Promise.all()` to execute them concurrently and halve the network execution time.
