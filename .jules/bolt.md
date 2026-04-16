@@ -1,0 +1,3 @@
+## 2024-04-16 - Memoize PropertyCard component to prevent unnecessary re-renders
+**Learning:** In the SearchPageClient component, updating the search query state causes a full re-render of the parent component. Because the `PropertyCard` component was not memoized, this forced all property cards in the grid/list to re-render unnecessarily on every keystroke, which is an expensive operation given the amount of images and UI elements in each card.
+**Action:** Always wrap list item components that receive stable props in `React.memo` (or `memo`), especially in search or filter contexts where parent components re-render frequently due to state updates like text inputs.
