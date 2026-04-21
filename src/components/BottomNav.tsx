@@ -64,7 +64,7 @@ export function BottomNav() {
                                 className="group relative flex flex-col flex-1 items-center justify-end h-16 transition-all duration-300 outline-none z-20"
                             >
                                 <div className="absolute -top-[28px] flex items-center justify-center w-[60px] h-[60px] bg-[#3b82f6] text-white rounded-full shadow-[0_8px_20px_rgba(59,130,246,0.35)] border-[4px] border-white dark:border-[#18181b] transition-transform duration-300 group-hover:-translate-y-1 group-active:scale-95">
-                                    <span className="material-symbols-outlined text-[36px] font-light leading-none">
+                                    <span className="material-symbols-outlined text-[36px] font-light leading-none" aria-hidden="true">
                                         add
                                     </span>
                                 </div>
@@ -96,6 +96,7 @@ export function BottomNav() {
                                     : 'text-zinc-500 dark:text-zinc-400 group-hover:text-[#3b82f6]'
                                     }`}
                                 style={iconStyle}
+                                aria-hidden="true"
                             >
                                 {item.icon}
                             </span>
