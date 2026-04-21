@@ -1,0 +1,3 @@
+## 2024-03-24 - Add ARIA labels and focus styles to header buttons
+**Learning:** For interactive icon-only elements (like Material Symbols icons), simply adding `aria-label` isn't enough; the inner icon wrapper itself must have `aria-hidden="true"`. Otherwise, screen readers will announce the ligature string (e.g. "notifications") before or after the translated aria-label. Additionally, `focus-visible:ring-2 focus-visible:outline-none` provides essential keyboard accessibility for icon-only action triggers without polluting mouse-click states.
+**Action:** When adding icon-only buttons in the future, standardly implement `aria-label` on the button, `aria-hidden="true"` on the inner icon, and `focus-visible:ring-2 focus-visible:outline-none` on the interactive element.
