@@ -1258,14 +1258,15 @@ export const supabaseService = {
             }
         }
 
-        const { data: existing } = await supabase
+        // ⚡ Bolt: Using HTTP HEAD request (count: 'exact', head: true) instead of select('*')
+        // to avoid unnecessary data transfer for simple existence checks
+        const { count } = await supabase
             .from('favorites')
-            .select('*')
+            .select('id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        if (existing) {
+        if ((count ?? 0) > 0) {
             await supabase
                 .from('favorites')
                 .delete()
@@ -1304,14 +1305,15 @@ export const supabaseService = {
             return _mockUnlocked.has(propertyId);
         }
 
-        const { data } = await supabase
+        // ⚡ Bolt: Using HTTP HEAD request (count: 'exact', head: true) instead of select('*')
+        // to avoid unnecessary data transfer for simple existence checks
+        const { count } = await supabase
             .from('unlocked_properties')
-            .select('*')
+            .select('id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        return !!data;
+        return (count ?? 0) > 0;
     },
 
     async getPublicBookingPeriods(propertyId: string): Promise<PublicBookingPeriod[]> {
