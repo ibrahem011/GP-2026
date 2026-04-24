@@ -393,7 +393,7 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
         <div className="mx-auto max-w-6xl px-4 py-3 lg:px-6">
           <div className="flex items-center justify-between gap-3">
-            <button type="button" onClick={() => router.back()} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"><span className="material-symbols-outlined">arrow_forward</span></button>
+            <button type="button" onClick={() => router.back()} aria-label="الرجوع" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"><span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
             <h1 className="text-base font-bold text-gray-900 dark:text-zinc-100">إتمام الحجز</h1>
             <span className="w-10" />
           </div>
@@ -467,7 +467,7 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 px-4 pb-2 pt-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}>
         {priceDetails.totalAmount > 0 ? <PriceBreakdown rentalType={rentalConfig.type} duration={priceDetails.duration} pricePerUnit={rentalConfig.pricePerUnit} basePrice={priceDetails.basePrice} serviceFee={priceDetails.serviceFee} depositAmount={priceDetails.depositAmount} totalAmount={priceDetails.totalAmount} compact className="mb-3" /> : <p className="mb-3 text-center text-xs text-gray-500 dark:text-zinc-400">اختر التواريخ لحساب السعر الإجمالي</p>}
         <div className="flex items-center gap-2">
-          {currentStep > 1 ? <button type="button" onClick={handlePrev} className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-gray-300 text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"><span className="material-symbols-outlined">arrow_forward</span></button> : null}
+          {currentStep > 1 ? <button type="button" onClick={handlePrev} aria-label="الخطوة السابقة" className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-gray-300 text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"><span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button> : null}
           <button type="button" onClick={() => (currentStep < 4 ? handleNext() : void handleSubmit())} disabled={nextDisabled} className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting && currentStep === 4 ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : primaryLabel}</button>
         </div>
       </div>
