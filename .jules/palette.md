@@ -1,0 +1,3 @@
+## 2024-05-14 - Keyboard Accessibility & ARIA Toggles
+**Learning:** In a highly interactive app like this (with custom filters like `FilterChip` and `CategoryFilter`), custom interactive elements often miss the standard interactive semantics (like `aria-pressed` for toggles) and explicit visual keyboard indicators (`focus-visible:ring-2 focus-visible:outline-none`). In an RTL context, default browser focus outlines sometimes feel disconnected, making custom rings essential for good tab navigation.
+**Action:** When implementing or updating custom interactive chips or filters, always include `aria-pressed={isActive}` to communicate toggle states to screen readers, and append `focus-visible:ring-2 focus-visible:outline-none` explicitly.

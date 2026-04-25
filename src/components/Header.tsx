@@ -124,11 +124,12 @@ export default function Header() {
                                 <button
                                     data-notifications-trigger="true"
                                     onClick={() => setShowNotifications(!showNotifications)}
-                                    className={`relative flex items-center justify-center size-10 rounded-full shadow-sm border transition-all duration-300 ${isScrolled
+                                    className={`relative flex items-center justify-center size-10 rounded-full shadow-sm border transition-all duration-300 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary/50 ${isScrolled
                                         ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300'
                                         : 'bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40'}`}
+                                    aria-label="الإشعارات"
                                 >
-                                    <span className="material-symbols-outlined text-[24px] pointer-events-none">
+                                    <span aria-hidden="true" className="material-symbols-outlined text-[24px] pointer-events-none">
                                         notifications
                                     </span>
                                     {unreadCount > 0 && (
@@ -181,10 +182,11 @@ export default function Header() {
                             {/* Logout button */}
                             <button
                                 onClick={logout}
-                                className={`p-2 transition-colors rounded-full ${isScrolled ? 'text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' : 'text-white/80 hover:text-white hover:bg-white/20'}`}
+                                className={`p-2 transition-colors rounded-full focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-red-500/50 ${isScrolled ? 'text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' : 'text-white/80 hover:text-white hover:bg-white/20'}`}
                                 title="تسجيل الخروج"
+                                aria-label="تسجيل الخروج"
                             >
-                                <span className="material-symbols-outlined text-[20px]">logout</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">logout</span>
                             </button>
                         </div>
                     ) : (
