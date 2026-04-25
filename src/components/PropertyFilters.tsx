@@ -40,17 +40,21 @@ export function PropertyFilters({ sortBy, setSortBy, viewMode, setViewMode }: Pr
             <div className="flex bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-xl p-1 shadow-sm">
                 <button
                     onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-lg transition-all duration-300 ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                    className={`p-1.5 rounded-lg transition-all duration-300 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary/50 ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                     title="عرض كقائمة"
+                    aria-label="عرض كقائمة"
+                    aria-pressed={viewMode === 'list'}
                 >
-                    <List className="w-5 h-5" />
+                    <List aria-hidden="true" className="w-5 h-5" />
                 </button>
                 <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-lg transition-all duration-300 ${viewMode === 'grid' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                    className={`p-1.5 rounded-lg transition-all duration-300 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary/50 ${viewMode === 'grid' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                     title="عرض كشبكة"
+                    aria-label="عرض كشبكة"
+                    aria-pressed={viewMode === 'grid'}
                 >
-                    <Grid3X3 className="w-5 h-5" />
+                    <Grid3X3 aria-hidden="true" className="w-5 h-5" />
                 </button>
             </div>
         </div>

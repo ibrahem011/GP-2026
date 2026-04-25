@@ -26,12 +26,13 @@ export function CategoryFilter() {
           <button
             key={category.id}
             onClick={() => go(category.id)}
+            aria-pressed={activeCategory === category.id}
             className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl transition-all ${activeCategory === category.id
                 ? 'bg-primary text-white shadow-lg'
                 : 'bg-white dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/20 border border-gray-200 dark:border-white/20'
               }`}
           >
-            <span className="material-symbols-outlined text-[20px]">
+            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
               {category.icon}
             </span>
             <span className="text-sm font-medium">{category.label}</span>
