@@ -123,12 +123,13 @@ export default function Header() {
                             <div className="relative flex items-center" ref={dropdownRef}>
                                 <button
                                     data-notifications-trigger="true"
+                                    aria-label="الإشعارات"
                                     onClick={() => setShowNotifications(!showNotifications)}
-                                    className={`relative flex items-center justify-center size-10 rounded-full shadow-sm border transition-all duration-300 ${isScrolled
+                                    className={`relative flex items-center justify-center size-10 rounded-full shadow-sm border transition-all duration-300 focus-visible:ring-2 focus-visible:outline-none ${isScrolled
                                         ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300'
                                         : 'bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40'}`}
                                 >
-                                    <span className="material-symbols-outlined text-[24px] pointer-events-none">
+                                    <span className="material-symbols-outlined text-[24px] pointer-events-none" aria-hidden="true">
                                         notifications
                                     </span>
                                     {unreadCount > 0 && (
@@ -181,10 +182,11 @@ export default function Header() {
                             {/* Logout button */}
                             <button
                                 onClick={logout}
-                                className={`p-2 transition-colors rounded-full ${isScrolled ? 'text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' : 'text-white/80 hover:text-white hover:bg-white/20'}`}
+                                aria-label="تسجيل الخروج"
+                                className={`p-2 transition-colors rounded-full focus-visible:ring-2 focus-visible:outline-none ${isScrolled ? 'text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' : 'text-white/80 hover:text-white hover:bg-white/20'}`}
                                 title="تسجيل الخروج"
                             >
-                                <span className="material-symbols-outlined text-[20px]">logout</span>
+                                <span className="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>
                             </button>
                         </div>
                     ) : (
