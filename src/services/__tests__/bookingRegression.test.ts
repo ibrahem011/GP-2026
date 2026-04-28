@@ -162,6 +162,8 @@ const bookingRow = {
     payment_method: 'cash_on_delivery',
     payment_status: 'pending',
     payment_proof: '',
+    landlord_note: 'تمت المراجعة',
+    landlord_note_updated_at: '2026-04-01T12:00:00Z',
     status: 'pending',
     created_at: '2026-04-01T10:00:00Z',
     confirmed_at: null,
@@ -257,6 +259,7 @@ describe('Booking regressions', () => {
 
             expect(error).toBeNull();
             expect(data?.id).toBe('booking-1');
+            expect(data?.landlordNote).toBe('تمت المراجعة');
             expect(mockFrom).toHaveBeenCalledTimes(1);
             expect(mockFrom).toHaveBeenCalledWith('bookings');
         });

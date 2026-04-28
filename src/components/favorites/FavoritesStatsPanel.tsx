@@ -12,7 +12,15 @@ type FavoritesStatsPanelProps = {
     className?: string;
 };
 
-const statItems = [
+type StatItem = {
+    key: keyof FavoritesSummaryStats;
+    icon: string;
+    accent: string;
+    label: string;
+    suffix?: string;
+};
+
+const statItems: StatItem[] = [
     {
         key: 'total',
         icon: 'favorite',
@@ -41,7 +49,7 @@ const statItems = [
     },
 ] as const;
 
-function formatValue(key: (typeof statItems)[number]['key'], stats: FavoritesSummaryStats) {
+function formatValue(key: StatItem['key'], stats: FavoritesSummaryStats) {
     const value = stats[key];
     return value.toLocaleString('ar-EG');
 }

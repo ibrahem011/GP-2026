@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { UnlockModal } from '@/components/UnlockModal';
 import { resolveFeature } from '@/config/features';
 import { ImageSkeleton } from '@/components/ImageSkeleton';
-import { normalizePropertyImageList } from '@/lib/propertyImages';
+import { getPropertyImageUrl, normalizePropertyImageList } from '@/lib/propertyImages';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { supabaseService } from '@/services/supabaseService';
@@ -120,7 +120,10 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
     const router = useRouter();
 
     const galleryImages = useMemo(
-        () => normalizePropertyImageList(initialProperty.images),
+        () =>
+            normalizePropertyImageList(initialProperty.images).map((image) =>
+                getPropertyImageUrl(image),
+            ),
         [initialProperty.images],
     );
     const propertyFeatures = useMemo(

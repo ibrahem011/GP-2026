@@ -7,8 +7,12 @@ interface TenantFormProps {
     tenantPhone: string;
     tenantEmail: string;
     onNameChange: (name: string) => void;
+    onNameBlur: () => void;
     onPhoneChange: (phone: string) => void;
+    onPhoneBlur: () => void;
     onEmailChange: (email: string) => void;
+    onEmailBlur: () => void;
+    phoneHelper?: string;
     errors?: {
         tenantName?: string;
         tenantPhone?: string;
@@ -21,8 +25,12 @@ export default function TenantForm({
     tenantPhone,
     tenantEmail,
     onNameChange,
+    onNameBlur,
     onPhoneChange,
+    onPhoneBlur,
     onEmailChange,
+    onEmailBlur,
+    phoneHelper,
     errors,
 }: TenantFormProps) {
     const cardClasses = 'rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900';
@@ -44,6 +52,7 @@ export default function TenantForm({
                         type="text"
                         value={tenantName}
                         onChange={(e) => onNameChange(e.target.value)}
+                        onBlur={onNameBlur}
                         className={inputClasses}
                         placeholder="ادخل الاسم الكامل"
                         autoComplete="name"
@@ -65,16 +74,27 @@ export default function TenantForm({
                         type="tel"
                         inputMode="numeric"
                         value={tenantPhone}
-                        onChange={(e) => onPhoneChange(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                        onChange={(e) => onPhoneChange(e.target.value)}
+                        onBlur={onPhoneBlur}
                         className={inputClasses}
-                        placeholder="01XXXXXXXXX"
-                        pattern="^01\d{9}$"
+                        placeholder="01012345678 أو +201012345678"
                         autoComplete="tel"
                         required
                         aria-invalid={Boolean(errors?.tenantPhone)}
-                        aria-describedby={errors?.tenantPhone ? 'tenant-phone-error' : 'tenant-phone-hint'}
+                        aria-describedby={[
+                            'tenant-phone-hint',
+                            phoneHelper ? 'tenant-phone-helper' : null,
+                            errors?.tenantPhone ? 'tenant-phone-error' : null,
+                        ].filter(Boolean).join(' ')}
                     />
-                    <p id="tenant-phone-hint" className="mt-1 text-xs text-gray-500 dark:text-zinc-400">صيغة رقم مصري: 11 رقم يبدأ بـ 01</p>
+                    <p id="tenant-phone-hint" className="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                        نقبل 01012345678 أو +201012345678، وسيتم توحيده تلقائيًا إلى 01XXXXXXXXX.
+                    </p>
+                    {phoneHelper ? (
+                        <p id="tenant-phone-helper" className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                            {phoneHelper}
+                        </p>
+                    ) : null}
                     {errors?.tenantPhone ? (
                         <p id="tenant-phone-error" className={errorClasses}>{errors.tenantPhone}</p>
                     ) : null}
@@ -89,6 +109,7 @@ export default function TenantForm({
                         type="email"
                         value={tenantEmail}
                         onChange={(e) => onEmailChange(e.target.value)}
+                        onBlur={onEmailBlur}
                         className={inputClasses}
                         placeholder="name@example.com"
                         autoComplete="email"

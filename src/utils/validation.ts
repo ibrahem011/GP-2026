@@ -48,3 +48,61 @@ export const validateUUID = (uuid: string): boolean => {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
 };
+
+const ARABIC_INDIC_DIGIT_MAP: Record<string, string> = {
+    '٠': '0',
+    '١': '1',
+    '٢': '2',
+    '٣': '3',
+    '٤': '4',
+    '٥': '5',
+    '٦': '6',
+    '٧': '7',
+    '٨': '8',
+    '٩': '9',
+    '۰': '0',
+    '۱': '1',
+    '۲': '2',
+    '۳': '3',
+    '۴': '4',
+    '۵': '5',
+    '۶': '6',
+    '۷': '7',
+    '۸': '8',
+    '۹': '9',
+};
+
+export const normalizeLocalizedDigits = (input: string): string =>
+    input
+        .split('')
+        .map((char) => ARABIC_INDIC_DIGIT_MAP[char] ?? char)
+        .join('');
+
+export const sanitizePhoneInput = (input: string): string => {
+    const normalizedDigits = normalizeLocalizedDigits(input);
+
+    const trimmed = normalizedDigits.trim().replace(/[\s()-]+/g, '');
+    const hasLeadingPlus = trimmed.startsWith('+');
+    const digitsOnly = trimmed.replace(/\D/g, '');
+
+    if (!digitsOnly) return hasLeadingPlus ? '+' : '';
+    return `${hasLeadingPlus ? '+' : ''}${digitsOnly}`;
+};
+
+export const normalizeEgyptianMobilePhone = (input: string): string | null => {
+    const sanitized = sanitizePhoneInput(input);
+    const digitsOnly = sanitized.replace(/\D/g, '');
+
+    if (!digitsOnly) return null;
+
+    if (/^01\d{9}$/.test(digitsOnly)) {
+        return digitsOnly;
+    }
+
+    if (/^20\d{10}$/.test(digitsOnly)) {
+        const localFormat = `0${digitsOnly.slice(2)}`;
+        return /^01\d{9}$/.test(localFormat) ? localFormat : null;
+    }
+
+    return null;
+};

@@ -5,7 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { PROPERTY_IMAGE_PLACEHOLDER, normalizePropertyImageSrc } from "@/lib/propertyImages";
+import {
+    getPropertyImageUrl,
+    PROPERTY_IMAGE_PLACEHOLDER,
+    normalizePropertyImageSrc,
+} from "@/lib/propertyImages";
 import { cn } from "@/lib/utils";
 import { supabaseService } from "@/services/supabaseService";
 import {
@@ -138,7 +142,9 @@ export function PropertyCard({
         }
     };
 
-    const imageSrc = imgError ? PROPERTY_IMAGE_PLACEHOLDER : normalizePropertyImageSrc(image);
+    const imageSrc = getPropertyImageUrl(
+        imgError ? PROPERTY_IMAGE_PLACEHOLDER : normalizePropertyImageSrc(image),
+    );
 
     const metaItems = useMemo(
         () =>

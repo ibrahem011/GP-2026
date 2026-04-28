@@ -1,0 +1,22 @@
+- [ ] تحديث `src/app/add-property/page.tsx`
+  - [ ] استيراد وإضافة `ProtectedRoute` لتغليف الصفحة.
+  - [ ] استخدام `useAuth()` لضمان الموثوقية (Authentication).
+  - [ ] إضافة حالة `submitError` وحالة `submitStage` لرز النشر وإدارتهما (تحديث نص الزر مع دورة الـ Submit).
+  - [ ] إضافة شرط التحقق المبكر من الصور `stagedImages.length === 0` في `handleNextStep` للخطوة 1 وحجب الانتقال إذا لم يكن هنالك صور.
+  - [ ] استبدال حقول المدخلات الرقمية (`type="number"`) إلى `type="text"` مع `inputMode="numeric"` وإنشاء دالة لتنقية المدخلات من الرموز الزائدة لمنع تداخل الأرقام.
+  - [ ] إصلاح ثبات حالة `priceUnit` لعدم تغييرها عشوائيًا (مثل التغيير من شهر لأسبوع).
+  - [ ] تحسين مسح أخطاء الحقول فور إدخال قيم جديدة (Clear Validation Errors on Edit).
+- [ ] تحديث `src/components/add-property/LocationPicker.tsx`
+  - [ ] تعديل التنبيه المكتوب باللون الأحمر ليكون رسالة معلوماتية محايدة (Neutral Guidance).
+  - [ ] ربط رسالة الخطأ الحمراء بأنها تظهر فقط إذا ضغط المستخدم على التالي بدون اختيار أو عند حصول خطأ في الاستجابة (Validation On Submit).
+- [ ] تحديث `src/services/supabaseService.ts`
+  - [ ] توسيع المعامل العائد لدالة `createFullProperty` ليقبل `CreateFullPropertyOptions` (يحتوى `timeoutMs`, `maxRetries`, `onStageChange`).
+  - [ ] إضافة استدعاء لـ `onStageChange` في مراحل تنفيذ الدالة (التحضير، الرفع، الحفظ).
+  - [ ] بناء آلية `supabase.auth.refreshSession()` إذا كانت الدالة تفشل لأسباب متعلقة بالجلسة (Auth/Session).
+  - [ ] إرجاع أخطاء مصنفة بمتغير `code` مثل `SESSION_EXPIRED` أو `REQUEST_TIMEOUT` أو `UPLOAD_FAILED`.
+- [ ] تحديث الاختبارات (Tests)
+  - [ ] استكمال وتحديث ملف `src/app/add-property/__tests__/page.test.tsx` (لاختبار `ProtectedRoute`, عدم تجاوز الخطوة الأولى, مسح الأخطاء, والثبات).
+  - [ ] استكمال وتحديث ملف `src/services/__tests__/createFullProperty.test.ts` لتغطية تحديثات الجلسة (Session refresh) وتصنيف الأخطاء وتتبع المراحل (Stage changes).
+- [ ] مراجعة الكود والتحقق من الموثوقية (Verifying work)
+  - [ ] تشغيل خادم التطوير `npm run dev` واختبار الواجهة.
+  - [ ] تشغيل أمر الاختبارات `npm test`.

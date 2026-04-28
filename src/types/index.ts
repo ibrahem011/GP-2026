@@ -145,7 +145,7 @@ export const AREAS = [
     'منطقة السوق',
     'الحي الغربي',
     'الحي الشرقي',
-];
+] as const;
 
 export const COMMISSION_AMOUNT = 50;
 export const SERVICE_FEE_PERCENTAGE = 0.1;
@@ -200,8 +200,18 @@ export interface Booking {
     status: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed' | 'rejected' | 'expired';
     createdAt: string;
     confirmedAt?: string;
+    landlordNote?: string;
+    landlordNoteUpdatedAt?: string;
     property?: Property;
-    user?: User;
+    user?: BookingPartyProfile | null;
+}
+
+export interface BookingPartyProfile {
+    id: string;
+    fullName: string;
+    phone?: string;
+    email?: string;
+    avatarUrl?: string;
 }
 
 export interface PublicBookingPeriod {

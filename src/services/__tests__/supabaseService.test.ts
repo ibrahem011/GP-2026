@@ -37,6 +37,13 @@ vi.mock('@/lib/supabase', () => ({
 
 import { supabaseService } from '../supabaseService';
 
+function createTimeoutError() {
+    const error = new Error('REQUEST_TIMEOUT') as Error & { code?: string };
+    error.name = 'TimeoutError';
+    error.code = 'REQUEST_TIMEOUT';
+    return error;
+}
+
 function createEqOrderQuery(result: { data: any; error: any }) {
     const order = vi.fn().mockResolvedValue(result);
     const eq = vi.fn(() => ({ order }));
@@ -152,16 +159,29 @@ describe('supabaseService RPC methods', () => {
         });
 
         it('returns an error object when the RPC fails', async () => {
-            mockRpc.mockResolvedValueOnce({
+            mockRpc.mockResolvedValue({
                 data: null,
                 error: { message: 'Unauthorized access' },
             });
 
-            const { bookings, error } = await supabaseService.getUserBookings('user-123');
+            const { bookings, error, isTimeout } = await supabaseService.getUserBookings('user-123');
 
             expect(bookings).toEqual([]);
             expect(error).toBeDefined();
             expect(error.message).toBe('Unauthorized access');
+            expect(isTimeout).toBe(false);
+            expect(mockRpc).toHaveBeenCalledTimes(2);
+        });
+
+        it('returns a timeout result when the RPC times out', async () => {
+            mockRpc.mockRejectedValue(createTimeoutError());
+
+            const { bookings, error, isTimeout } = await supabaseService.getUserBookings('user-123');
+
+            expect(bookings).toEqual([]);
+            expect(error).toEqual({ code: 'REQUEST_TIMEOUT', message: 'REQUEST_TIMEOUT' });
+            expect(isTimeout).toBe(true);
+            expect(mockRpc).toHaveBeenCalledTimes(2);
         });
 
         it('falls back to direct queries when the RPC function is missing', async () => {
@@ -247,6 +267,25 @@ describe('supabaseService RPC methods', () => {
         });
     });
 
+    describe('respondToBookingRequest', () => {
+        it('passes the trimmed landlord note to the booking transition RPC', async () => {
+            mockRpc.mockResolvedValueOnce({ data: 'confirmed', error: null });
+
+            const { error } = await supabaseService.respondToBookingRequest(
+                'booking-1',
+                'landlord_confirm',
+                '  تم القبول، يرجى التواصل قبل الوصول.  ',
+            );
+
+            expect(error).toBeNull();
+            expect(mockRpc).toHaveBeenCalledWith('transition_booking_status', {
+                p_booking_id: 'booking-1',
+                p_action: 'landlord_confirm',
+                p_landlord_note: 'تم القبول، يرجى التواصل قبل الوصول.',
+            });
+        });
+    });
+
     describe('getFavorites', () => {
         it('returns data and no error on success', async () => {
             mockRpc.mockResolvedValueOnce({
@@ -267,13 +306,26 @@ describe('supabaseService RPC methods', () => {
         });
 
         it('returns an error object when the RPC rejects', async () => {
-            mockRpc.mockRejectedValueOnce(new Error('Database error'));
+            mockRpc.mockRejectedValue(new Error('Database error'));
 
-            const { data, error } = await supabaseService.getFavorites('user-123');
+            const { data, error, isTimeout } = await supabaseService.getFavorites('user-123');
 
             expect(data).toEqual([]);
             expect(error).toBeDefined();
             expect(error).toBeInstanceOf(Error);
+            expect(isTimeout).toBe(false);
+            expect(mockRpc).toHaveBeenCalledTimes(2);
+        });
+
+        it('returns a timeout result when the RPC times out', async () => {
+            mockRpc.mockRejectedValue(createTimeoutError());
+
+            const { data, error, isTimeout } = await supabaseService.getFavorites('user-123');
+
+            expect(data).toEqual([]);
+            expect(error).toEqual({ code: 'REQUEST_TIMEOUT', message: 'REQUEST_TIMEOUT' });
+            expect(isTimeout).toBe(true);
+            expect(mockRpc).toHaveBeenCalledTimes(2);
         });
 
         it('falls back to direct queries when the RPC function is missing', async () => {

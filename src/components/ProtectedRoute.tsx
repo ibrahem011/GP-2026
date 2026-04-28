@@ -1,14 +1,14 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import AuthLoading from './AuthLoading';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, loading } = useAuth();
     const router = useRouter();
-    const searchParams = useSearchParams();
+
 
     useEffect(() => {
         if (!loading && !isAuthenticated) {

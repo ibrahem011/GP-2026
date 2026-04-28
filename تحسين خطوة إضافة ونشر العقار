@@ -1,0 +1,67 @@
+# تحسين خطوة إضافة ونشر العقار
+
+يهدف هذا التنفيذ إلى إعادة هيكلة وتحسين تجربة صفحة إضافة العقار (`/add-property`) لتصبح أكثر استقراراً ووضوحاً للمستخدم النهائي. سيتم التركيز على حل مشاكل التجربة (UX) مثل تداخل القيم الرقمية عند التنقل، والتحقق المبكر من الصور والصلاحيات، وتعزيز رسائل الأخطاء عند إرسال البيانات من خلال تحسينات عميقة في الواجهة الأمامية والخدمة الخلفية (Supabase Service).
+
+## User Review Required
+> [!IMPORTANT]
+> يرجى مراجعة الخطة واعتمادها قبل المضي قدماً في التنفيذ الفعلي. هل تتفق مع الاعتماد على `ProtectedRoute` في الواجهة فقط بدلاً من Middleware لهذا المسار كما هو مذكور في الافتراضات؟
+
+## Proposed Changes
+
+### 1- الواجهات والمكونات (Frontend & Components)
+
+#### [MODIFY] [page.tsx](file:///c:/Users/CRIZMA%20MEGA%20STORE/Documents/GitHub/GP-2026/src/app/add-property/page.tsx)
+* **الحماية والمصادقة**: تغليف الصفحة بمكوّن `ProtectedRoute` واستخدام `useAuth().user` بدلاً من `useUser()` لضمان وجود جلسة صحيحة.
+* **التحقق المبكر من الصور**: منع المستخدم من الانتقال من **الخطوة 1** إذا لم تتوفر صور (`stagedImages.length === 0`)، مع عرض `imageError` بوضوح أسفل مربع رفع الصور.
+* **إصلاح حقول الأرقام**: استبدال `type="number"` في حقول (`price`, `bedrooms`, `bathrooms`, `area`, `floor`) بحقول نصية تحتوي `inputMode="numeric"` وتنقيتها برمجياً أثناء `onChange` لحل مشكلة السلوك الغريب للقيم عند الرجوع بين الخطوات.
+* **ثبات المتغيرات**: إصلاح آلية حفظ `priceUnit` لضمان عدم تغييرها (مثل "شهري") عند الانتقال للأمام ثم الخلف.
+* **تحسين حالة الإرسال (Submit State)**: 
+  * إضافة حالة `submitError` لإظهار الأخطاء أعلى زر النشر بشكل ثابت (بدلاً من الاكتفاء بـ Toast).
+  * إضافة حالة `submitStage` تُحدِّث نص الزر أثناء العملية (جاري التحضير... جاري رفع الصور... جاري تسجيل العقار...).
+  * مسح الخطأ بمجرد عودة المستخدم لتعديل الحقوق.
+
+#### [MODIFY] [LocationPicker.tsx](file:///c:/Users/CRIZMA%20MEGA%20STORE/Documents/GitHub/GP-2026/src/components/add-property/LocationPicker.tsx)
+* تعيين رسالة إرشادية محايدة عند فتح المكون.
+* منع ظهور رسالة الخطأ الحمراء لمجرد فتح الخطوة، على أن تظهر فقط بعد ضغط "التالي" ووجود `locationError` فعلي.
+
+---
+
+### 2- طبقة الخدمات (Services Layer)
+
+#### [MODIFY] [supabaseService.ts](file:///c:/Users/CRIZMA%20MEGA%20STORE/Documents/GitHub/GP-2026/src/services/supabaseService.ts)
+* **توسيع الدالة `createFullProperty`**:
+  * إضافة بارامتر رابع ذو نوع جديد `CreateFullPropertyOptions` (يحتوى على `timeoutMs`, `maxRetries`, `onStageChange`).
+  * استخدام `onStageChange` لترجمة تقدم العملية وإرسالها للواجهة.
+* **إصلاح وتأمين الجلسة (Session Reliability)**:
+  * التحقق من تطابق الجلسة الحالية قبل النشر. إذا انتهت الجلسة أو فقدت، تقوم الخدمة باستدعاء `refreshSession()` مرة واحدة فقط، وتعيد التحقق قبل رد خطأ مصنف مثل `SESSION_EXPIRED` أو `SESSION_MISMATCH`.
+* **تصنيف الأخطاء**:
+  * إرجاع كائنات أخطاء بـ `code` صريح تقرأه الواجهة لترجمته للمستخدم (مثل: `REQUEST_TIMEOUT` أو `UPLOAD_FAILED`).
+
+---
+
+### 3- الاختبارات الآلية (Tests)
+
+#### [MODIFY] [page.test.tsx](file:///c:/Users/CRIZMA%20MEGA%20STORE/Documents/GitHub/GP-2026/src/app/add-property/__tests__/page.test.tsx)
+* تعديل الاختبارات لتتوافق مع إضافة `ProtectedRoute`.
+* إضافة اختبار محاولة تخطي الخطوة 1 بلا صور وتأكيد ظهور الخطأ.
+* اختبار عرض `submitError` الثابت وتغيير حالة زر النشر (`submitStage`).
+* اختبار بقاء قيمة مختارة مثل `priceUnit = month` عند التقليب بين الخطوة 1 والخطوة 2 والعودة.
+
+#### [MODIFY] [createFullProperty.test.ts](file:///c:/Users/CRIZMA%20MEGA%20STORE/Documents/GitHub/GP-2026/src/services/__tests__/createFullProperty.test.ts)
+* إضافة اختبارات لآلية `refreshSession()`.
+* التحقق من استدعاءات الـ callback الخاصة بـ `onStageChange`.
+* التحقق من تصنيف الأخطاء (`throw` مع `code` ملائم).
+
+## Open Questions
+* لا توجد أسئلة مفتوحة حالية بناءً على التعليمات المفصلة والشاملة المعطاة؛ الخطة جاهزة للتنفيذ بمجرد اعتمادها.
+
+## Verification Plan
+
+### Automated Tests
+* سيتم تشغيل `pnpm test` لاختبارات واجهة `page.test.tsx`.
+* سيتم تشغيل اختبارات الخدمة `createFullProperty.test.ts`.
+
+### Manual Verification
+* سيتم تشغيل التطبيق محلياً وتجاوز الخطوات بصور وبدون صور لضمان ظهور التحذيرات.
+* محاولة التنقل `السابق` و `التالي` والتأكد من سلامة الحقول الرقمية وعدم تضاعفها.
+* محاولة النشر (سيتم محاكاتها باستخدام Subagent) أو فصل اتصال الإنترنت محلياً لمشاهدة ظهور الـ `submitError` بشكل واضح وثابت بدلاً من التوقف الصامت.

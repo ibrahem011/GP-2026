@@ -154,9 +154,14 @@ describe('MyPropertiesPage', () => {
         const mobileHeader = screen.getByTestId('my-properties-mobile-header');
         expect(within(mobileHeader).getByText('عقاراتي')).toBeInTheDocument();
         expect(within(mobileHeader).getByRole('button', { name: 'الرجوع' })).toBeInTheDocument();
-        expect(within(mobileHeader).getByRole('link', { name: 'إضافة عقار' })).toBeInTheDocument();
+        expect(within(mobileHeader).queryByRole('link', { name: 'إضافة عقار' })).not.toBeInTheDocument();
 
         expect(screen.getByTestId('my-properties-mobile-actions-bar')).toBeInTheDocument();
+        expect(
+            within(screen.getByTestId('my-properties-mobile-actions-bar')).getByRole('link', {
+                name: 'إضافة عقار',
+            }),
+        ).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'فتح فلترة وترتيب الموبايل' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'فتح الإحصاءات' })).toBeInTheDocument();
     });

@@ -20,7 +20,7 @@ import { useMyProperties } from '@/hooks/useMyProperties';
 import { useRuntimeStatus } from '@/hooks/useRuntimeStatus';
 import { useToast } from '@/hooks/useToast';
 import { cn } from '@/lib/utils';
-import { CATEGORY_AR, type PropertyStatus } from '@/types';
+import { CATEGORY_AR, STATUS_AR, type PropertyCategory, type PropertyStatus } from '@/types';
 
 type DeleteState = {
     id: string;
@@ -28,9 +28,13 @@ type DeleteState = {
 } | null;
 
 const statusBadgeStyles = {
-    offline: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300',
-    mock: 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300',
+    offline: 'border-amber-200/70 bg-amber-50/70 text-amber-700/90 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300',
+    mock: 'border-sky-200/70 bg-sky-50/70 text-sky-700/90 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300',
 } as const;
+
+function isPropertyCategoryFilter(filter: FilterOption): filter is PropertyCategory {
+    return filter !== null && filter in CATEGORY_AR;
+}
 
 export default function MyPropertiesPage() {
     const router = useRouter();
@@ -146,7 +150,11 @@ export default function MyPropertiesPage() {
             return 'المؤجر حالياً';
         }
 
-        return CATEGORY_AR[filter];
+        if (isPropertyCategoryFilter(filter)) {
+            return CATEGORY_AR[filter];
+        }
+
+        return STATUS_AR[filter];
     }, [filter]);
 
     const desktopCardLayout = viewMode === 'grid' ? 'grid' : 'list';
@@ -220,132 +228,103 @@ export default function MyPropertiesPage() {
                                 </span>
                             </div>
 
-                            <Link
-                                href="/add-property"
-                                aria-label="إضافة عقار"
-                                className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
-                            >
-                                <span className="material-symbols-outlined text-[22px]">
-                                    add
-                                </span>
-                            </Link>
+                            <div aria-hidden="true" className="h-11 w-11 shrink-0" />
                         </div>
-
-                        {runtimeBadges.length > 0 ? (
-                            <div className="mt-3 flex flex-wrap justify-center gap-2">
-                                {runtimeBadges.map((badge) => (
-                                    <span
-                                        key={badge.key}
-                                        className={cn(
-                                            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold',
-                                            statusBadgeStyles[badge.key],
-                                        )}
-                                    >
-                                        <span className="material-symbols-outlined text-[15px]">
-                                            {badge.icon}
-                                        </span>
-                                        {badge.label}
-                                    </span>
-                                ))}
-                            </div>
-                        ) : null}
                     </div>
                 </div>
 
                 <div
-                    className="hidden px-4 pt-4 md:block"
+                    className="hidden px-4 pt-3 md:block"
                     data-testid="my-properties-desktop-hero"
                 >
-                    <div className="mx-auto max-w-7xl rounded-[2rem] border border-white/70 bg-white/85 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-surface-dark/80">
-                        <div className="flex flex-col gap-4 p-5">
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-black text-primary">
-                                        <span>{properties.length.toLocaleString('ar-EG')}</span>
-                                        <span>عقار تحت إدارتك</span>
-                                    </div>
-
-                                    <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-950 dark:text-white">
-                                        لوحة عقاراتي
-                                    </h1>
-                                    <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500 dark:text-slate-300">
-                                        متابعة أوضح لعقاراتك من مكان واحد، مع أدوات أسرع للتصفية
-                                        والتعديل وتبديل العرض بين شبكة مرئية وقائمة عملية.
-                                    </p>
-
-                                    {runtimeBadges.length > 0 ? (
-                                        <div className="mt-4 flex flex-wrap items-center gap-2">
-                                            {runtimeBadges.map((badge) => (
-                                                <span
-                                                    key={badge.key}
-                                                    className={cn(
-                                                        'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold',
-                                                        statusBadgeStyles[badge.key],
-                                                    )}
-                                                >
-                                                    <span className="material-symbols-outlined text-[15px]">
-                                                        {badge.icon}
-                                                    </span>
-                                                    {badge.label}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    ) : null}
+                    <div className="mx-auto max-w-7xl rounded-[1.8rem] border border-white/70 bg-white/88 shadow-[0_18px_45px_rgba(15,23,42,0.06)] backdrop-blur-xl dark:border-white/10 dark:bg-surface-dark/80">
+                        <div className="flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="min-w-0">
+                                <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-3 py-1.5 text-xs font-black text-primary">
+                                    <span>{properties.length.toLocaleString('ar-EG')}</span>
+                                    <span>عقار تحت إدارتك</span>
                                 </div>
 
-                                <div className="flex shrink-0 items-center gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => router.back()}
-                                        aria-label="الرجوع"
-                                        className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all hover:border-primary/20 hover:text-primary dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100"
-                                    >
-                                        <span className="material-symbols-outlined text-[20px]">
-                                            arrow_forward
+                                <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950 dark:text-white">
+                                    لوحة عقاراتي
+                                </h1>
+                                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-300">
+                                    إدارة أسرع لعقاراتك مع عرض أوضح للنتائج وحالة النشر وأدوات
+                                    التعديل من نفس الشاشة.
+                                </p>
+
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200">
+                                        <span className="material-symbols-outlined text-[16px] text-primary">
+                                            inventory_2
                                         </span>
-                                    </button>
-                                    <Link
-                                        href="/add-property"
-                                        className="inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/25 transition-all hover:-translate-y-0.5 hover:bg-primary/90"
+                                        عرض {displayedProperties.length.toLocaleString('ar-EG')} من أصل{' '}
+                                        {properties.length.toLocaleString('ar-EG')}
+                                    </div>
+
+                                    <div
+                                        className={cn(
+                                            'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold',
+                                            activeControlsCount > 0
+                                                ? 'border-primary/20 bg-primary/10 text-primary'
+                                                : 'border-slate-200/80 bg-white/85 text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300',
+                                        )}
                                     >
-                                        إضافة عقار
-                                        <span className="material-symbols-outlined text-[18px]">
-                                            add_circle
+                                        <span className="material-symbols-outlined text-[16px]">
+                                            {activeControlsCount > 0 ? 'tune' : 'check_circle'}
                                         </span>
-                                    </Link>
+                                        {activeControlsCount > 0
+                                            ? `${activeControlsCount.toLocaleString('ar-EG')} إعدادات نشطة`
+                                            : 'بدون تخصيصات إضافية'}
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2">
-                                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/85 px-3 py-2 text-xs font-bold text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200">
-                                    <span className="material-symbols-outlined text-[16px] text-primary">
-                                        inventory_2
-                                    </span>
-                                    عرض {displayedProperties.length.toLocaleString('ar-EG')} من أصل{' '}
-                                    {properties.length.toLocaleString('ar-EG')}
-                                </div>
-
-                                <div
-                                    className={cn(
-                                        'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold',
-                                        activeControlsCount > 0
-                                            ? 'border-primary/20 bg-primary/10 text-primary'
-                                            : 'border-slate-200/80 bg-white/85 text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300',
-                                    )}
+                            <div className="flex shrink-0 items-center gap-3 self-start lg:self-center">
+                                <button
+                                    type="button"
+                                    onClick={() => router.back()}
+                                    aria-label="الرجوع"
+                                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition-all hover:border-primary/20 hover:text-primary dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100"
                                 >
-                                    <span className="material-symbols-outlined text-[16px]">
-                                        {activeControlsCount > 0 ? 'tune' : 'check_circle'}
+                                    <span className="material-symbols-outlined text-[20px]">
+                                        arrow_forward
                                     </span>
-                                    {activeControlsCount > 0
-                                        ? `${activeControlsCount.toLocaleString('ar-EG')} إعدادات نشطة`
-                                        : 'بدون تخصيصات إضافية'}
-                                </div>
+                                </button>
+                                <Link
+                                    href="/add-property"
+                                    className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90"
+                                >
+                                    إضافة عقار
+                                    <span className="material-symbols-outlined text-[18px]">
+                                        add_circle
+                                    </span>
+                                </Link>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div className="mx-auto max-w-7xl px-4">
+                    {runtimeBadges.length > 0 ? (
+                        <div className="mt-4 flex flex-wrap gap-2 md:mt-3">
+                            {runtimeBadges.map((badge) => (
+                                <span
+                                    key={badge.key}
+                                    className={cn(
+                                        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold',
+                                        statusBadgeStyles[badge.key],
+                                    )}
+                                >
+                                    <span className="material-symbols-outlined text-[14px]">
+                                        {badge.icon}
+                                    </span>
+                                    {badge.label}
+                                </span>
+                            ))}
+                        </div>
+                    ) : null}
+
                     {loading ? (
                         <>
                             <div className="mt-6 space-y-4 md:hidden" data-testid="my-properties-mobile-loading">
@@ -354,7 +333,7 @@ export default function MyPropertiesPage() {
                                 ))}
                             </div>
                             <div
-                                className="mt-6 hidden grid-cols-2 gap-5 md:grid lg:grid-cols-3 xl:grid-cols-4"
+                                className="mt-6 hidden grid-cols-2 gap-5 md:grid lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4"
                                 data-testid="my-properties-desktop-loading"
                             >
                                 {[1, 2, 3, 4].map((item) => (
@@ -393,155 +372,155 @@ export default function MyPropertiesPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="mt-6 hidden md:block">
-                                <MyPropertiesStatsPanel stats={summaryStats} />
-                            </div>
-
-                            <div className="mt-4 hidden rounded-[1.8rem] border border-white/70 bg-white/85 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04] md:block">
-                                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                                    <div>
-                                        <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                                            إدارة العقارات
-                                        </h2>
-                                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">
-                                            {appliedFilterLabel} مع ترتيب{' '}
-                                            {sortBy === 'newest'
-                                                ? 'الأحدث أولاً'
-                                                : sortBy === 'oldest'
-                                                  ? 'الأقدم أولاً'
-                                                  : sortBy === 'views'
-                                                    ? 'الأكثر مشاهدة'
-                                                    : sortBy === 'price_high'
-                                                      ? 'السعر من الأعلى'
-                                                      : 'السعر من الأقل'}
-                                            .
-                                        </p>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <label className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100">
-                                            <span className="material-symbols-outlined text-[18px] text-primary">
-                                                sort
-                                            </span>
-                                            <span>الترتيب</span>
-                                            <select
-                                                aria-label="ترتيب العقارات"
-                                                value={sortBy}
-                                                onChange={(event) =>
-                                                    setSortBy(
-                                                        event.target.value as typeof sortBy,
-                                                    )
-                                                }
-                                                className="bg-transparent text-sm font-bold text-slate-700 outline-none dark:text-slate-100"
-                                            >
-                                                <option value="newest">الأحدث أولاً</option>
-                                                <option value="oldest">الأقدم أولاً</option>
-                                                <option value="views">الأكثر مشاهدة</option>
-                                                <option value="price_high">السعر من الأعلى</option>
-                                                <option value="price_low">السعر من الأقل</option>
-                                            </select>
-                                        </label>
-
-                                        <div className="inline-flex items-center rounded-2xl border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-white/[0.04]">
-                                            <button
-                                                type="button"
-                                                onClick={() => setViewMode('grid')}
-                                                aria-label="عرض الشبكة"
-                                                className={cn(
-                                                    'flex h-9 w-10 items-center justify-center rounded-xl transition-all',
-                                                    viewMode === 'grid'
-                                                        ? 'bg-primary text-white shadow-sm'
-                                                        : 'text-slate-500 hover:text-primary dark:text-slate-300',
-                                                )}
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">
-                                                    grid_view
-                                                </span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setViewMode('list')}
-                                                aria-label="عرض القائمة"
-                                                className={cn(
-                                                    'flex h-9 w-10 items-center justify-center rounded-xl transition-all',
-                                                    viewMode === 'list'
-                                                        ? 'bg-primary text-white shadow-sm'
-                                                        : 'text-slate-500 hover:text-primary dark:text-slate-300',
-                                                )}
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">
-                                                    view_list
-                                                </span>
-                                            </button>
+                            <div className="mt-4 hidden rounded-[1.8rem] border border-white/70 bg-white/88 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04] md:block">
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                                        <div>
+                                            <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                                                إدارة العقارات
+                                            </h2>
+                                            <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+                                                {appliedFilterLabel} مع ترتيب{' '}
+                                                {sortBy === 'newest'
+                                                    ? 'الأحدث أولاً'
+                                                    : sortBy === 'oldest'
+                                                      ? 'الأقدم أولاً'
+                                                      : sortBy === 'views'
+                                                        ? 'الأكثر مشاهدة'
+                                                        : sortBy === 'price_high'
+                                                          ? 'السعر من الأعلى'
+                                                          : 'السعر من الأقل'}
+                                                .
+                                            </p>
                                         </div>
 
-                                        {activeControlsCount > 0 ? (
-                                            <button
-                                                type="button"
-                                                onClick={resetControls}
-                                                className="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600 transition-all hover:border-primary/20 hover:text-primary dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200"
-                                            >
-                                                <span className="material-symbols-outlined text-[18px]">
-                                                    restart_alt
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <label className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100">
+                                                <span className="material-symbols-outlined text-[18px] text-primary">
+                                                    sort
                                                 </span>
-                                                إعادة التصفية
-                                            </button>
-                                        ) : null}
-                                    </div>
-                                </div>
+                                                <span>الترتيب</span>
+                                                <select
+                                                    aria-label="ترتيب العقارات"
+                                                    value={sortBy}
+                                                    onChange={(event) =>
+                                                        setSortBy(
+                                                            event.target.value as typeof sortBy,
+                                                        )
+                                                    }
+                                                    className="bg-transparent text-sm font-bold text-slate-700 outline-none dark:text-slate-100"
+                                                >
+                                                    <option value="newest">الأحدث أولاً</option>
+                                                    <option value="oldest">الأقدم أولاً</option>
+                                                    <option value="views">الأكثر مشاهدة</option>
+                                                    <option value="price_high">السعر من الأعلى</option>
+                                                    <option value="price_low">السعر من الأقل</option>
+                                                </select>
+                                            </label>
 
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setFilter(null)}
-                                        className={cn(
-                                            'rounded-full border px-4 py-2 text-sm font-bold transition-all',
-                                            filter === null
-                                                ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-black'
-                                                : 'border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200',
-                                        )}
-                                    >
-                                        الكل
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFilter('available')}
-                                        className={cn(
-                                            'rounded-full border px-4 py-2 text-sm font-bold transition-all',
-                                            filter === 'available'
-                                                ? 'border-emerald-500 bg-emerald-500 text-white'
-                                                : 'border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200',
-                                        )}
-                                    >
-                                        متاح ({availableCount.toLocaleString('ar-EG')})
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFilter('rented')}
-                                        className={cn(
-                                            'rounded-full border px-4 py-2 text-sm font-bold transition-all',
-                                            filter === 'rented'
-                                                ? 'border-sky-500 bg-sky-500 text-white'
-                                                : 'border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200',
-                                        )}
-                                    >
-                                        مؤجر ({rentedCount.toLocaleString('ar-EG')})
-                                    </button>
-                                    {uniqueCategories.map((category) => (
+                                            <div className="inline-flex items-center rounded-2xl border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-white/[0.04]">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setViewMode('grid')}
+                                                    aria-label="عرض الشبكة"
+                                                    className={cn(
+                                                        'flex h-9 w-10 items-center justify-center rounded-xl transition-all',
+                                                        viewMode === 'grid'
+                                                            ? 'bg-primary text-white shadow-sm'
+                                                            : 'text-slate-500 hover:text-primary dark:text-slate-300',
+                                                    )}
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">
+                                                        grid_view
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setViewMode('list')}
+                                                    aria-label="عرض القائمة"
+                                                    className={cn(
+                                                        'flex h-9 w-10 items-center justify-center rounded-xl transition-all',
+                                                        viewMode === 'list'
+                                                            ? 'bg-primary text-white shadow-sm'
+                                                            : 'text-slate-500 hover:text-primary dark:text-slate-300',
+                                                    )}
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">
+                                                        view_list
+                                                    </span>
+                                                </button>
+                                            </div>
+
+                                            {activeControlsCount > 0 ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={resetControls}
+                                                    className="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600 transition-all hover:border-primary/20 hover:text-primary dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200"
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">
+                                                        restart_alt
+                                                    </span>
+                                                    إعادة التصفية
+                                                </button>
+                                            ) : null}
+                                        </div>
+                                    </div>
+
+                                    <MyPropertiesStatsPanel stats={summaryStats} />
+
+                                    <div className="flex flex-wrap gap-2">
                                         <button
-                                            key={category}
                                             type="button"
-                                            onClick={() => setFilter(category as FilterOption)}
+                                            onClick={() => setFilter(null)}
                                             className={cn(
                                                 'rounded-full border px-4 py-2 text-sm font-bold transition-all',
-                                                filter === category
-                                                    ? 'border-primary bg-primary text-white'
+                                                filter === null
+                                                    ? 'border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-black'
                                                     : 'border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200',
                                             )}
                                         >
-                                            {CATEGORY_AR[category]}
+                                            الكل
                                         </button>
-                                    ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => setFilter('available')}
+                                            className={cn(
+                                                'rounded-full border px-4 py-2 text-sm font-bold transition-all',
+                                                filter === 'available'
+                                                    ? 'border-emerald-500 bg-emerald-500 text-white'
+                                                    : 'border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200',
+                                            )}
+                                        >
+                                            متاح ({availableCount.toLocaleString('ar-EG')})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFilter('rented')}
+                                            className={cn(
+                                                'rounded-full border px-4 py-2 text-sm font-bold transition-all',
+                                                filter === 'rented'
+                                                    ? 'border-sky-500 bg-sky-500 text-white'
+                                                    : 'border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200',
+                                            )}
+                                        >
+                                            مؤجر ({rentedCount.toLocaleString('ar-EG')})
+                                        </button>
+                                        {uniqueCategories.map((category) => (
+                                            <button
+                                                key={category}
+                                                type="button"
+                                                onClick={() => setFilter(category as FilterOption)}
+                                                className={cn(
+                                                    'rounded-full border px-4 py-2 text-sm font-bold transition-all',
+                                                    filter === category
+                                                        ? 'border-primary bg-primary text-white'
+                                                        : 'border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200',
+                                                )}
+                                            >
+                                                {CATEGORY_AR[category]}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 
@@ -559,7 +538,7 @@ export default function MyPropertiesPage() {
                                     className={cn(
                                         'mt-6',
                                         cardLayout === 'grid'
-                                            ? 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                                            ? 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4'
                                             : 'space-y-4',
                                     )}
                                 >

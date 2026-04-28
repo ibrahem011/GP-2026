@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getCurrentUser, setCurrentUser } from '@/lib/storage';
 import { PropertyRow, getIsMockMode, supabaseService } from '@/services/supabaseService';
 import { RentalConfig, RentalType } from '@/types';
-import { validateUUID } from '@/utils/validation';
+import { normalizeEgyptianMobilePhone, sanitizePhoneInput, validateUUID } from '@/utils/validation';
 import DateSelector from '@/components/booking/DateSelector';
 import TenantForm from '@/components/booking/TenantForm';
 import PaymentMethods from '@/components/booking/PaymentMethods';
@@ -23,6 +23,7 @@ type BookingStep = 1 | 2 | 3 | 4;
 type AvailabilityStatus = 'idle' | 'checking' | 'available' | 'unavailable' | 'error';
 type PaymentMethod = 'vodafone_cash' | 'instapay' | 'cash_on_delivery';
 type PropertyAccessState = 'checking' | 'allowed' | 'denied';
+type Step2Field = 'tenantName' | 'tenantPhone' | 'tenantEmail';
 
 type BookingErrors = {
   startDate?: string;
@@ -36,8 +37,9 @@ type BookingErrors = {
   submit?: string;
 };
 
-const PHONE_REGEX = /^01\d{9}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_ERROR_MESSAGE = 'يرجى إدخال رقم موبايل مصري صحيح. نقبل 010... أو +201... وسيتم توحيده تلقائيًا.';
+const INVALID_STORED_PHONE_HELPER = 'رقم الهاتف المحفوظ في الحساب يحتاج مراجعة. أدخله بصيغة مصرية مثل 01012345678.';
 const STEPS: { id: BookingStep; label: string }[] = [
   { id: 1, label: 'التواريخ' },
   { id: 2, label: 'بيانات المستأجر' },
@@ -73,15 +75,16 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
   const [endDate, setEndDate] = useState('');
   const [availabilityStatus, setAvailabilityStatus] = useState<AvailabilityStatus>('idle');
   const [availabilityMessage, setAvailabilityMessage] = useState('');
-
   const [tenantName, setTenantName] = useState('');
   const [tenantPhone, setTenantPhone] = useState('');
   const [tenantEmail, setTenantEmail] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
-
   const [priceDetails, setPriceDetails] = useState({ basePrice: 0, serviceFee: 0, depositAmount: 0, totalAmount: 0, duration: 0 });
   const [resolvedUserId, setResolvedUserId] = useState('');
   const [errors, setErrors] = useState<BookingErrors>({});
+  const [attemptedStep2Submit, setAttemptedStep2Submit] = useState(false);
+  const [touchedFields, setTouchedFields] = useState<Record<Step2Field, boolean>>({ tenantName: false, tenantPhone: false, tenantEmail: false });
+  const [tenantPhoneHelper, setTenantPhoneHelper] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [propertyAccess, setPropertyAccess] = useState<PropertyAccessState>('checking');
 
@@ -91,7 +94,6 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
   }, [initialProperty.price, initialProperty.price_unit]);
 
   const isUserIdValid = validateUUID(resolvedUserId);
-
   const focusMap: Record<keyof BookingErrors, string> = {
     startDate: 'booking-start-date',
     endDate: 'booking-end-date',
@@ -107,10 +109,7 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
   const focusError = (key: keyof BookingErrors) => {
     window.requestAnimationFrame(() => {
       const el = document.getElementById(focusMap[key]);
-      if (!el) {
-        errorBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-      }
+      if (!el) return errorBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement || el instanceof HTMLSelectElement) el.focus();
     });
@@ -122,28 +121,44 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
     if (first) focusError(first);
   };
 
+  const markFieldTouched = (field: Step2Field) => {
+    setTouchedFields((prev) => (prev[field] ? prev : { ...prev, [field]: true }));
+  };
+
   const validateStep1 = () => {
     const next: BookingErrors = {};
     if (!startDate) next.startDate = 'يرجى اختيار تاريخ الوصول.';
     if (!endDate) next.endDate = 'يرجى اختيار تاريخ المغادرة.';
     if (startDate && endDate && startDate >= endDate) next.endDate = 'يجب أن يكون تاريخ المغادرة بعد تاريخ الوصول.';
     if (!next.startDate && !next.endDate && availabilityStatus !== 'available') {
-      if (availabilityStatus === 'checking') next.availability = 'جاري التحقق من التوافر. انتظر قليلا.';
+      if (availabilityStatus === 'checking') next.availability = 'جارٍ التحقق من التوفر. انتظر قليلًا.';
       else if (availabilityStatus === 'unavailable') next.availability = 'العقار غير متاح. غيّر التواريخ وحاول مرة أخرى.';
-      else next.availability = 'تعذر التحقق من التوافر. حاول مرة أخرى.';
+      else next.availability = 'تعذر التحقق من التوفر. حاول مرة أخرى.';
     }
     return next;
   };
 
   const validateStep2 = () => {
     const next: BookingErrors = {};
+    const normalizedPhone = normalizeEgyptianMobilePhone(tenantPhone);
     if (!tenantName.trim()) next.tenantName = 'يرجى إدخال الاسم الكامل.';
-    if (!PHONE_REGEX.test(tenantPhone.trim())) next.tenantPhone = 'يرجى إدخال رقم مصري صحيح بصيغة 01XXXXXXXXX.';
+    if (!normalizedPhone) next.tenantPhone = PHONE_ERROR_MESSAGE;
     if (tenantEmail.trim() && !EMAIL_REGEX.test(tenantEmail.trim())) next.tenantEmail = 'يرجى إدخال بريد إلكتروني صحيح.';
-    return next;
+    return { errors: next, normalizedPhone };
   };
 
   const validateStep3 = () => (!paymentMethod ? { paymentMethod: 'يرجى اختيار طريقة دفع.' } : {});
+
+  useEffect(() => {
+    if (!attemptedStep2Submit && !Object.values(touchedFields).some(Boolean)) return;
+    const step2Validation = validateStep2();
+    setErrors((prev) => ({
+      ...prev,
+      tenantName: attemptedStep2Submit || touchedFields.tenantName ? step2Validation.errors.tenantName : undefined,
+      tenantPhone: attemptedStep2Submit || touchedFields.tenantPhone ? step2Validation.errors.tenantPhone : undefined,
+      tenantEmail: attemptedStep2Submit || touchedFields.tenantEmail ? step2Validation.errors.tenantEmail : undefined,
+    }));
+  }, [attemptedStep2Submit, tenantEmail, tenantName, tenantPhone, touchedFields]);
 
   useEffect(() => {
     if (!user) return;
@@ -153,16 +168,15 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
       const uuid = createUuid();
       const current = getCurrentUser();
       if (current && current.id === legacyId) setCurrentUser({ ...current, id: uuid });
-
       const rawUsers = window.localStorage.getItem('gamasa_users');
       if (rawUsers) {
         try {
           const users = JSON.parse(rawUsers) as Array<Record<string, unknown>>;
-          window.localStorage.setItem('gamasa_users', JSON.stringify(users.map((u) => {
-            const candidateId = typeof u.id === 'string' ? u.id : '';
-            const candidateEmail = typeof u.email === 'string' ? u.email : '';
-            if (candidateId === legacyId || (user.email && candidateEmail === user.email)) return { ...u, id: uuid };
-            return u;
+          window.localStorage.setItem('gamasa_users', JSON.stringify(users.map((candidate) => {
+            const candidateId = typeof candidate.id === 'string' ? candidate.id : '';
+            const candidateEmail = typeof candidate.email === 'string' ? candidate.email : '';
+            if (candidateId === legacyId || (user.email && candidateEmail === user.email)) return { ...candidate, id: uuid };
+            return candidate;
           })));
         } catch {
           // no-op
@@ -187,43 +201,50 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
       if (cancelled) return;
       setResolvedUserId(nextId);
       setErrors((prev) => ({ ...prev, userId: undefined }));
-
       setTenantName((prev) => prev || user.name || user.email?.split('@')[0] || '');
       setTenantEmail((prev) => prev || user.email || '');
-      if (user.phone) setTenantPhone((prev) => prev || user.phone);
 
-      if (!user.phone && validateUUID(nextId)) {
+      let shouldShowPhoneReviewHelper = false;
+      const hydratePhoneCandidate = (candidate?: string | null) => {
+        if (!candidate) return false;
+        const normalizedPhone = normalizeEgyptianMobilePhone(candidate);
+        if (!normalizedPhone) return false;
+        setTenantPhone((prev) => prev || normalizedPhone);
+        return true;
+      };
+
+      const hydratedFromAccount = hydratePhoneCandidate(user.phone);
+      if (user.phone && !hydratedFromAccount) shouldShowPhoneReviewHelper = true;
+
+      if ((!hydratedFromAccount || !user.phone) && validateUUID(nextId)) {
         const profile = await supabaseService.getProfile(nextId);
-        if (!cancelled && profile?.phone) setTenantPhone((prev) => prev || profile.phone || '');
+        if (cancelled) return;
+        const hydratedFromProfile = hydratePhoneCandidate(profile?.phone);
+        if (profile?.phone && !hydratedFromProfile) shouldShowPhoneReviewHelper = true;
+        if (hydratedFromProfile) shouldShowPhoneReviewHelper = false;
       }
+
+      if (!cancelled) setTenantPhoneHelper(shouldShowPhoneReviewHelper ? INVALID_STORED_PHONE_HELPER : null);
     };
 
-    hydrate();
+    void hydrate();
     return () => { cancelled = true; };
   }, [user]);
 
   useEffect(() => {
     let cancelled = false;
-
     const verifyPropertyAccess = async () => {
       if (authLoading) return;
-
       if (!user) {
         setPropertyAccess('checking');
         return;
       }
-
       const state = await supabaseService.getTenantPropertyState(user.id, propertyId);
       if (cancelled) return;
-
       setPropertyAccess(state.unlockedAt || state.hasBookingHistory ? 'allowed' : 'denied');
     };
-
     void verifyPropertyAccess();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [authLoading, propertyId, user]);
 
   useEffect(() => {
@@ -242,33 +263,29 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
       setAvailabilityMessage('');
       return;
     }
-
     let mounted = true;
     setAvailabilityStatus('checking');
-    setAvailabilityMessage('جاري التحقق...');
-
+    setAvailabilityMessage('جارٍ التحقق...');
     const timer = setTimeout(async () => {
       const { available, error } = await supabaseService.checkAvailability(propertyId, startDate, endDate);
       if (!mounted) return;
       if (error) {
         setAvailabilityStatus('error');
-        setAvailabilityMessage(error.message || 'تعذر التحقق من التوافر.');
+        setAvailabilityMessage(error.message || 'تعذر التحقق من التوفر.');
       } else {
         setAvailabilityStatus(available ? 'available' : 'unavailable');
         setAvailabilityMessage(available ? 'متاح' : 'غير متاح');
       }
     }, 350);
-
     return () => { mounted = false; clearTimeout(timer); };
   }, [propertyId, startDate, endDate]);
 
   const nextDisabled = useMemo(() => {
     if (!isUserIdValid || isSubmitting) return true;
     if (currentStep === 1) return !startDate || !endDate || startDate >= endDate || availabilityStatus === 'checking' || availabilityStatus !== 'available';
-    if (currentStep === 2) return !tenantName.trim() || !PHONE_REGEX.test(tenantPhone.trim()) || (!!tenantEmail.trim() && !EMAIL_REGEX.test(tenantEmail.trim()));
     if (currentStep === 3) return !paymentMethod;
     return false;
-  }, [availabilityStatus, currentStep, endDate, isSubmitting, isUserIdValid, paymentMethod, startDate, tenantEmail, tenantName, tenantPhone]);
+  }, [availabilityStatus, currentStep, endDate, isSubmitting, isUserIdValid, paymentMethod, startDate]);
 
   const handleNext = () => {
     if (!isUserIdValid) {
@@ -276,13 +293,19 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
       return;
     }
 
-    const validation: BookingErrors = currentStep === 1 ? validateStep1() : currentStep === 2 ? validateStep2() : validateStep3();
-    const hasErrors = Object.keys(validation).some((k) => Boolean(validation[k as keyof BookingErrors]));
-    if (hasErrors) {
-      applyErrors(validation, ['startDate', 'endDate', 'availability', 'tenantName', 'tenantPhone', 'tenantEmail', 'paymentMethod']);
-      return;
-    }
+    let validation: BookingErrors;
+    let normalizedTenantPhone: string | null = null;
+    if (currentStep === 1) validation = validateStep1();
+    else if (currentStep === 2) {
+      setAttemptedStep2Submit(true);
+      const step2Validation = validateStep2();
+      validation = step2Validation.errors;
+      normalizedTenantPhone = step2Validation.normalizedPhone;
+    } else validation = validateStep3();
 
+    const hasErrors = Object.keys(validation).some((key) => Boolean(validation[key as keyof BookingErrors]));
+    if (hasErrors) return applyErrors(validation, ['startDate', 'endDate', 'availability', 'tenantName', 'tenantPhone', 'tenantEmail', 'paymentMethod']);
+    if (currentStep === 2 && normalizedTenantPhone) setTenantPhone(normalizedTenantPhone);
     setErrors({});
     setCurrentStep((prev) => Math.min(4, (prev + 1) as BookingStep) as BookingStep);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -294,11 +317,35 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleTenantNameChange = (value: string) => {
+    setTenantName(value);
+    setErrors((prev) => ({ ...prev, submit: undefined }));
+  };
+
+  const handleTenantPhoneChange = (value: string) => {
+    setTenantPhone(sanitizePhoneInput(value));
+    setTenantPhoneHelper(null);
+    setErrors((prev) => ({ ...prev, submit: undefined }));
+  };
+
+  const handleTenantEmailChange = (value: string) => {
+    setTenantEmail(value);
+    setErrors((prev) => ({ ...prev, submit: undefined }));
+  };
+
+  const handleTenantPhoneBlur = () => {
+    markFieldTouched('tenantPhone');
+    const normalizedPhone = normalizeEgyptianMobilePhone(tenantPhone);
+    if (normalizedPhone) setTenantPhone(normalizedPhone);
+  };
+
   const handleSubmit = async () => {
-    const allErrors: BookingErrors = { ...validateStep1(), ...validateStep2(), ...validateStep3() };
+    const step2Validation = validateStep2();
+    const allErrors: BookingErrors = { ...validateStep1(), ...step2Validation.errors, ...validateStep3() };
     if (!isUserIdValid) allErrors.userId = 'تعذر التحقق من هوية الحساب. يرجى تسجيل الدخول مرة أخرى.';
 
-    if (Object.keys(allErrors).some((k) => Boolean(allErrors[k as keyof BookingErrors]))) {
+    if (Object.keys(allErrors).some((key) => Boolean(allErrors[key as keyof BookingErrors]))) {
+      if (allErrors.tenantName || allErrors.tenantPhone || allErrors.tenantEmail) setAttemptedStep2Submit(true);
       const nextStep: BookingStep = allErrors.startDate || allErrors.endDate || allErrors.availability ? 1 : allErrors.tenantName || allErrors.tenantPhone || allErrors.tenantEmail ? 2 : allErrors.paymentMethod ? 3 : 4;
       setCurrentStep(nextStep);
       applyErrors(allErrors, ['startDate', 'endDate', 'availability', 'tenantName', 'tenantPhone', 'tenantEmail', 'paymentMethod', 'userId']);
@@ -309,6 +356,16 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
     setErrors((prev) => ({ ...prev, submit: undefined }));
 
     try {
+      const normalizedTenantPhone = step2Validation.normalizedPhone;
+      if (!normalizedTenantPhone) {
+        setAttemptedStep2Submit(true);
+        setCurrentStep(2);
+        applyErrors({ tenantPhone: PHONE_ERROR_MESSAGE }, ['tenantPhone']);
+        setIsSubmitting(false);
+        return;
+      }
+
+      setTenantPhone(normalizedTenantPhone);
       const { data: booking, error } = await supabaseService.createBooking({
         propertyId,
         userId: resolvedUserId,
@@ -318,7 +375,7 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
         totalMonths: rentalConfig.type !== 'daily' ? priceDetails.duration : undefined,
         rentalType: rentalConfig.type,
         tenantName: tenantName.trim(),
-        tenantPhone: tenantPhone.trim(),
+        tenantPhone: normalizedTenantPhone,
         tenantEmail: tenantEmail.trim() || undefined,
         basePrice: priceDetails.basePrice,
         serviceFee: priceDetails.serviceFee,
@@ -328,9 +385,8 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
         paymentStatus: 'pending',
         status: 'pending',
       });
-
       if (error || !booking) throw new Error(error?.message || 'تعذر إنشاء الحجز.');
-      router.push(`/property/${propertyId}/booking/confirmation?bookingId=${booking.id}`);
+      router.push(`/bookings/${booking.id}?created=1`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'فشل إرسال طلب الحجز. حاول مرة أخرى.';
       applyErrors({ submit: message }, ['submit']);
@@ -346,11 +402,15 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
         ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/20 dark:text-blue-300'
         : 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300';
 
-  const primaryLabel = currentStep < 4 ? 'التالي' : (isSubmitting ? 'جاري التأكيد...' : 'تأكيد الحجز');
+  const primaryLabel = currentStep < 4 ? 'التالي' : (isSubmitting ? 'جارٍ التأكيد...' : 'تأكيد الحجز');
   const bookingRedirect = encodeURIComponent(`/property/${propertyId}/booking`);
 
   if (authLoading || (user && propertyAccess === 'checking')) {
-    return <div className="flex min-h-screen items-center justify-center bg-background-light dark:bg-background-dark"><div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" /></div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background-light dark:bg-background-dark">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+      </div>
+    );
   }
 
   if (!user) {
@@ -358,8 +418,8 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
       <div className="flex min-h-[80vh] items-center justify-center bg-background-light px-4 py-8 dark:bg-background-dark">
         <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300"><span className="material-symbols-outlined">lock</span></div>
-          <h2 className="mb-2 text-xl font-bold text-gray-900 dark:text-zinc-100">يجب تسجيل الدخول أولا</h2>
-          <p className="mb-6 text-sm text-gray-600 dark:text-zinc-300">لإتمام الحجز ومتابعة الطلب، سجّل الدخول ثم ارجع تلقائيا لهذه الصفحة.</p>
+          <h2 className="mb-2 text-xl font-bold text-gray-900 dark:text-zinc-100">يجب تسجيل الدخول أولًا</h2>
+          <p className="mb-6 text-sm text-gray-600 dark:text-zinc-300">لإتمام الحجز ومتابعة الطلب، سجّل الدخول ثم ارجع تلقائيًا لهذه الصفحة.</p>
           <Link href={`/auth?mode=login&redirect=${bookingRedirect}`} className="block w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">تسجيل الدخول</Link>
           <button type="button" onClick={() => router.push(`/property/${propertyId}`)} className="mt-3 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">العودة للعقار</button>
         </div>
@@ -371,18 +431,10 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
     return (
       <div className="flex min-h-[80vh] items-center justify-center bg-background-light px-4 py-8 dark:bg-background-dark">
         <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-300">
-            <span className="material-symbols-outlined">lock</span>
-          </div>
-          <h2 className="mb-2 text-xl font-bold text-gray-900 dark:text-zinc-100">يجب فك قفل هذا العقار أولا</h2>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-300"><span className="material-symbols-outlined">lock</span></div>
+          <h2 className="mb-2 text-xl font-bold text-gray-900 dark:text-zinc-100">يجب فك قفل هذا العقار أولًا</h2>
           <p className="mb-6 text-sm text-gray-600 dark:text-zinc-300">ادفع رسوم فك القفل لهذا العقار من صفحة التفاصيل، وبعد تفعيل الوصول سيظهر لك زر الحجز هنا.</p>
-          <button
-            type="button"
-            onClick={() => router.push(`/property/${propertyId}`)}
-            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            العودة للعقار
-          </button>
+          <button type="button" onClick={() => router.push(`/property/${propertyId}`)} className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">العودة للعقار</button>
         </div>
       </div>
     );
@@ -399,7 +451,7 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
           </div>
           <div className="mt-4">
             <div className="relative h-1 rounded-full bg-gray-200 dark:bg-zinc-800"><div className="absolute right-0 top-0 h-1 rounded-full bg-blue-600 transition-all" style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }} /></div>
-            <div className="mt-2 grid grid-cols-4 gap-2 text-center text-xs font-medium text-gray-500 dark:text-zinc-400">{STEPS.map((s) => { const done = currentStep > s.id; const active = currentStep === s.id; return <div key={s.id} className="space-y-1"><div className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full border text-[11px] ${done ? 'border-blue-600 bg-blue-600 text-white' : active ? 'border-blue-600 text-blue-600' : 'border-gray-300 text-gray-400 dark:border-zinc-700'}`}>{done ? <span className="material-symbols-outlined text-sm">check</span> : s.id}</div><p className={active || done ? 'text-blue-600 dark:text-blue-400' : ''}>{s.label}</p></div>; })}</div>
+            <div className="mt-2 grid grid-cols-4 gap-2 text-center text-xs font-medium text-gray-500 dark:text-zinc-400">{STEPS.map((step) => { const done = currentStep > step.id; const active = currentStep === step.id; return <div key={step.id} className="space-y-1"><div className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full border text-[11px] ${done ? 'border-blue-600 bg-blue-600 text-white' : active ? 'border-blue-600 text-blue-600' : 'border-gray-300 text-gray-400 dark:border-zinc-700'}`}>{done ? <span className="material-symbols-outlined text-sm">check</span> : step.id}</div><p className={active || done ? 'text-blue-600 dark:text-blue-400' : ''}>{step.label}</p></div>; })}</div>
           </div>
         </div>
       </header>
@@ -412,19 +464,33 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
               <DateSelector
                 startDate={startDate}
                 endDate={endDate}
-                onStartDateChange={(value) => { setStartDate(value); setErrors((p) => ({ ...p, startDate: undefined, endDate: undefined, availability: undefined, submit: undefined })); }}
-                onEndDateChange={(value) => { setEndDate(value); setErrors((p) => ({ ...p, endDate: undefined, availability: undefined, submit: undefined })); }}
+                onStartDateChange={(value) => { setStartDate(value); setErrors((prev) => ({ ...prev, startDate: undefined, endDate: undefined, availability: undefined, submit: undefined })); }}
+                onEndDateChange={(value) => { setEndDate(value); setErrors((prev) => ({ ...prev, endDate: undefined, availability: undefined, submit: undefined })); }}
                 rentalConfig={rentalConfig}
                 errors={{ startDate: errors.startDate, endDate: errors.endDate }}
               />
-              {(startDate && endDate) ? <div id="availability-status" className={`mt-3 rounded-xl border px-3 py-2 text-sm ${availabilityClass}`}>{availabilityStatus === 'checking' ? 'جاري التحقق...' : availabilityStatus === 'available' ? '✅ متاح' : availabilityStatus === 'unavailable' ? '❌ غير متاح' : 'تعذر التحقق من التوافر'}<p className="mt-1 text-xs opacity-90">{availabilityStatus === 'unavailable' ? 'غيّر التواريخ وحاول مرة أخرى.' : availabilityMessage}</p></div> : null}
+              {startDate && endDate ? <div id="availability-status" className={`mt-3 rounded-xl border px-3 py-2 text-sm ${availabilityClass}`}>{availabilityStatus === 'checking' ? 'جارٍ التحقق...' : availabilityStatus === 'available' ? 'متاح' : availabilityStatus === 'unavailable' ? 'غير متاح' : 'تعذر التحقق من التوفر'}<p className="mt-1 text-xs opacity-90">{availabilityStatus === 'unavailable' ? 'غيّر التواريخ وحاول مرة أخرى.' : availabilityMessage}</p></div> : null}
               {errors.availability ? <p className="mt-2 text-xs text-red-600 dark:text-red-400">{errors.availability}</p> : null}
             </div>
           ) : null}
 
-          {currentStep === 2 ? <TenantForm tenantName={tenantName} tenantPhone={tenantPhone} tenantEmail={tenantEmail} onNameChange={(v) => { setTenantName(v); setErrors((p) => ({ ...p, tenantName: undefined, submit: undefined })); }} onPhoneChange={(v) => { setTenantPhone(v); setErrors((p) => ({ ...p, tenantPhone: undefined, submit: undefined })); }} onEmailChange={(v) => { setTenantEmail(v); setErrors((p) => ({ ...p, tenantEmail: undefined, submit: undefined })); }} errors={{ tenantName: errors.tenantName, tenantPhone: errors.tenantPhone, tenantEmail: errors.tenantEmail }} /> : null}
-          {currentStep === 3 ? <PaymentMethods selectedMethod={paymentMethod} onMethodChange={(m) => { setPaymentMethod(m); setErrors((p) => ({ ...p, paymentMethod: undefined, submit: undefined })); }} error={errors.paymentMethod} /> : null}
+          {currentStep === 2 ? (
+            <TenantForm
+              tenantName={tenantName}
+              tenantPhone={tenantPhone}
+              tenantEmail={tenantEmail}
+              onNameChange={handleTenantNameChange}
+              onNameBlur={() => markFieldTouched('tenantName')}
+              onPhoneChange={handleTenantPhoneChange}
+              onPhoneBlur={handleTenantPhoneBlur}
+              onEmailChange={handleTenantEmailChange}
+              onEmailBlur={() => markFieldTouched('tenantEmail')}
+              phoneHelper={tenantPhoneHelper || undefined}
+              errors={{ tenantName: errors.tenantName, tenantPhone: errors.tenantPhone, tenantEmail: errors.tenantEmail }}
+            />
+          ) : null}
 
+          {currentStep === 3 ? <PaymentMethods selectedMethod={paymentMethod} onMethodChange={(method) => { setPaymentMethod(method); setErrors((prev) => ({ ...prev, paymentMethod: undefined, submit: undefined })); }} error={errors.paymentMethod} /> : null}
           {currentStep === 4 ? (
             <>
               <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -440,9 +506,7 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
               <PriceBreakdown rentalType={rentalConfig.type} duration={priceDetails.duration} pricePerUnit={rentalConfig.pricePerUnit} basePrice={priceDetails.basePrice} serviceFee={priceDetails.serviceFee} depositAmount={priceDetails.depositAmount} totalAmount={priceDetails.totalAmount} />
             </>
           ) : null}
-
           {(errors.userId || errors.submit) ? <div id="booking-error-banner" ref={errorBannerRef} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/20 dark:text-red-300">{errors.userId || errors.submit}</div> : null}
-
           <div className="hidden items-center justify-between border-t border-gray-200 pt-4 dark:border-zinc-800 lg:flex">
             {currentStep > 1 ? <button type="button" onClick={handlePrev} className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900">السابق</button> : <span />}
             <button type="button" onClick={() => (currentStep < 4 ? handleNext() : void handleSubmit())} disabled={nextDisabled} className="inline-flex min-w-36 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting && currentStep === 4 ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : primaryLabel}</button>

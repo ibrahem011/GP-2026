@@ -5,18 +5,25 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type InputHTMLAttributes } from 'react';
 import OwnerDetailsStep from '@/components/add-property/OwnerDetailsStep';
-import { useToast } from '@/components/ui/Toast';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { PROPERTY_FEATURES } from '@/config/features';
-import { useUser } from '@/hooks/useUser';
+import { useAuth } from '@/context/AuthContext';
+import {
+    buildPropertyInsertPayload,
+    validatePropertyDraft,
+    type PropertyDraftErrors,
+    type PropertyDraftField,
+} from '@/lib/propertyDraft';
+import type { PropertyLocationValue } from '@/lib/propertyAreas';
 import { addNotification, getCurrentUser } from '@/lib/storage';
 import { supabaseService } from '@/services/supabaseService';
+import { normalizeLocalizedDigits, sanitizePhoneInput } from '@/utils/validation';
 import {
     AREAS,
     CATEGORY_AR,
     PRICE_UNIT_AR,
     type PriceUnit,
     type PropertyCategory,
-    type PropertyStatus,
     type User,
 } from '@/types';
 
@@ -40,10 +47,10 @@ type AddPropertyFormData = {
     price: string;
     priceUnit: PriceUnit;
     category: PropertyCategory;
-    bedrooms: number;
-    bathrooms: number;
+    bedrooms: string;
+    bathrooms: string;
     area: string;
-    floor: number;
+    floor: string;
     features: string[];
     address: string;
     selectedArea: string;
@@ -65,12 +72,61 @@ const FALLBACK_OWNER = {
 
 const CATEGORIES: PropertyCategory[] = ['apartment', 'room', 'studio', 'villa', 'chalet'];
 const PRICE_UNITS: PriceUnit[] = ['day', 'week', 'month', 'season'];
+const STEP_FIELDS: Record<number, PropertyDraftField[]> = {
+    1: ['title', 'price'],
+    2: ['description', 'bedrooms', 'bathrooms', 'area', 'floor'],
+    3: ['selectedArea', 'address', 'location'],
+    4: ['ownerName', 'ownerPhone'],
+};
+
+type NumericFieldName = 'price' | 'bedrooms' | 'bathrooms' | 'area' | 'floor';
+type SubmitStage = 'idle' | 'preparing' | 'uploading' | 'saving';
 
 type StagedImage = {
     id: string;
     file: File;
     previewUrl: string;
 };
+
+function sanitizeNumericInput(value: string): string {
+    return normalizeLocalizedDigits(value).replace(/[^\d]/g, '');
+}
+
+function isPriceUnitValue(value: string): value is PriceUnit {
+    return PRICE_UNITS.includes(value as PriceUnit);
+}
+
+function getSubmitStageLabel(stage: SubmitStage): string {
+    switch (stage) {
+        case 'preparing':
+            return 'جارٍ تجهيز الإعلان...';
+        case 'uploading':
+            return 'جارٍ رفع الصور...';
+        case 'saving':
+            return 'جارٍ حفظ بيانات العقار...';
+        default:
+            return 'نشر العقار';
+    }
+}
+
+function getSubmitErrorMessage(error: unknown): string {
+    const maybeError = error as { code?: string; message?: string } | null | undefined;
+
+    switch (maybeError?.code) {
+        case 'SESSION_EXPIRED':
+            return 'انتهت جلسة تسجيل الدخول. سجّل الدخول مرة أخرى ثم أعد المحاولة.';
+        case 'SESSION_MISMATCH':
+            return 'الحساب الحالي لا يطابق حساب مالك العقار. تأكد من تسجيل الدخول بالحساب الصحيح.';
+        case 'REQUEST_TIMEOUT':
+            return 'استغرقت العملية وقتًا أطول من المتوقع. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.';
+        case 'UPLOAD_FAILED':
+            return 'فشل رفع الصور. حاول مرة أخرى أو قلّل عدد الصور وحجمها.';
+        case 'SAVE_FAILED':
+            return 'تعذر حفظ بيانات العقار بعد رفع الصور. حاول مرة أخرى بعد قليل.';
+        default:
+            return maybeError?.message || 'حدث خطأ أثناء إضافة العقار. يرجى المحاولة مرة أخرى.';
+    }
+}
 
 function createInitialFormData(owner?: Pick<OwnerSource, 'name' | 'phone'>): AddPropertyFormData {
     return {
@@ -79,10 +135,10 @@ function createInitialFormData(owner?: Pick<OwnerSource, 'name' | 'phone'>): Add
         price: '',
         priceUnit: 'day',
         category: 'apartment',
-        bedrooms: 1,
-        bathrooms: 1,
+        bedrooms: '1',
+        bathrooms: '1',
         area: '',
-        floor: 0,
+        floor: '0',
         features: [],
         address: '',
         selectedArea: '',
@@ -110,9 +166,29 @@ function InputField({ label, error, className, ...props }: InputFieldProps) {
     );
 }
 
+function pickStepErrors(step: number, errors: PropertyDraftErrors): PropertyDraftErrors {
+    const allowedFields = STEP_FIELDS[step] ?? [];
+
+    return allowedFields.reduce<PropertyDraftErrors>((acc, field) => {
+        if (errors[field]) {
+            acc[field] = errors[field];
+        }
+        return acc;
+    }, {});
+}
+
+function getFirstInvalidStep(errors: PropertyDraftErrors): number {
+    for (const [stepKey, fields] of Object.entries(STEP_FIELDS)) {
+        if (fields.some((field) => Boolean(errors[field]))) {
+            return Number(stepKey);
+        }
+    }
+
+    return 4;
+}
+
 export default function AddPropertyPage() {
-    const { user: authUser } = useUser();
-    const { showToast } = useToast();
+    const { user: authUser } = useAuth();
     const hasEditedOwnerNameRef = useRef(false);
 
     const [storedUser, setStoredUser] = useState<User | null>(null);
@@ -120,11 +196,13 @@ export default function AddPropertyPage() {
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [success, setSuccess] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<string[]>([]);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [submitStage, setSubmitStage] = useState<SubmitStage>('idle');
+    const [validationErrors, setValidationErrors] = useState<PropertyDraftErrors>({});
     const [stagedImages, setStagedImages] = useState<StagedImage[]>([]);
     const [imageError, setImageError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [selectedLocation, setSelectedLocation] = useState<PropertyLocationValue | null>(null);
     const [formData, setFormData] = useState<AddPropertyFormData>(() => createInitialFormData());
 
     useEffect(() => {
@@ -210,6 +288,77 @@ export default function AddPropertyPage() {
         });
     }, [actualUser?.phone]);
 
+    const clearValidationErrors = (...fields: PropertyDraftField[]) => {
+        if (fields.length === 0) {
+            return;
+        }
+
+        setValidationErrors((prev) => {
+            let hasChanges = false;
+            const next = { ...prev };
+
+            for (const field of fields) {
+                if (field in next) {
+                    delete next[field];
+                    hasChanges = true;
+                }
+            }
+
+            return hasChanges ? next : prev;
+        });
+    };
+
+    const clearSubmitFeedback = () => {
+        setSubmitError(null);
+    };
+
+    const updateFormData = <K extends keyof AddPropertyFormData>(
+        field: K,
+        value: AddPropertyFormData[K],
+        fieldsToClear: PropertyDraftField[] = [],
+    ) => {
+        clearSubmitFeedback();
+        clearValidationErrors(...fieldsToClear);
+        setFormData((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    const updateNumericField = (field: NumericFieldName, rawValue: string) => {
+        updateFormData(field, sanitizeNumericInput(rawValue) as AddPropertyFormData[typeof field], [field]);
+    };
+
+    const handlePriceUnitChange = (rawValue: string) => {
+        clearSubmitFeedback();
+
+        if (!isPriceUnitValue(rawValue)) {
+            return;
+        }
+
+        setFormData((prev) => ({
+            ...prev,
+            priceUnit: prev.priceUnit === rawValue ? prev.priceUnit : rawValue,
+        }));
+    };
+
+    const handleLocationSelect = (location: PropertyLocationValue) => {
+        clearSubmitFeedback();
+        clearValidationErrors('location');
+        setSelectedLocation(location);
+    };
+
+    const handleLocationClear = () => {
+        clearSubmitFeedback();
+        clearValidationErrors('location');
+        setSelectedLocation(null);
+    };
+
+    const handlePreviousStep = () => {
+        clearSubmitFeedback();
+        setStep((prev) => prev - 1);
+    };
+
     const validateFiles = (files: FileList): { validFiles: File[]; error: string | null } => {
         const validFiles: File[] = [];
         const imageMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -238,6 +387,7 @@ export default function AddPropertyPage() {
     };
 
     const handleFileSelect = (files: FileList) => {
+        clearSubmitFeedback();
         setImageError(null);
         const { validFiles, error } = validateFiles(files);
 
@@ -267,7 +417,7 @@ export default function AddPropertyPage() {
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
-        if (!uploading) {
+        if (!loading && !uploading) {
             setIsDragging(true);
         }
     };
@@ -281,7 +431,7 @@ export default function AddPropertyPage() {
         e.preventDefault();
         setIsDragging(false);
 
-        if (uploading) {
+        if (loading || uploading) {
             return;
         }
 
@@ -294,6 +444,7 @@ export default function AddPropertyPage() {
     };
 
     const removeImage = (id: string) => {
+        clearSubmitFeedback();
         setStagedImages((prev) => {
             const imageToRemove = prev.find((img) => img.id === id);
             if (imageToRemove) {
@@ -304,6 +455,7 @@ export default function AddPropertyPage() {
     };
 
     const toggleFeature = (featureId: string) => {
+        clearSubmitFeedback();
         setFormData((prev) => ({
             ...prev,
             features: prev.features.includes(featureId)
@@ -312,42 +464,28 @@ export default function AddPropertyPage() {
         }));
     };
 
-    const getStepErrors = () => {
-        const errors: string[] = [];
+    const handleNextStep = () => {
+        clearSubmitFeedback();
+        const { fieldErrors } = validatePropertyDraft(formData, selectedLocation);
+        const stepErrors = pickStepErrors(step, fieldErrors);
+        const hasStepErrors = Object.keys(stepErrors).length > 0;
+        const isMissingImages = step === 1 && stagedImages.length === 0;
 
-        switch (step) {
-            case 1:
-                if (!formData.title.trim()) errors.push('title');
-                if (!formData.price.trim()) errors.push('price');
-                break;
-            case 2:
-                if (!formData.description.trim()) errors.push('description');
-                break;
-            case 3:
-                if (!formData.selectedArea) errors.push('selectedArea');
-                if (!formData.address.trim()) errors.push('address');
-                break;
-            case 4:
-                if (!formData.ownerName.trim()) errors.push('ownerName');
-                if (!formData.ownerPhone.trim()) errors.push('ownerPhone');
-                break;
-            default:
-                break;
+        if (isMissingImages) {
+            setImageError('يرجى إضافة صورة واحدة على الأقل قبل الانتقال للخطوة التالية.');
         }
 
-        return errors;
-    };
+        if (hasStepErrors) {
+            setValidationErrors(stepErrors);
+        } else {
+            setValidationErrors({});
+        }
 
-    const handleNextStep = () => {
-        const errors = getStepErrors();
-
-        if (errors.length > 0) {
-            setValidationErrors(errors);
+        if (hasStepErrors || isMissingImages) {
             return;
         }
 
         setStep((prev) => prev + 1);
-        setValidationErrors([]);
     };
 
     const resetForm = () => {
@@ -359,52 +497,54 @@ export default function AddPropertyPage() {
         setImageError(null);
         setIsDragging(false);
         setSelectedLocation(null);
-        setValidationErrors([]);
+        setSubmitError(null);
+        setSubmitStage('idle');
+        setValidationErrors({});
         setFormData(createInitialFormData(actualUser ?? undefined));
     };
 
     const handleSubmit = async () => {
         setLoading(true);
-        setValidationErrors([]);
+        setSubmitError(null);
+        setSubmitStage('preparing');
+        setValidationErrors({});
 
         try {
-            if (!actualUser) {
-                showToast('يجب تسجيل الدخول أولاً.', 'error');
+            if (!authUser) {
+                setSubmitError('يجب تسجيل الدخول بحساب نشط قبل إضافة العقار.');
                 return;
             }
 
             if (stagedImages.length === 0) {
-                showToast('يرجى إضافة صورة واحدة على الأقل.', 'error');
+                setImageError('يرجى إضافة صورة واحدة على الأقل قبل نشر العقار.');
+                setStep(1);
                 return;
             }
 
-            setUploading(true);
+            const { normalizedData, fieldErrors } = validatePropertyDraft(formData, selectedLocation);
+            if (!normalizedData) {
+                setValidationErrors(fieldErrors);
+                setStep(getFirstInvalidStep(fieldErrors));
+                return;
+            }
 
+            const payload = buildPropertyInsertPayload(normalizedData);
             const newProperty = await supabaseService.createFullProperty(
-                {
-                    title: formData.title,
-                    description: formData.description,
-                    price: Number(formData.price),
-                    price_unit: formData.priceUnit,
-                    category: formData.category,
-                    location_lat: selectedLocation?.lat ?? undefined,
-                    location_lng: selectedLocation?.lng ?? undefined,
-                    address: formData.address,
-                    area: formData.selectedArea,
-                    owner_phone: formData.ownerPhone,
-                    owner_name: formData.ownerName,
-                    features: formData.features,
-                    bedrooms: formData.bedrooms,
-                    bathrooms: formData.bathrooms,
-                    floor_area: Number(formData.area) || 0,
-                    floor_number: formData.floor,
-                },
+                payload,
                 stagedImages.map((img) => img.file),
-                actualUser.id
+                authUser.id,
+                {
+                    timeoutMs: 45_000,
+                    maxRetries: 2,
+                    onStageChange: (stage) => {
+                        setSubmitStage(stage);
+                        setUploading(stage === 'uploading');
+                    },
+                },
             );
 
             await addNotification({
-                userId: actualUser.id,
+                userId: authUser.id,
                 title: 'تمت إضافة عقارك بنجاح!',
                 message: `عقارك "${formData.title}" قيد المراجعة من الإدارة.`,
                 type: 'success',
@@ -416,12 +556,13 @@ export default function AddPropertyPage() {
             setTimeout(() => {
                 window.location.href = '/my-properties';
             }, 2000);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error adding property:', error);
-            showToast('حدث خطأ أثناء إضافة العقار. يرجى المحاولة مرة أخرى.', 'error');
+            setSubmitError(getSubmitErrorMessage(error));
         } finally {
             setUploading(false);
             setLoading(false);
+            setSubmitStage('idle');
         }
     };
 
@@ -455,7 +596,8 @@ export default function AddPropertyPage() {
     }
 
     return (
-        <main className="min-h-screen bg-gray-50 pb-32 dark:bg-black">
+        <ProtectedRoute>
+            <main className="min-h-screen bg-gray-50 pb-32 dark:bg-black">
             <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur-xl dark:border-white/10 dark:bg-black/80">
                 <div className="mx-auto max-w-2xl px-4 py-4">
                     <div className="mb-6 flex items-center justify-between">
@@ -492,13 +634,8 @@ export default function AddPropertyPage() {
                                 label="عنوان العقار *"
                                 placeholder="مثال: شقة فاخرة بإطلالة بحرية"
                                 value={formData.title}
-                                onChange={(event) =>
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        title: event.target.value,
-                                    }))
-                                }
-                                error={validationErrors.includes('title') ? 'هذا الحقل مطلوب' : undefined}
+                                onChange={(event) => updateFormData('title', event.target.value, ['title'])}
+                                error={validationErrors.title}
                             />
 
                             <div className="space-y-2">
@@ -508,12 +645,7 @@ export default function AddPropertyPage() {
                                         <button
                                             key={category}
                                             type="button"
-                                            onClick={() =>
-                                                setFormData((prev) => ({
-                                                    ...prev,
-                                                    category,
-                                                }))
-                                            }
+                                            onClick={() => updateFormData('category', category)}
                                             className={`rounded-xl border-2 p-3 text-sm font-bold transition-all ${
                                                 formData.category === category
                                                     ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20'
@@ -529,16 +661,14 @@ export default function AddPropertyPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <InputField
                                     label="السعر *"
-                                    type="number"
+                                    type="text"
+                                    min={1}
+                                    step={1}
+                                    inputMode="numeric"
                                     placeholder="0"
                                     value={formData.price}
-                                    onChange={(event) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            price: event.target.value,
-                                        }))
-                                    }
-                                    error={validationErrors.includes('price') ? 'مطلوب' : undefined}
+                                    onChange={(event) => updateNumericField('price', event.target.value)}
+                                    error={validationErrors.price}
                                 />
 
                                 <div className="space-y-2">
@@ -547,12 +677,7 @@ export default function AddPropertyPage() {
                                         <select
                                             dir="rtl"
                                             value={formData.priceUnit}
-                                            onChange={(event) =>
-                                                setFormData((prev) => ({
-                                                    ...prev,
-                                                    priceUnit: event.target.value as PriceUnit,
-                                                }))
-                                            }
+                                            onChange={(event) => handlePriceUnitChange(event.target.value)}
                                             className="w-full appearance-none rounded-xl border-2 border-transparent bg-gray-50 p-4 pl-12 pr-4 text-right text-gray-900 outline-none [text-align-last:right] transition-all focus:border-primary/50 dark:bg-zinc-800 dark:text-white dark:focus:bg-black"
                                         >
                                             {PRICE_UNITS.map((unit) => (
@@ -579,7 +704,7 @@ export default function AddPropertyPage() {
                                             isDragging
                                                 ? 'border-primary bg-primary/5'
                                                 : 'border-gray-300 hover:border-primary hover:bg-primary/5 dark:border-zinc-700'
-                                        } ${uploading ? 'pointer-events-none opacity-50' : ''}`}
+                                        } ${loading || uploading ? 'pointer-events-none opacity-50' : ''}`}
                                         onDragOver={handleDragOver}
                                         onDragLeave={handleDragLeave}
                                         onDrop={handleDrop}
@@ -591,16 +716,10 @@ export default function AddPropertyPage() {
                                             إضافة صور (حتى 6)
                                         </span>
                                         <span className="mt-1 text-xs text-gray-400">اسحب وأفلت أو اضغط للاختيار</span>
-                                        <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} className="hidden" />
+                                        <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={loading || uploading} className="hidden" />
                                     </label>
                                 ) : (
                                     <div className="space-y-3">
-                                        {imageError && (
-                                            <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/20 dark:text-red-400">
-                                                <span className="material-symbols-outlined text-[18px]">error</span>
-                                                <span>{imageError}</span>
-                                            </div>
-                                        )}
                                         <div className="grid grid-cols-3 gap-3">
                                             {stagedImages.map((image) => (
                                                 <div key={image.id} className="group relative aspect-square overflow-hidden rounded-2xl">
@@ -608,14 +727,14 @@ export default function AddPropertyPage() {
                                                     <button
                                                         type="button"
                                                         onClick={() => removeImage(image.id)}
-                                                        disabled={uploading}
+                                                        disabled={loading || uploading}
                                                         className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-50"
                                                     >
                                                         <span className="material-symbols-outlined text-[14px]">close</span>
                                                     </button>
                                                 </div>
                                             ))}
-                                            {stagedImages.length < 6 && !uploading && (
+                                            {stagedImages.length < 6 && !loading && !uploading && (
                                                 <label
                                                     className={`group flex aspect-square cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-gray-50 transition-all dark:bg-zinc-800 ${
                                                         isDragging
@@ -630,12 +749,18 @@ export default function AddPropertyPage() {
                                                         add_a_photo
                                                     </span>
                                                     <span className="text-xs font-bold text-gray-400 transition-colors group-hover:text-primary">إضافة</span>
-                                                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} className="hidden" />
+                                                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={loading || uploading} className="hidden" />
                                                 </label>
                                             )}
                                         </div>
                                     </div>
                                 )}
+                                {imageError ? (
+                                    <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/20 dark:text-red-400">
+                                        <span className="material-symbols-outlined text-[18px]">error</span>
+                                        <span>{imageError}</span>
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
                     ) : null}
@@ -652,18 +777,14 @@ export default function AddPropertyPage() {
                                 <textarea
                                     placeholder="اكتب وصفاً تفصيلياً للعقار..."
                                     value={formData.description}
-                                    onChange={(event) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            description: event.target.value,
-                                        }))
-                                    }
+                                    onChange={(event) => updateFormData('description', event.target.value, ['description'])}
                                     className={`min-h-[150px] w-full resize-none rounded-xl border-2 bg-gray-50 p-4 text-gray-900 outline-none transition-all dark:bg-zinc-800 dark:text-white ${
-                                        validationErrors.includes('description')
+                                        validationErrors.description
                                             ? 'border-red-500/50'
                                             : 'border-transparent focus:border-primary/50 focus:bg-white dark:focus:bg-black'
                                     }`}
                                 />
+                                {validationErrors.description ? <p className="text-xs text-red-500">{validationErrors.description}</p> : null}
                                 <div className="flex justify-between text-xs text-gray-500">
                                     <span>{formData.description.length} حرف</span>
                                     <span>يفضل 50+ حرف</span>
@@ -673,55 +794,52 @@ export default function AddPropertyPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <InputField
                                     label="عدد الغرف"
-                                    type="number"
+                                    type="text"
                                     min={0}
+                                    max={20}
+                                    step={1}
+                                    inputMode="numeric"
                                     value={formData.bedrooms}
-                                    onChange={(event) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            bedrooms: Number(event.target.value) || 0,
-                                        }))
-                                    }
+                                    onChange={(event) => updateNumericField('bedrooms', event.target.value)}
+                                    error={validationErrors.bedrooms}
                                 />
                                 <InputField
                                     label="عدد الحمامات"
-                                    type="number"
+                                    type="text"
                                     min={0}
+                                    max={20}
+                                    step={1}
+                                    inputMode="numeric"
                                     value={formData.bathrooms}
-                                    onChange={(event) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            bathrooms: Number(event.target.value) || 0,
-                                        }))
-                                    }
+                                    onChange={(event) => updateNumericField('bathrooms', event.target.value)}
+                                    error={validationErrors.bathrooms}
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <InputField
                                     label="المساحة (م²)"
-                                    type="number"
-                                    min={0}
+                                    type="text"
+                                    min={1}
+                                    max={5000}
+                                    step={1}
+                                    inputMode="numeric"
                                     placeholder="مثال: 120"
                                     value={formData.area}
-                                    onChange={(event) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            area: event.target.value,
-                                        }))
-                                    }
+                                    onChange={(event) => updateNumericField('area', event.target.value)}
+                                    error={validationErrors.area}
                                 />
                                 <InputField
                                     label="الدور"
-                                    type="number"
+                                    type="text"
+                                    min={0}
+                                    max={60}
+                                    step={1}
+                                    inputMode="numeric"
                                     placeholder="مثال: 3"
                                     value={formData.floor}
-                                    onChange={(event) =>
-                                        setFormData((prev) => ({
-                                            ...prev,
-                                            floor: Number(event.target.value) || 0,
-                                        }))
-                                    }
+                                    onChange={(event) => updateNumericField('floor', event.target.value)}
+                                    error={validationErrors.floor}
                                 />
                             </div>
 
@@ -737,12 +855,7 @@ export default function AddPropertyPage() {
                                     {formData.features.length > 0 ? (
                                         <button
                                             type="button"
-                                            onClick={() =>
-                                                setFormData((prev) => ({
-                                                    ...prev,
-                                                    features: [],
-                                                }))
-                                            }
+                                            onClick={() => updateFormData('features', [])}
                                             className="text-xs font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                                         >
                                             مسح الكل
@@ -797,15 +910,12 @@ export default function AddPropertyPage() {
                                         dir="rtl"
                                         value={formData.selectedArea}
                                         onChange={(event) =>
-                                            setFormData((prev) => ({
-                                                ...prev,
-                                                selectedArea: event.target.value,
-                                            }))
+                                            updateFormData('selectedArea', event.target.value, ['selectedArea', 'location'])
                                         }
                                         className={`w-full appearance-none rounded-xl border-2 bg-gray-50 p-4 pl-12 pr-4 text-right outline-none [text-align-last:right] transition-all ${
                                             !formData.selectedArea ? 'text-gray-400' : 'text-gray-900 dark:text-white'
                                         } ${
-                                            validationErrors.includes('selectedArea')
+                                            validationErrors.selectedArea
                                                 ? 'border-red-500/50'
                                                 : 'border-transparent focus:border-primary/50'
                                         } dark:bg-zinc-800`}
@@ -814,33 +924,35 @@ export default function AddPropertyPage() {
                                         {AREAS.map((area) => (
                                             <option key={area} value={area}>
                                                 {area}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                                        expand_more
-                                    </span>
+                                        </option>
+                                    ))}
+                                </select>
+                                <span className="material-symbols-outlined pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                    expand_more
+                                </span>
                                 </div>
+                                {validationErrors.selectedArea ? <p className="text-xs text-red-500">{validationErrors.selectedArea}</p> : null}
                             </div>
 
                             <InputField
                                 label="العنوان التفصيلي *"
                                 placeholder="مثال: شارع البحر، بجوار المسجد..."
                                 value={formData.address}
-                                onChange={(event) =>
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        address: event.target.value,
-                                    }))
-                                }
-                                error={validationErrors.includes('address') ? 'مطلوب' : undefined}
+                                onChange={(event) => updateFormData('address', event.target.value, ['address'])}
+                                error={validationErrors.address}
                             />
 
                             <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 text-sm text-blue-800 dark:border-blue-900/30 dark:bg-blue-950/10 dark:text-blue-200">
-                                تحديد الموقع على الخريطة اختياري، لكنه يساعد المستأجرين على فهم مكان العقار بدقة أكبر.
+                                تحديد النقطة على الخريطة اختياري، لكن إذا أضفتها يجب أن تكون داخل نطاق المنطقة المختارة.
                             </div>
 
-                            <DynamicLocationPicker value={selectedLocation} onLocationSelect={setSelectedLocation} />
+                            <DynamicLocationPicker
+                                value={selectedLocation}
+                                selectedArea={formData.selectedArea}
+                                locationError={validationErrors.location}
+                                onLocationSelect={handleLocationSelect}
+                                onLocationClear={handleLocationClear}
+                            />
                         </div>
                     ) : null}
 
@@ -861,15 +973,12 @@ export default function AddPropertyPage() {
                                 value={formData.ownerName}
                                 onChange={(name) => {
                                     hasEditedOwnerNameRef.current = true;
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        ownerName: name,
-                                    }));
+                                    updateFormData('ownerName', name, ['ownerName']);
                                 }}
                             />
 
-                            {validationErrors.includes('ownerName') ? (
-                                <p className="-mt-2 text-xs text-red-500">مطلوب إدخال اسم صاحب العقار.</p>
+                            {validationErrors.ownerName ? (
+                                <p className="-mt-2 text-xs text-red-500">{validationErrors.ownerName}</p>
                             ) : null}
 
                             <InputField
@@ -877,15 +986,10 @@ export default function AddPropertyPage() {
                                 type="tel"
                                 placeholder="01xxxxxxxxx"
                                 value={formData.ownerPhone}
-                                onChange={(event) =>
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        ownerPhone: event.target.value,
-                                    }))
-                                }
+                                onChange={(event) => updateFormData('ownerPhone', sanitizePhoneInput(event.target.value), ['ownerPhone'])}
                                 dir="ltr"
                                 className="text-right"
-                                error={validationErrors.includes('ownerPhone') ? 'مطلوب' : undefined}
+                                error={validationErrors.ownerPhone}
                             />
 
                             <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50 p-5 dark:border-white/5 dark:bg-zinc-800">
@@ -920,11 +1024,19 @@ export default function AddPropertyPage() {
             </section>
 
             <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/80 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-black/80">
-                <div className="mx-auto flex max-w-2xl gap-4">
+                <div className="mx-auto max-w-2xl">
+                    {step === 4 && submitError ? (
+                        <div className="mb-3 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-200">
+                            <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px]">error</span>
+                            <p>{submitError}</p>
+                        </div>
+                    ) : null}
+
+                    <div className="flex gap-4">
                     {step > 1 ? (
                         <button
                             type="button"
-                            onClick={() => setStep((prev) => prev - 1)}
+                            onClick={handlePreviousStep}
                             className="flex-1 rounded-2xl bg-gray-100 py-4 font-bold text-gray-900 transition-all hover:bg-gray-200 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
                         >
                             السابق
@@ -946,15 +1058,10 @@ export default function AddPropertyPage() {
                             disabled={loading || uploading}
                             className="flex-[2] rounded-2xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-95 disabled:pointer-events-none disabled:opacity-50"
                         >
-                            {uploading ? (
+                            {loading || uploading ? (
                                 <span className="flex items-center justify-center gap-2">
                                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                    جاري رفع الصور...
-                                </span>
-                            ) : loading ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                    جاري النشر...
+                                    {getSubmitStageLabel(submitStage)}
                                 </span>
                             ) : (
                                 'نشر العقار'
@@ -963,6 +1070,8 @@ export default function AddPropertyPage() {
                     )}
                 </div>
             </div>
-        </main>
+            </div>
+            </main>
+        </ProtectedRoute>
     );
 }

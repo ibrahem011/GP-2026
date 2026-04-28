@@ -180,10 +180,12 @@ describe('FavoritesPage', () => {
             .mockResolvedValueOnce({
                 data: [],
                 error: new Error('boom'),
+                isTimeout: false,
             })
             .mockResolvedValueOnce({
                 data: [{ id: 'p2', title: 'Property 2', images: ['img2.jpg'] }],
                 error: null,
+                isTimeout: false,
             });
 
         render(<FavoritesPage />);
@@ -198,6 +200,40 @@ describe('FavoritesPage', () => {
         await waitFor(() => {
             expect(screen.getByTestId('property-card')).toHaveTextContent('Property 2');
         });
+    });
+
+    it('renders a timeout state with extra guidance and retries the request', async () => {
+        const user = userEvent.setup();
+
+        mockGetFavorites
+            .mockResolvedValueOnce({
+                data: [],
+                error: { code: 'REQUEST_TIMEOUT', message: 'REQUEST_TIMEOUT' },
+                isTimeout: true,
+            })
+            .mockResolvedValueOnce({
+                data: [{ id: 'p3', title: 'Property 3', images: ['img3.jpg'] }],
+                error: null,
+                isTimeout: false,
+            });
+
+        render(<FavoritesPage />);
+
+        expect(
+            await screen.findByText('انتهت مهلة تحميل المفضلات. تأكد من الاتصال ثم حاول مرة أخرى.'),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText('الصفحة متاحة، لكن الخادم تأخر في الاستجابة.'),
+        ).toBeInTheDocument();
+
+        await user.click(screen.getByRole('button', { name: /إعادة المحاولة/ }));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('property-card')).toHaveTextContent('Property 3');
+        });
+        expect(
+            screen.queryByText('الصفحة متاحة، لكن الخادم تأخر في الاستجابة.'),
+        ).not.toBeInTheDocument();
     });
 
     it('removes a property from the page when it is unfavorited from the card', async () => {

@@ -1,5 +1,7 @@
 const REMOTE_IMAGE_REGEX = /^(https?:)?\/\//i;
 const LEGACY_PROPERTY_JPG_REGEX = /^\/images\/property\d+\.jpg$/i;
+const PROPERTY_SIGNED_URL_SEGMENT = '/storage/v1/object/sign/properties-images/';
+const PROPERTY_PROXY_ENDPOINT = '/api/images/property?src=';
 
 export const PROPERTY_IMAGE_PLACEHOLDER = '/images/property-placeholder.svg';
 
@@ -36,6 +38,41 @@ function normalizeLocalPropertyImagePath(value: string): string {
     }
 
     return `${pathname}${suffix}`;
+}
+
+function isSupabasePropertySignedUrl(value: string): boolean {
+    try {
+        const url = new URL(value);
+        return (
+            url.protocol === 'https:' &&
+            url.hostname.endsWith('.supabase.co') &&
+            url.pathname.includes(PROPERTY_SIGNED_URL_SEGMENT)
+        );
+    } catch {
+        return false;
+    }
+}
+
+export function getPropertyImageUrl(originalUrl: string | null | undefined): string {
+    const trimmed = originalUrl?.trim();
+
+    if (!trimmed) {
+        return PROPERTY_IMAGE_PLACEHOLDER;
+    }
+
+    if (
+        trimmed.startsWith('/') ||
+        trimmed.startsWith('data:') ||
+        trimmed.startsWith('blob:')
+    ) {
+        return trimmed;
+    }
+
+    if (isSupabasePropertySignedUrl(trimmed)) {
+        return `${PROPERTY_PROXY_ENDPOINT}${encodeURIComponent(trimmed)}`;
+    }
+
+    return trimmed;
 }
 
 export function normalizePropertyImageSrc(value: string | null | undefined): string {

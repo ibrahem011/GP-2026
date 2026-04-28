@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    getPropertyImageUrl,
     PROPERTY_IMAGE_PLACEHOLDER,
     normalizePropertyImageList,
     normalizePropertyImageSrc,
@@ -19,6 +20,20 @@ describe('propertyImages', () => {
     it('preserves valid remote image URLs', () => {
         const remoteUrl = 'https://images.example.com/property.jpg?width=800';
         expect(normalizePropertyImageSrc(remoteUrl)).toBe(remoteUrl);
+    });
+
+    it('routes signed Supabase property URLs through the local proxy', () => {
+        const signedUrl = 'https://trrbabfexmjjqiwsdkji.supabase.co/storage/v1/object/sign/properties-images/test-image.png?token=abc123';
+
+        expect(getPropertyImageUrl(signedUrl)).toBe(
+            `/api/images/property?src=${encodeURIComponent(signedUrl)}`,
+        );
+    });
+
+    it('preserves non-signed remote property URLs without proxying them', () => {
+        const remoteUrl = 'https://images.example.com/property.jpg?width=800';
+
+        expect(getPropertyImageUrl(remoteUrl)).toBe(remoteUrl);
     });
 
     it('returns the placeholder for empty values', () => {

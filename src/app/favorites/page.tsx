@@ -37,11 +37,14 @@ export default function FavoritesPage() {
     const [favorites, setFavorites] = useState<Property[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isTimeout, setIsTimeout] = useState(false);
     const [sortBy, setSortBy] = useState<FavoritesSort>('newest');
     const [filters, setFilters] = useState<FavoritesFilters>(DEFAULT_FAVORITES_FILTERS);
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
     const [isStatsSheetOpen, setIsStatsSheetOpen] = useState(false);
     const { user, isAuthenticated, loading: authLoading } = useAuth();
+    const timeoutMessage = 'انتهت مهلة تحميل المفضلات. تأكد من الاتصال ثم حاول مرة أخرى.';
+    const genericErrorMessage = 'فشل جلب المفضلات. يرجى المحاولة مرة أخرى.';
 
     useEffect(() => {
         if (!authLoading && user) {
@@ -56,18 +59,32 @@ export default function FavoritesPage() {
 
         setLoading(true);
         setError(null);
+        setIsTimeout(false);
 
         try {
-            const { data, error: fetchError } = await supabaseService.getFavorites(user.id);
+            const { data, error: fetchError, isTimeout: timedOut } = await supabaseService.getFavorites(user.id, {
+                timeoutMs: 8_000,
+                maxRetries: 1,
+            });
+
+            if (timedOut) {
+                setIsTimeout(true);
+                setError(timeoutMessage);
+                setFavorites([]);
+                return;
+            }
 
             if (fetchError) {
-                throw fetchError;
+                setError(genericErrorMessage);
+                setFavorites([]);
+                return;
             }
 
             setFavorites((data ?? []).map(fromPropertyRow));
         } catch (err) {
-            console.error('[FavoritesPage Error]', err);
-            setError('فشل جلب المفضلات. يرجى المحاولة مرة أخرى.');
+            console.error('[FavoritesPage Unexpected Error]', err);
+            setIsTimeout(false);
+            setError(genericErrorMessage);
             setFavorites([]);
         } finally {
             setLoading(false);
@@ -290,6 +307,11 @@ export default function FavoritesPage() {
                         </div>
 
                         <p className="font-bold text-red-600 dark:text-red-300">{error}</p>
+                        {isTimeout ? (
+                            <p className="mt-2 text-sm text-red-500 dark:text-red-200">
+                                الصفحة متاحة، لكن الخادم تأخر في الاستجابة.
+                            </p>
+                        ) : null}
                         <button
                             type="button"
                             onClick={() => void fetchFavorites()}

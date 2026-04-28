@@ -195,7 +195,9 @@ export interface Database {
                     payment_method: 'vodafone_cash' | 'instapay' | 'cash_on_delivery' | null;
                     payment_status: 'pending' | 'confirmed' | 'failed' | null;
                     payment_proof: string | null;
-                    status: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed';
+                    landlord_note: string | null;
+                    landlord_note_updated_at: string | null;
+                    status: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed' | 'rejected' | 'expired';
                     created_at: string;
                     confirmed_at: string | null;
                 };
@@ -219,7 +221,9 @@ export interface Database {
                     payment_method?: 'vodafone_cash' | 'instapay' | 'cash_on_delivery' | null;
                     payment_status?: 'pending' | 'confirmed' | 'failed' | null;
                     payment_proof?: string | null;
-                    status?: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed';
+                    landlord_note?: string | null;
+                    landlord_note_updated_at?: string | null;
+                    status?: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed' | 'rejected' | 'expired';
                     created_at?: string;
                     confirmed_at?: string | null;
                 };
@@ -243,7 +247,9 @@ export interface Database {
                     payment_method?: 'vodafone_cash' | 'instapay' | 'cash_on_delivery' | null;
                     payment_status?: 'pending' | 'confirmed' | 'failed' | null;
                     payment_proof?: string | null;
-                    status?: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed';
+                    landlord_note?: string | null;
+                    landlord_note_updated_at?: string | null;
+                    status?: 'pending' | 'requested' | 'confirmed' | 'active' | 'cancelled' | 'completed' | 'rejected' | 'expired';
                     created_at?: string;
                     confirmed_at?: string | null;
                 };

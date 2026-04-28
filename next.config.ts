@@ -14,6 +14,14 @@ const nextConfig: NextConfig = {
   // Use Webpack instead of Turbopack for PWA compatibility
   turbopack: {},
   images: {
+    localPatterns: [
+      {
+        pathname: "/images/**",
+      },
+      {
+        pathname: "/api/images/property",
+      },
+    ],
     remotePatterns: [
       {
         protocol: "https",
