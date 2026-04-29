@@ -127,8 +127,9 @@ export default function Header() {
                                     className={`relative flex items-center justify-center size-10 rounded-full shadow-sm border transition-all duration-300 ${isScrolled
                                         ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300'
                                         : 'bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40'}`}
+                                    aria-label="الإشعارات"
                                 >
-                                    <span className="material-symbols-outlined text-[24px] pointer-events-none">
+                                    <span className="material-symbols-outlined text-[24px] pointer-events-none" aria-hidden="true">
                                         notifications
                                     </span>
                                     {unreadCount > 0 && (
@@ -183,8 +184,9 @@ export default function Header() {
                                 onClick={logout}
                                 className={`p-2 transition-colors rounded-full ${isScrolled ? 'text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' : 'text-white/80 hover:text-white hover:bg-white/20'}`}
                                 title="تسجيل الخروج"
+                                aria-label="تسجيل الخروج"
                             >
-                                <span className="material-symbols-outlined text-[20px]">logout</span>
+                                <span className="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>
                             </button>
                         </div>
                     ) : (

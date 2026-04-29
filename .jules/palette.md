@@ -1,0 +1,3 @@
+## 2024-05-01 - Add ARIA labels to icon-only buttons
+**Learning:** Found multiple icon-only interactive buttons missing `aria-label`s, which is critical for screen reader users in this application. Setting explicit `aria-hidden="true"` on inner decorative elements like Material Symbols further cleans the accessibility tree.
+**Action:** When adding or reviewing new icon buttons across the repository, ensure an explicit and descriptive `aria-label` is always added, prioritizing Arabic translation (e.g., `aria-label="تسجيل الخروج"`) to align with the application's primary right-to-left layout and locale. Include `aria-hidden="true"` on the inner icon rendering element.
