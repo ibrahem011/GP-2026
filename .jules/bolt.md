@@ -1,0 +1,3 @@
+## 2024-05-14 - Optimize Supabase existence check using HTTP HEAD
+**Learning:** Supabase / PostgREST allows checking for record existence without transferring row data by using `.select('id', { count: 'exact', head: true })` instead of `.select('*').single()`. Using `.single()` causes a failure if multiple rows exist by mistake, whereas checking `count > 0` returns the expected boolean more safely and uses less bandwidth.
+**Action:** Always prefer `{ count: 'exact', head: true }` over fetching actual rows when only boolean existence needs to be verified. Remember to always add explanatory comments when implementing performance optimizations as requested by the persona rules.
