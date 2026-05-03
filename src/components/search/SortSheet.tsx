@@ -46,12 +46,13 @@ export default function SortSheet({
                                 ? 'border-primary bg-primary/10 text-primary'
                                 : 'border-gray-200 dark:border-white/10 text-gray-800 dark:text-gray-100',
                         ].join(' ')}
+                        aria-pressed={value === opt.value}
                     >
                         <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined">{opt.icon}</span>
+                            <span className="material-symbols-outlined" aria-hidden="true">{opt.icon}</span>
                             <span className="font-semibold">{opt.label}</span>
                         </div>
-                        {value === opt.value && <span className="material-symbols-outlined">check</span>}
+                        {value === opt.value && <span className="material-symbols-outlined" aria-hidden="true">check</span>}
                     </button>
                 ))}
             </div>
