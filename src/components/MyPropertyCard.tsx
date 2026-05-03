@@ -122,19 +122,21 @@ function MyPropertyCardComponent({ property, onDelete, onStatusChange, isDeletin
                             disabled={isDeleting}
                             className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group/del"
                             title="حذف العقار"
+                            aria-label={isDeleting ? 'جاري حذف العقار' : 'حذف العقار'}
                         >
                             {isDeleting ? (
-                                <span className="material-symbols-outlined text-[22px] animate-spin">hourglass_empty</span>
+                                <span className="material-symbols-outlined text-[22px] animate-spin" aria-hidden="true">hourglass_empty</span>
                             ) : (
-                                <span className="material-symbols-outlined text-[22px] group-hover/del:scale-110 transition-transform">delete</span>
+                                <span className="material-symbols-outlined text-[22px] group-hover/del:scale-110 transition-transform" aria-hidden="true">delete</span>
                             )}
                         </button>
                         <Link
                             href={`/add-property?edit=${property.id}`}
                             className="flex-1 sm:flex-none flex items-center justify-center p-2.5 rounded-xl text-gray-600 dark:text-gray-300 bg-gray-50 hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10 transition-colors group/edit"
                             title="تعديل العقار"
+                            aria-label="تعديل العقار"
                         >
-                            <span className="material-symbols-outlined text-[22px] group-hover/edit:scale-110 transition-transform">edit</span>
+                            <span className="material-symbols-outlined text-[22px] group-hover/edit:scale-110 transition-transform" aria-hidden="true">edit</span>
                         </Link>
                     </div>
                 </div>

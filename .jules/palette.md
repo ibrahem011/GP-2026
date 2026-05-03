@@ -1,0 +1,3 @@
+## 2024-05-03 - Accessible Icon Buttons and Sort Options
+**Learning:** Screen readers will often read out the raw text content of icon fonts (like Material Symbols ligatures "delete", "tune", "map") unless they are explicitly hidden, which can be highly confusing for users relying on assistive tech. Additionally, interactive custom elements like toggleable sorting options need explicit `aria-pressed` states to communicate their status.
+**Action:** Always add `aria-hidden="true"` to inner icon elements, especially for icon-only buttons, and provide a clear, localized `aria-label` (matching the RTL Arabic context) on the parent `<button>`. Use `aria-pressed` for custom toggle states instead of relying solely on visual styling or secondary checkmark icons.
