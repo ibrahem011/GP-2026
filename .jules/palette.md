@@ -1,0 +1,3 @@
+## 2024-05-18 - Missing RTL Localization on Global Theme Toggle
+**Learning:** Hardcoding English `aria-label`s on icon-only interactive elements (like `ThemeToggle`) in a strictly Arabic RTL application completely breaks the localized experience for screen reader users. Additionally, relying solely on icons without a `title` attribute removes essential context for sighted users who may not immediately recognize the icon's purpose.
+**Action:** Always ensure `aria-label`s and `title` attributes on icon-only buttons are translated to match the application's primary language context (e.g., Arabic), and explicitly hide decorative inner icon elements using `aria-hidden="true"`.
