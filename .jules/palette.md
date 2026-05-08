@@ -1,0 +1,3 @@
+## 2026-05-08 - Accessible Icon-Only Buttons in RTL
+**Learning:** Icon-only buttons lacking textual content must provide explicit Arabic context for screen readers in RTL apps using `aria-label`. Sighted users also need context via `title` for hover tooltips. Finally, the raw text ligature in icon fonts (like Material Symbols) must be hidden with `aria-hidden="true"` to prevent screen readers from announcing meaningless text like 'light_mode'.
+**Action:** When implementing or updating icon-only interactive elements, apply localized `aria-label` and `title` attributes, add `focus-visible` styles for keyboard navigation, and enforce `aria-hidden="true"` on the inner icon elements.
