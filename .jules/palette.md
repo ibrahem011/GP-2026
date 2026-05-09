@@ -1,0 +1,3 @@
+## 2026-05-09 - Material Symbols Icons Accessibility in RTL
+**Learning:** When using Material Symbols icons as inner text (ligatures) within icon-only interactive elements in an RTL/Arabic context, screen readers may incorrectly read the English ligature text (e.g., 'notifications', 'logout', 'light_mode') aloud to the user, breaking the localized experience. Relying solely on `aria-label` on the parent element is not always sufficient to suppress the inner text in all screen reader / browser combinations.
+**Action:** Always add `aria-hidden="true"` to the inner `<span>` containing the Material Symbols ligature text, and ensure the parent interactive element has a localized Arabic `aria-label`.
