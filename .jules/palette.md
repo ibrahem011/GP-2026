@@ -1,0 +1,3 @@
+## 2024-06-25 - Add aria-label and title to icon-only buttons
+**Learning:** Icon-only buttons (like notifications, logout, list/grid view toggles, and modal close buttons) are completely inaccessible to screen readers without an `aria-label`. Additionally, sighted users may lack context for obscure icons without a `title` attribute. Internal icon elements should also have `aria-hidden="true"` to prevent screen readers from announcing them incorrectly.
+**Action:** Always ensure that any button without text content has both a localized `aria-label` for accessibility and a `title` attribute for tooltips, and apply `aria-hidden="true"` to the inner icon element (e.g. `material-symbols-outlined` spans or lucide-react icons).

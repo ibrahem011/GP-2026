@@ -90,8 +90,8 @@ export default function NotificationsPopover({
                         )}
                     </div>
 
-                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 transition-colors">
-                        <span className="material-symbols-outlined text-xl">close</span>
+                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 transition-colors" aria-label="إغلاق" title="إغلاق">
+                        <span className="material-symbols-outlined text-xl" aria-hidden="true">close</span>
                     </button>
                 </div>
 
