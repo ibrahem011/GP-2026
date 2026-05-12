@@ -128,8 +128,10 @@ export function PropertyContextHeader({
                     <button
                         onClick={() => router.back()}
                         className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-gray-500"
+                        aria-label="الرجوع"
+                        title="الرجوع"
                     >
-                        <span className="material-symbols-outlined">arrow_forward</span>
+                        <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
                     </button>
 
                     {/* صورة العقار */}
@@ -196,8 +198,10 @@ export function PropertyContextHeader({
                             <button
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isMenuOpen ? 'bg-gray-200 dark:bg-zinc-700' : 'bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700'}`}
+                                aria-label="خيارات العقار"
+                                title="خيارات العقار"
                             >
-                                <span className="material-symbols-outlined text-gray-600 dark:text-gray-400">more_vert</span>
+                                <span className="material-symbols-outlined text-gray-600 dark:text-gray-400" aria-hidden="true">more_vert</span>
                             </button>
 
                             {/* القائمة المنسدلة */}

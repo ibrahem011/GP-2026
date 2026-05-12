@@ -212,15 +212,19 @@ export const ChatInput = ({
                                 type="button"
                                 onClick={cancelRecording}
                                 className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+                                aria-label="إلغاء التسجيل"
+                                title="إلغاء التسجيل"
                             >
-                                <span className="material-symbols-outlined">delete</span>
+                                <span className="material-symbols-outlined" aria-hidden="true">delete</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={stopRecording}
                                 className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                                aria-label="إرسال التسجيل"
+                                title="إرسال التسجيل"
                             >
-                                <span className="material-symbols-outlined">send</span>
+                                <span className="material-symbols-outlined" aria-hidden="true">send</span>
                             </button>
                         </div>
                     </div>
@@ -239,8 +243,10 @@ export const ChatInput = ({
                             onClick={handleAttachmentClick}
                             disabled={uploading}
                             className={`w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-zinc-700 text-gray-500 hover:text-primary transition-colors hover:bg-primary/10 ${uploading ? 'opacity-50' : ''}`}
+                            aria-label="إرفاق ملف"
+                            title="إرفاق ملف"
                         >
-                            <span className="material-symbols-outlined">
+                            <span className="material-symbols-outlined" aria-hidden="true">
                                 {uploading ? 'cloud_upload' : (hasMediaPermission ? 'add_photo_alternate' : 'lock')}
                             </span>
                         </button>
@@ -249,8 +255,10 @@ export const ChatInput = ({
                             <button
                                 type="button"
                                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-yellow-500 transition-colors"
+                                aria-label="إضافة رمز تعبيري"
+                                title="إضافة رمز تعبيري"
                             >
-                                <span className="material-symbols-outlined">sentiment_satisfied</span>
+                                <span className="material-symbols-outlined" aria-hidden="true">sentiment_satisfied</span>
                             </button>
 
                             <textarea
@@ -274,8 +282,10 @@ export const ChatInput = ({
                                 <button
                                     type="submit"
                                     className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all"
+                                    aria-label="إرسال رسالة"
+                                    title="إرسال رسالة"
                                 >
-                                    <span className="material-symbols-outlined scale-x-[-1]">send</span>
+                                    <span className="material-symbols-outlined scale-x-[-1]" aria-hidden="true">send</span>
                                 </button>
                             ) : (
                                 <button
@@ -283,8 +293,10 @@ export const ChatInput = ({
                                     onMouseDown={startRecording}
                                     onTouchStart={startRecording}
                                     className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
+                                    aria-label="تسجيل رسالة صوتية"
+                                    title="تسجيل رسالة صوتية"
                                 >
-                                    <span className="material-symbols-outlined">mic</span>
+                                    <span className="material-symbols-outlined" aria-hidden="true">mic</span>
                                 </button>
                             )}
                         </div>
