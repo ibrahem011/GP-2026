@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -60,7 +60,16 @@ const AR = {
     per: "\u0644\u0643\u0644",
 };
 
-export function PropertyCard({
+/**
+ * ⚡ Bolt Performance Optimization:
+ * Wrapped PropertyCard in React.memo to prevent cascading re-renders.
+ * Since this component is heavily used in search results and lists,
+ * memoization prevents it from re-rendering when parent components
+ * (like search filters or debounced inputs) update their state,
+ * as long as the primitive props passed to this card remain unchanged.
+ * Expected Impact: Significant reduction in render time for large lists.
+ */
+export const PropertyCard = memo(function PropertyCard({
     id,
     title,
     location,
@@ -307,4 +316,4 @@ export function PropertyCard({
             </div>
         </article>
     );
-}
+});
