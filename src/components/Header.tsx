@@ -181,10 +181,11 @@ export default function Header() {
                             {/* Logout button */}
                             <button
                                 onClick={logout}
-                                className={`p-2 transition-colors rounded-full ${isScrolled ? 'text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' : 'text-white/80 hover:text-white hover:bg-white/20'}`}
+                                className={`p-2 transition-colors rounded-full focus-visible:ring-2 focus-visible:outline-none ${isScrolled ? 'text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' : 'text-white/80 hover:text-white hover:bg-white/20'}`}
+                                aria-label="تسجيل الخروج"
                                 title="تسجيل الخروج"
                             >
-                                <span className="material-symbols-outlined text-[20px]">logout</span>
+                                <span className="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>
                             </button>
                         </div>
                     ) : (
