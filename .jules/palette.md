@@ -1,0 +1,3 @@
+## 2024-05-24 - Add ARIA Labels and aria-hidden to Icon-Only Buttons
+**Learning:** Found multiple instances of icon-only buttons lacking `aria-label`s for screen reader support (especially the close buttons in notification popovers/sheets and edit profile modal) and the inner icons missing `aria-hidden="true"`, which is essential for accessibility so screen readers do not read out the icon name like "close" unnecessarily when the button already has an aria label.
+**Action:** When implementing icon-only buttons, apply `aria-label` on the button and `aria-hidden="true"` on the inner icon element to ensure they are properly identified and accessible to screen readers, especially in Arabic (RTL) context.
