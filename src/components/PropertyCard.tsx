@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -60,7 +60,7 @@ const AR = {
     per: "\u0644\u0643\u0644",
 };
 
-export function PropertyCard({
+function PropertyCardComponent({
     id,
     title,
     location,
@@ -308,3 +308,7 @@ export function PropertyCard({
         </article>
     );
 }
+
+// ⚡ Bolt Performance Optimization:
+// Wrapping PropertyCard in React.memo to prevent unnecessary re-renders when parent components (like SearchFilters or HomeSearchBar) update their state.
+export const PropertyCard = memo(PropertyCardComponent);
