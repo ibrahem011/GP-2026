@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes } from 'react';
+import React, { InputHTMLAttributes, useId } from 'react';
 
 export interface GlassInputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string;
@@ -15,10 +15,13 @@ export function GlassInput({
     className = '',
     ...props
 }: GlassInputProps) {
+    const generatedId = useId();
+    const inputId = props.id || generatedId;
+
     return (
         <div className="w-full">
             {label && (
-                <label className="block text-sm text-gray-400 mb-2">
+                <label htmlFor={inputId} className="block text-sm text-gray-400 mb-2">
                     {label}
                 </label>
             )}
@@ -37,6 +40,7 @@ export function GlassInput({
                 )}
 
                 <input
+                    id={inputId}
                     className={`
             block w-full p-4 text-sm
             glass border-white/10
