@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { isDisplayableUrl } from "@/lib/storagePaths";
@@ -32,7 +33,7 @@ interface RecentPropertyCardProps {
     onFavoriteClick?: () => void;
 }
 
-export function RecentPropertyCard({
+export const RecentPropertyCard = React.memo(function RecentPropertyCard({
     id,
     title,
     location,
@@ -137,4 +138,4 @@ export function RecentPropertyCard({
             </div>
         </div>
     );
-}
+});
