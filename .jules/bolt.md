@@ -1,0 +1,3 @@
+## 2026-05-23 - Missing React.memo on list-rendered components
+**Learning:** In Next.js/React applications, frequently rendered list components (like PropertyCard) that receive primitive props should be wrapped in React.memo. When these are omitted, components will re-render unnecessarily on any parent state update (e.g., search queries typing, tab switching), causing significant performance degradation.
+**Action:** Always verify if components rendered in lists (via map) with primitive props use React.memo to prevent unnecessary render cycles, particularly when the parent component has frequent state updates.
