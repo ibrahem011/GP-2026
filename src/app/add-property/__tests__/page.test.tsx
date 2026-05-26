@@ -8,11 +8,17 @@ import { AREA_MAP_ZONES } from '@/lib/propertyAreas';
 
 const {
     mockCreateFullProperty,
+    mockGetPropertyById,
+    mockUpdateProperty,
+    mockUploadPropertyImages,
     mockAddNotification,
     mockUseAuth,
     mockProtectedRoute,
 } = vi.hoisted(() => ({
     mockCreateFullProperty: vi.fn(),
+    mockGetPropertyById: vi.fn(),
+    mockUpdateProperty: vi.fn(),
+    mockUploadPropertyImages: vi.fn(),
     mockAddNotification: vi.fn(),
     mockUseAuth: vi.fn(),
     mockProtectedRoute: vi.fn(({ children }: { children: ReactNode }) => <>{children}</>),
@@ -61,6 +67,9 @@ vi.mock('@/lib/storage', () => ({
 vi.mock('@/services/supabaseService', () => ({
     supabaseService: {
         createFullProperty: mockCreateFullProperty,
+        getPropertyById: mockGetPropertyById,
+        updateProperty: mockUpdateProperty,
+        uploadPropertyImages: mockUploadPropertyImages,
     },
 }));
 
@@ -127,7 +136,11 @@ async function advanceToStep4(user: ReturnType<typeof userEvent.setup>, containe
 describe('AddPropertyPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        window.history.pushState({}, '', '/add-property');
         mockCreateFullProperty.mockResolvedValue({ id: 'property-1' });
+        mockGetPropertyById.mockResolvedValue(null);
+        mockUpdateProperty.mockResolvedValue({ id: 'property-1' });
+        mockUploadPropertyImages.mockResolvedValue([]);
         mockAddNotification.mockResolvedValue(undefined);
         mockUseAuth.mockReturnValue({
             user: {
@@ -155,7 +168,7 @@ describe('AddPropertyPage', () => {
         await user.type(getFieldByLabelText(/السعر/u), '1500');
         await user.click(screen.getByRole('button', { name: /التالي/u }));
 
-        expect(await screen.findByText(/صورة واحدة على الأقل/u)).toBeInTheDocument();
+        expect(await screen.findByText(/قبل الانتقال للخطوة التالية/u)).toBeInTheDocument();
         expect(screen.queryByText(/تفاصيل العقار/u)).not.toBeInTheDocument();
     });
 
@@ -197,6 +210,64 @@ describe('AddPropertyPage', () => {
 
         expect(getFieldByLabelText(/لكل/u, 'select')).toHaveValue('month');
         expect(container).toBeTruthy();
+    });
+
+    it('loads an existing property from the edit link and updates it instead of creating a new one', async () => {
+        const user = userEvent.setup();
+        const signedImageUrl = 'https://demo.supabase.co/storage/v1/object/sign/properties-images/owner-1/old.jpg?token=abc';
+
+        window.history.pushState({}, '', '/add-property?edit=property-1');
+        mockGetPropertyById.mockResolvedValue({
+            id: 'property-1',
+            owner_id: 'owner-1',
+            title: 'شقة قديمة',
+            description: 'وصف قديم مكتمل للعقار.',
+            price: 1800,
+            price_unit: 'month',
+            category: 'apartment',
+            location_lat: AREA_MAP_ZONES[AREAS[0]].center.lat,
+            location_lng: AREA_MAP_ZONES[AREAS[0]].center.lng,
+            address: 'شارع قديم',
+            area: AREAS[0],
+            bedrooms: 2,
+            bathrooms: 1,
+            floor_area: 110,
+            floor_number: 4,
+            features: [],
+            owner_phone: '+201012345678',
+            owner_name: 'مالك مختبر',
+            status: 'available',
+            images: [signedImageUrl],
+            is_verified: true,
+            views_count: 7,
+            created_at: '2026-05-01T10:00:00Z',
+            updated_at: '2026-05-01T10:00:00Z',
+        });
+
+        render(<AddPropertyPage />);
+
+        const titleInput = await screen.findByDisplayValue('شقة قديمة');
+        await user.clear(titleInput);
+        await user.type(titleInput, 'شقة بعد التعديل');
+
+        await user.click(screen.getByRole('button', { name: /التالي/u }));
+        await user.click(await screen.findByRole('button', { name: /التالي/u }));
+        await user.click(await screen.findByRole('button', { name: /التالي/u }));
+        await user.click(await screen.findByRole('button', { name: /حفظ التعديلات/u }));
+
+        await waitFor(() => {
+            expect(mockUpdateProperty).toHaveBeenCalledTimes(1);
+        });
+
+        expect(mockCreateFullProperty).not.toHaveBeenCalled();
+        expect(mockUploadPropertyImages).not.toHaveBeenCalled();
+        expect(mockUpdateProperty).toHaveBeenCalledWith(
+            'property-1',
+            expect.objectContaining({
+                title: 'شقة بعد التعديل',
+                images: ['owner-1/old.jpg'],
+            }),
+        );
     });
 
     it('shows submit stage text and a persistent submit error when publishing fails', async () => {

@@ -8,6 +8,7 @@ import OwnerDetailsStep from '@/components/add-property/OwnerDetailsStep';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { PROPERTY_FEATURES } from '@/config/features';
 import { useAuth } from '@/context/AuthContext';
+import { getPropertyImageUrl, PROPERTY_IMAGE_PLACEHOLDER } from '@/lib/propertyImages';
 import {
     buildPropertyInsertPayload,
     validatePropertyDraft,
@@ -15,8 +16,9 @@ import {
     type PropertyDraftField,
 } from '@/lib/propertyDraft';
 import type { PropertyLocationValue } from '@/lib/propertyAreas';
+import { extractStoragePath, STORAGE_BUCKETS } from '@/lib/storagePaths';
 import { addNotification, getCurrentUser } from '@/lib/storage';
-import { supabaseService } from '@/services/supabaseService';
+import { supabaseService, type PropertyRow } from '@/services/supabaseService';
 import { normalizeLocalizedDigits, sanitizePhoneInput } from '@/utils/validation';
 import {
     AREAS,
@@ -88,6 +90,19 @@ type StagedImage = {
     previewUrl: string;
 };
 
+type ExistingImage = {
+    id: string;
+    url: string;
+};
+
+function getEditPropertyIdFromUrl(): string | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    return new URLSearchParams(window.location.search).get('edit')?.trim() || null;
+}
+
 function sanitizeNumericInput(value: string): string {
     return normalizeLocalizedDigits(value).replace(/[^\d]/g, '');
 }
@@ -147,6 +162,59 @@ function createInitialFormData(owner?: Pick<OwnerSource, 'name' | 'phone'>): Add
     };
 }
 
+function createFormDataFromProperty(property: PropertyRow): AddPropertyFormData {
+    return {
+        title: property.title || '',
+        description: property.description || '',
+        price: property.price ? String(property.price) : '',
+        priceUnit: property.price_unit || 'day',
+        category: property.category,
+        bedrooms: property.bedrooms != null ? String(property.bedrooms) : '1',
+        bathrooms: property.bathrooms != null ? String(property.bathrooms) : '1',
+        area: property.floor_area != null ? String(property.floor_area) : '',
+        floor: property.floor_number != null ? String(property.floor_number) : '0',
+        features: property.features || [],
+        address: property.address || '',
+        selectedArea: property.area || '',
+        ownerName: property.owner_name || '',
+        ownerPhone: property.owner_phone || '',
+    };
+}
+
+function getLocationFromProperty(property: PropertyRow): PropertyLocationValue | null {
+    if (typeof property.location_lat !== 'number' || typeof property.location_lng !== 'number') {
+        return null;
+    }
+
+    return {
+        lat: property.location_lat,
+        lng: property.location_lng,
+    };
+}
+
+function createExistingImagesFromProperty(property: PropertyRow): ExistingImage[] {
+    return (property.images || [])
+        .filter((url) => url && url !== PROPERTY_IMAGE_PLACEHOLDER)
+        .map((url, index) => ({
+            id: `${property.id}-${index}`,
+            url,
+        }));
+}
+
+function getPersistedImageValue(url: string): string {
+    return extractStoragePath(url, STORAGE_BUCKETS.propertiesImages) || url;
+}
+
+function redirectToMyProperties(delayMs: number) {
+    if (process.env.NODE_ENV === 'test') {
+        return;
+    }
+
+    setTimeout(() => {
+        window.location.href = '/my-properties';
+    }, delayMs);
+}
+
 function InputField({ label, error, className, ...props }: InputFieldProps) {
     return (
         <div className="space-y-2">
@@ -191,22 +259,33 @@ export default function AddPropertyPage() {
     const { user: authUser } = useAuth();
     const hasEditedOwnerNameRef = useRef(false);
 
+    const [editPropertyId, setEditPropertyId] = useState<string | null>(() => getEditPropertyIdFromUrl());
     const [storedUser, setStoredUser] = useState<User | null>(null);
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [editLoadError, setEditLoadError] = useState<string | null>(null);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [submitStage, setSubmitStage] = useState<SubmitStage>('idle');
     const [validationErrors, setValidationErrors] = useState<PropertyDraftErrors>({});
+    const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
     const [stagedImages, setStagedImages] = useState<StagedImage[]>([]);
     const [imageError, setImageError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<PropertyLocationValue | null>(null);
     const [formData, setFormData] = useState<AddPropertyFormData>(() => createInitialFormData());
 
+    const isEditMode = Boolean(editPropertyId);
+    const totalImageCount = existingImages.length + stagedImages.length;
+
     useEffect(() => {
         setStoredUser(getCurrentUser());
+    }, []);
+
+    useEffect(() => {
+        setEditPropertyId(getEditPropertyIdFromUrl());
     }, []);
 
     useEffect(() => {
@@ -287,6 +366,72 @@ export default function AddPropertyPage() {
             return { ...prev, ownerPhone: actualUser.phone };
         });
     }, [actualUser?.phone]);
+
+    useEffect(() => {
+        if (!editPropertyId) {
+            setEditLoading(false);
+            setEditLoadError(null);
+            setExistingImages([]);
+            return;
+        }
+
+        if (!authUser) {
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadPropertyForEdit = async () => {
+            setEditLoading(true);
+            setEditLoadError(null);
+            setSubmitError(null);
+
+            try {
+                const property = await supabaseService.getPropertyById(editPropertyId);
+
+                if (cancelled) {
+                    return;
+                }
+
+                if (!property) {
+                    setEditLoadError('تعذر العثور على العقار المطلوب تعديله.');
+                    return;
+                }
+
+                if (property.owner_id !== authUser.id) {
+                    setEditLoadError('لا يمكنك تعديل عقار لا تملكه.');
+                    return;
+                }
+
+                hasEditedOwnerNameRef.current = true;
+                setStep(1);
+                setStagedImages((currentImages) => {
+                    currentImages.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+                    return [];
+                });
+                setExistingImages(createExistingImagesFromProperty(property));
+                setSelectedLocation(getLocationFromProperty(property));
+                setFormData(createFormDataFromProperty(property));
+                setImageError(null);
+                setValidationErrors({});
+            } catch (error) {
+                if (!cancelled) {
+                    console.error('Error loading property for edit:', error);
+                    setEditLoadError('تعذر تحميل بيانات العقار. حاول مرة أخرى.');
+                }
+            } finally {
+                if (!cancelled) {
+                    setEditLoading(false);
+                }
+            }
+        };
+
+        void loadPropertyForEdit();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [authUser, editPropertyId]);
 
     const clearValidationErrors = (...fields: PropertyDraftField[]) => {
         if (fields.length === 0) {
@@ -379,7 +524,7 @@ export default function AddPropertyPage() {
             validFiles.push(file);
         }
 
-        if (stagedImages.length + validFiles.length > maxTotalImages) {
+        if (totalImageCount + validFiles.length > maxTotalImages) {
             return { validFiles: [], error: 'الحد الأقصى 6 صور' };
         }
 
@@ -454,6 +599,11 @@ export default function AddPropertyPage() {
         });
     };
 
+    const removeExistingImage = (id: string) => {
+        clearSubmitFeedback();
+        setExistingImages((prev) => prev.filter((image) => image.id !== id));
+    };
+
     const toggleFeature = (featureId: string) => {
         clearSubmitFeedback();
         setFormData((prev) => ({
@@ -469,7 +619,7 @@ export default function AddPropertyPage() {
         const { fieldErrors } = validatePropertyDraft(formData, selectedLocation);
         const stepErrors = pickStepErrors(step, fieldErrors);
         const hasStepErrors = Object.keys(stepErrors).length > 0;
-        const isMissingImages = step === 1 && stagedImages.length === 0;
+        const isMissingImages = step === 1 && totalImageCount === 0;
 
         if (isMissingImages) {
             setImageError('يرجى إضافة صورة واحدة على الأقل قبل الانتقال للخطوة التالية.');
@@ -493,6 +643,8 @@ export default function AddPropertyPage() {
         hasEditedOwnerNameRef.current = false;
         setStep(1);
         setSuccess(false);
+        setEditLoadError(null);
+        setExistingImages([]);
         setStagedImages([]);
         setImageError(null);
         setIsDragging(false);
@@ -515,7 +667,7 @@ export default function AddPropertyPage() {
                 return;
             }
 
-            if (stagedImages.length === 0) {
+            if (totalImageCount === 0) {
                 setImageError('يرجى إضافة صورة واحدة على الأقل قبل نشر العقار.');
                 setStep(1);
                 return;
@@ -529,6 +681,47 @@ export default function AddPropertyPage() {
             }
 
             const payload = buildPropertyInsertPayload(normalizedData);
+
+            if (isEditMode && editPropertyId) {
+                let uploadedImagePaths: string[] = [];
+                if (stagedImages.length > 0) {
+                    setSubmitStage('uploading');
+                    setUploading(true);
+                    uploadedImagePaths = await supabaseService.uploadPropertyImages(
+                        stagedImages.map((img) => img.file),
+                        authUser.id,
+                    );
+                }
+
+                setSubmitStage('saving');
+                setUploading(false);
+
+                const updatedProperty = await supabaseService.updateProperty(editPropertyId, {
+                    ...payload,
+                    images: [
+                        ...existingImages.map((image) => getPersistedImageValue(image.url)),
+                        ...uploadedImagePaths,
+                    ],
+                });
+
+                if (!updatedProperty) {
+                    throw Object.assign(new Error('SAVE_FAILED'), { code: 'SAVE_FAILED' });
+                }
+
+                await addNotification({
+                    userId: authUser.id,
+                    title: 'تم تحديث عقارك بنجاح!',
+                    message: `تم حفظ تعديلات "${formData.title}" على نفس العقار.`,
+                    type: 'success',
+                    link: `/property/${updatedProperty.id}`,
+                });
+
+                setSuccess(true);
+
+                redirectToMyProperties(1500);
+                return;
+            }
+
             const newProperty = await supabaseService.createFullProperty(
                 payload,
                 stagedImages.map((img) => img.file),
@@ -553,9 +746,7 @@ export default function AddPropertyPage() {
 
             setSuccess(true);
 
-            setTimeout(() => {
-                window.location.href = '/my-properties';
-            }, 2000);
+            redirectToMyProperties(2000);
         } catch (error: any) {
             console.error('Error adding property:', error);
             setSubmitError(getSubmitErrorMessage(error));
@@ -573,8 +764,14 @@ export default function AddPropertyPage() {
                     <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-green-500/10">
                         <span className="material-symbols-outlined animate-pulse text-6xl text-green-500">check_circle</span>
                     </div>
-                    <h1 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">تمت إضافة العقار بنجاح!</h1>
-                    <p className="mb-8 text-gray-500 dark:text-gray-400">سيتم مراجعة العقار من الإدارة قبل نشره للعامة.</p>
+                    <h1 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">
+                        {isEditMode ? 'تم تحديث العقار بنجاح!' : 'تمت إضافة العقار بنجاح!'}
+                    </h1>
+                    <p className="mb-8 text-gray-500 dark:text-gray-400">
+                        {isEditMode
+                            ? 'تم حفظ التعديلات على نفس العقار وسيظهر التحديث في صفحة عقاراتي.'
+                            : 'سيتم مراجعة العقار من الإدارة قبل نشره للعامة.'}
+                    </p>
                     <div className="flex flex-col gap-3">
                         <Link
                             href="/"
@@ -587,7 +784,7 @@ export default function AddPropertyPage() {
                             onClick={resetForm}
                             className="w-full rounded-xl bg-gray-100 py-4 font-bold text-gray-900 transition-all hover:bg-gray-200 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
                         >
-                            إضافة عقار آخر
+                            {isEditMode ? 'متابعة تعديل العقار' : 'إضافة عقار آخر'}
                         </button>
                     </div>
                 </div>
@@ -595,16 +792,101 @@ export default function AddPropertyPage() {
         );
     }
 
+    const publishChecklist = [
+        {
+            key: 'basics',
+            label: 'المعلومات الأساسية',
+            helper: 'العنوان، الوصف، والنوع',
+            icon: 'info',
+            status: formData.title && formData.description && formData.category ? 'complete' : 'review',
+        },
+        {
+            key: 'media',
+            label: 'صور العقار',
+            helper: 'صورة واحدة على الأقل',
+            icon: 'image',
+            status: totalImageCount > 0 ? 'complete' : 'review',
+        },
+        {
+            key: 'location',
+            label: 'موقع العقار',
+            helper: 'تحديد الموقع على الخريطة',
+            icon: 'location_on',
+            status: selectedLocation ? 'complete' : 'review',
+        },
+        {
+            key: 'contact',
+            label: 'بيانات التواصل',
+            helper: 'رقم هاتف المالك',
+            icon: 'contact_phone',
+            status: formData.ownerPhone ? 'complete' : 'review',
+        },
+    ];
+
+    const completedChecklistCount = publishChecklist.filter((i) => i.status === 'complete').length;
+
+    const StatusChip = ({ status }: { status: string }) => {
+        if (status === 'complete') {
+            return (
+                <div className="flex h-6 items-center gap-1 rounded-full bg-emerald-500/10 px-2 text-[10px] font-bold text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                    <span>مكتمل</span>
+                </div>
+            );
+        }
+        return (
+            <div className="flex h-6 items-center gap-1 rounded-full bg-amber-500/10 px-2 text-[10px] font-bold text-amber-600 dark:bg-amber-500/20 dark:text-amber-400">
+                <span className="material-symbols-outlined text-[14px]">pending</span>
+                <span>للمراجعة</span>
+            </div>
+        );
+    };
+
+    if (editLoading) {
+        return (
+            <ProtectedRoute>
+                <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-black">
+                    <div className="text-center">
+                        <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+                        <p className="text-sm font-bold text-gray-600 dark:text-gray-300">جارٍ تحميل بيانات العقار...</p>
+                    </div>
+                </main>
+            </ProtectedRoute>
+        );
+    }
+
+    if (editLoadError) {
+        return (
+            <ProtectedRoute>
+                <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-black">
+                    <div className="w-full max-w-md rounded-3xl border border-red-100 bg-white p-6 text-center shadow-sm dark:border-red-500/20 dark:bg-zinc-900">
+                        <span className="material-symbols-outlined mb-3 text-5xl text-red-500">error</span>
+                        <h1 className="text-xl font-black text-gray-900 dark:text-white">تعذر فتح التعديل</h1>
+                        <p className="mt-2 text-sm leading-7 text-gray-500 dark:text-gray-400">{editLoadError}</p>
+                        <Link
+                            href="/my-properties"
+                            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-2xl bg-primary px-6 text-sm font-bold text-white"
+                        >
+                            الرجوع إلى عقاراتي
+                        </Link>
+                    </div>
+                </main>
+            </ProtectedRoute>
+        );
+    }
+
     return (
         <ProtectedRoute>
             <main className="min-h-screen bg-gray-50 pb-32 dark:bg-black">
-            <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur-xl dark:border-white/10 dark:bg-black/80">
-                <div className="mx-auto max-w-2xl px-4 py-4">
+            <header className="sticky top-0 z-40 border-b border-gray-200 bg-surface-light/94 backdrop-blur-xl dark:border-white/10 dark:bg-background-dark/90">
+                <div className="mx-auto max-w-5xl px-4 py-4 lg:py-5">
                     <div className="mb-6 flex items-center justify-between">
                         <Link href="/" className="text-gray-500 transition-colors hover:text-gray-900 dark:hover:text-white">
                             <span className="material-symbols-outlined rtl:rotate-180">arrow_back</span>
                         </Link>
-                        <h1 className="text-lg font-bold text-gray-900 dark:text-white">إضافة عقار جديد</h1>
+                        <h1 className="text-lg font-bold text-gray-900 dark:text-white">
+                            {isEditMode ? 'تعديل العقار' : 'إضافة عقار جديد'}
+                        </h1>
                         <div className="w-6" />
                     </div>
 
@@ -621,8 +903,43 @@ export default function AddPropertyPage() {
                 </div>
             </header>
 
-            <section className="mx-auto mt-8 max-w-2xl px-4">
-                <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-zinc-900">
+            <section className="mx-auto mt-6 max-w-5xl px-4 flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8 pb-10 lg:pb-16">
+                {/* Sidebar Checklist */}
+                <aside className="w-full lg:sticky lg:top-36 lg:w-80 shrink-0 order-1 lg:order-2">
+                    <div className="rounded-3xl border border-slate-200 bg-surface-light p-5 shadow-sm dark:border-white/10 dark:bg-surface-dark lg:p-6">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <p className="text-xs font-bold text-primary">جاهزية الإرسال للمراجعة</p>
+                                <h2 className="mt-1 text-lg font-black text-gray-900 dark:text-white">
+                                    {completedChecklistCount} من {publishChecklist.length} جاهزة
+                                </h2>
+                                <p className="mt-1 text-xs leading-6 text-gray-500 dark:text-gray-400">
+                                    أكمل العناصر المطلوبة قبل إرسال العقار للمراجعة.
+                                </p>
+                            </div>
+                            <StatusChip status={completedChecklistCount === publishChecklist.length ? 'complete' : 'review'} />
+                        </div>
+
+                        <div className="mt-5 space-y-2 lg:space-y-3">
+                            {publishChecklist.map((item) => (
+                                <div key={item.key} className="flex items-start justify-between gap-3 rounded-2xl border border-slate-100 bg-surface-dim p-3 dark:border-white/10 dark:bg-white/5">
+                                    <div className="flex min-w-0 items-start gap-3">
+                                        <span className="material-symbols-outlined mt-0.5 text-[20px] text-primary">{item.icon}</span>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white">{item.label}</p>
+                                            <p className="mt-0.5 text-xs leading-5 text-gray-500 dark:text-gray-400">{item.helper}</p>
+                                        </div>
+                                    </div>
+                                    <StatusChip status={item.status} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </aside>
+
+                {/* Form Wrapper */}
+                <div className="flex-1 min-w-0 order-2 lg:order-1">
+                    <div className="rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm dark:border-white/5 dark:bg-zinc-900 lg:p-8">
                     {step === 1 ? (
                         <div className="animate-fadeIn space-y-6">
                             <div className="mb-8 text-center">
@@ -698,7 +1015,7 @@ export default function AddPropertyPage() {
                                     صور العقار <span className="text-xs font-normal text-gray-400">(حتى 6 صور)</span>
                                 </label>
 
-                                {stagedImages.length === 0 ? (
+                                {totalImageCount === 0 ? (
                                     <label
                                         className={`group flex h-52 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-gray-50 transition-all dark:bg-zinc-800 ${
                                             isDragging
@@ -721,6 +1038,19 @@ export default function AddPropertyPage() {
                                 ) : (
                                     <div className="space-y-3">
                                         <div className="grid grid-cols-3 gap-3">
+                                            {existingImages.map((image) => (
+                                                <div key={image.id} className="group relative aspect-square overflow-hidden rounded-2xl">
+                                                    <Image src={getPropertyImageUrl(image.url)} alt="" fill className="object-cover" sizes="(max-width: 768px) 33vw, 160px" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeExistingImage(image.id)}
+                                                        disabled={loading || uploading}
+                                                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-50"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[14px]">close</span>
+                                                    </button>
+                                                </div>
+                                            ))}
                                             {stagedImages.map((image) => (
                                                 <div key={image.id} className="group relative aspect-square overflow-hidden rounded-2xl">
                                                     <Image src={image.previewUrl} alt="" fill className="object-cover" sizes="(max-width: 768px) 33vw, 160px" />
@@ -734,7 +1064,7 @@ export default function AddPropertyPage() {
                                                     </button>
                                                 </div>
                                             ))}
-                                            {stagedImages.length < 6 && !loading && !uploading && (
+                                            {totalImageCount < 6 && !loading && !uploading && (
                                                 <label
                                                     className={`group flex aspect-square cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-gray-50 transition-all dark:bg-zinc-800 ${
                                                         isDragging
@@ -1015,61 +1345,68 @@ export default function AddPropertyPage() {
                                     </span>
 
                                     <span className="text-gray-500">الصور:</span>
-                                    <span className="font-medium text-gray-900 dark:text-white">{stagedImages.length} صور</span>
+                                    <span className="font-medium text-gray-900 dark:text-white">{totalImageCount} صور</span>
                                 </div>
                             </div>
                         </div>
                     ) : null}
                 </div>
+                </div>
             </section>
 
             <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/80 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-black/80">
-                <div className="mx-auto max-w-2xl">
-                    {step === 4 && submitError ? (
-                        <div className="mb-3 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-200">
-                            <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px]">error</span>
-                            <p>{submitError}</p>
-                        </div>
-                    ) : null}
+                <div className="mx-auto max-w-5xl flex flex-col lg:flex-row lg:items-start gap-6 lg:gap-8">
+                    {/* Placeholder for sidebar width to align buttons with form */}
+                    <div className="hidden lg:block lg:w-80 shrink-0 order-2" />
 
-                    <div className="flex gap-4">
-                    {step > 1 ? (
-                        <button
-                            type="button"
-                            onClick={handlePreviousStep}
-                            className="flex-1 rounded-2xl bg-gray-100 py-4 font-bold text-gray-900 transition-all hover:bg-gray-200 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
-                        >
-                            السابق
-                        </button>
-                    ) : null}
+                    {/* Actions Container */}
+                    <div className="flex-1 min-w-0 order-1">
+                        {step === 4 && submitError ? (
+                            <div className="mb-3 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-200">
+                                <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px]">error</span>
+                                <p>{submitError}</p>
+                            </div>
+                        ) : null}
 
-                    {step < 4 ? (
-                        <button
-                            type="button"
-                            onClick={handleNextStep}
-                            className="flex-[2] rounded-2xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-95"
-                        >
-                            التالي
-                        </button>
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={handleSubmit}
-                            disabled={loading || uploading}
-                            className="flex-[2] rounded-2xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-95 disabled:pointer-events-none disabled:opacity-50"
-                        >
-                            {loading || uploading ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                    {getSubmitStageLabel(submitStage)}
-                                </span>
+                        <div className="flex gap-4">
+                            {step > 1 ? (
+                                <button
+                                    type="button"
+                                    onClick={handlePreviousStep}
+                                    className="flex-1 rounded-2xl bg-gray-100 py-4 font-bold text-gray-900 transition-all hover:bg-gray-200 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 min-h-12"
+                                >
+                                    السابق
+                                </button>
+                            ) : null}
+
+                            {step < 4 ? (
+                                <button
+                                    type="button"
+                                    onClick={handleNextStep}
+                                    className="flex-[2] rounded-2xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-95 min-h-12"
+                                >
+                                    التالي
+                                </button>
                             ) : (
-                                'نشر العقار'
+                                <button
+                                    type="button"
+                                    onClick={handleSubmit}
+                                    disabled={loading || uploading}
+                                    className="flex-[2] rounded-2xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-95 disabled:pointer-events-none disabled:opacity-50 min-h-12"
+                                >
+                                    {loading || uploading ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                            {getSubmitStageLabel(submitStage)}
+                                        </span>
+                                    ) : (
+                                        isEditMode ? 'حفظ التعديلات' : 'نشر العقار'
+                                    )}
+                                </button>
                             )}
-                        </button>
-                    )}
+                        </div>
+                    </div>
                 </div>
-            </div>
             </div>
             </main>
         </ProtectedRoute>

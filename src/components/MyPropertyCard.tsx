@@ -35,6 +35,8 @@ const statusDotTone: Record<PropertyStatus, string> = {
     rejected: 'bg-rose-500',
 };
 
+const ownerEditableStatuses: PropertyStatus[] = ['available', 'pending', 'rented'];
+
 function MyPropertyCardComponent({
     property,
     onDelete,
@@ -239,17 +241,17 @@ function MyPropertyCardComponent({
                         </button>
 
                         {showStatusMenu && onStatusChange ? (
-                            <div className="absolute left-0 top-full z-20 mt-2 min-w-[170px] rounded-2xl border border-gray-100 bg-white/95 p-1 shadow-xl shadow-black/10 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-800/95">
-                                {(Object.keys(STATUS_AR) as PropertyStatus[]).map((status) => (
+                            <div className="absolute left-0 top-full z-20 mt-2 min-w-[170px] rounded-2xl border border-slate-200 bg-white p-1 text-slate-900 shadow-xl shadow-black/10 dark:border-white/10 dark:bg-zinc-900 dark:text-slate-100">
+                                {ownerEditableStatuses.map((status) => (
                                     <button
                                         key={status}
                                         type="button"
                                         onClick={() => handleStatusChange(status)}
-                                        className="flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-right text-sm font-semibold transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
+                                        className="flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-right text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-white/10"
                                     >
                                         {STATUS_AR[status]}
                                         {property.status === status ? (
-                                            <span className="material-symbols-outlined text-[16px] text-primary">
+                                            <span className="material-symbols-outlined text-[16px] text-primary dark:text-blue-300">
                                                 check
                                             </span>
                                         ) : null}

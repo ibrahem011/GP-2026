@@ -1,17 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useFavorites } from "@/context/FavoritesContext";
 import {
     getPropertyImageUrl,
     PROPERTY_IMAGE_PLACEHOLDER,
     normalizePropertyImageSrc,
 } from "@/lib/propertyImages";
 import { cn } from "@/lib/utils";
-import { supabaseService } from "@/services/supabaseService";
 import {
     CATEGORY_AR,
     PRICE_UNIT_AR,
@@ -86,30 +86,34 @@ export function PropertyCard({
     const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
     const [imgError, setImgError] = useState(false);
     const { user, isAuthenticated } = useAuth();
+    const {
+        ensureLoaded: ensureFavoritesLoaded,
+        isFavorite: isFavoriteInStore,
+        toggleFavorite,
+    } = useFavorites();
     const router = useRouter();
+    const favoriteFromStore = isFavoriteInStore(id);
 
     useEffect(() => {
-        setIsFavorite(Boolean(initialIsFavorite));
-    }, [initialIsFavorite]);
+        if (initialIsFavorite !== undefined) {
+            setIsFavorite(Boolean(initialIsFavorite));
+            return;
+        }
+
+        setIsFavorite(favoriteFromStore);
+    }, [favoriteFromStore, initialIsFavorite]);
 
     useEffect(() => {
         setImgError(false);
     }, [image]);
-
-    const checkFavoriteStatus = useCallback(async () => {
-        if (!user) return;
-
-        const { data } = await supabaseService.getFavorites(user.id);
-        setIsFavorite((data ?? []).some((favorite) => favorite.id === id));
-    }, [id, user]);
 
     useEffect(() => {
         if (!user || initialIsFavorite !== undefined) {
             return;
         }
 
-        void checkFavoriteStatus();
-    }, [checkFavoriteStatus, initialIsFavorite, user]);
+        void ensureFavoritesLoaded();
+    }, [ensureFavoritesLoaded, initialIsFavorite, user]);
 
     const handleFavoriteClick = async (e: React.MouseEvent) => {
         // Keep favorite click independent from card-wide navigation link.
@@ -132,8 +136,9 @@ export function PropertyCard({
         setIsTogglingFavorite(true);
 
         try {
-            await supabaseService.toggleFavorite(user.id, id);
-            onFavoriteChange?.(nextState);
+            const savedState = await toggleFavorite(id, nextState);
+            setIsFavorite(savedState);
+            onFavoriteChange?.(savedState);
         } catch (error) {
             setIsFavorite(!nextState);
             console.error("Error toggling favorite:", error);
@@ -180,7 +185,6 @@ export function PropertyCard({
             : priceUnit;
     const isSpotlight = variant === "spotlight";
     const isFavorites = variant === "favorites";
-    const showSpotlightCategory = isSpotlight && Boolean(categoryLabel) && Boolean(trimmedLocation);
     const cardHeightClass = isSpotlight
         ? "h-[380px] sm:h-[400px] md:h-[420px]"
         : isFavorites
@@ -193,9 +197,9 @@ export function PropertyCard({
     return (
         <article
             className={cn(
-                "group relative h-full w-full cursor-pointer rounded-[2rem] border border-slate-100 bg-white p-2 shadow-sm transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_-15px_rgba(15,23,42,0.18)] dark:border-white/5 dark:bg-zinc-900",
+                "group relative h-full w-full cursor-pointer rounded-[1.5rem] border border-slate-100 bg-surface-light p-2 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_34px_-18px_rgba(15,23,42,0.22)] dark:border-white/5 dark:bg-surface-dark",
                 isSpotlight &&
-                    "rounded-[2.25rem] border-slate-200/80 bg-white/95 p-2.5 shadow-[0_18px_44px_-20px_rgba(15,23,42,0.26)] hover:shadow-[0_28px_56px_-24px_rgba(15,23,42,0.34)] dark:border-white/10 dark:bg-zinc-900/95",
+                    "rounded-[1.75rem] border-slate-200/80 bg-surface-light/95 p-2.5 shadow-[0_18px_44px_-20px_rgba(15,23,42,0.24)] hover:shadow-[0_24px_48px_-24px_rgba(15,23,42,0.32)] dark:border-white/10 dark:bg-surface-dark/95",
             )}
         >
             <div
@@ -226,7 +230,7 @@ export function PropertyCard({
 
                 <Link
                     href={`/property/${id}`}
-                    className="absolute inset-0 z-10"
+                    className="absolute inset-0 z-10 rounded-[1.5rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-surface-dark"
                     aria-label={`${AR.viewDetails} ${title}`}
                 />
 
@@ -254,8 +258,8 @@ export function PropertyCard({
                     disabled={isTogglingFavorite}
                     aria-label={isFavorite ? AR.removeFavorite : AR.addFavorite}
                     className={cn(
-                        "absolute z-20 flex items-center justify-center rounded-full bg-white/90 text-rose-500 backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-white active:scale-95 disabled:cursor-wait disabled:opacity-80",
-                        isSpotlight ? "right-4 top-4 size-10 shadow-md" : "right-3 top-3 size-9 shadow-sm",
+                        "absolute z-20 flex items-center justify-center touch-target rounded-full bg-surface-light/92 text-rose-500 backdrop-blur-md transition-all duration-200 hover:bg-surface-light active:scale-95 disabled:cursor-wait disabled:opacity-80 focus-visible:ring-2 focus-visible:ring-primary/70",
+                        isSpotlight ? "right-4 top-4 size-11 shadow-md" : "right-3 top-3 size-11 shadow-sm",
                         isFavorite && "shadow-rose-500/20",
                     )}
                 >
@@ -277,72 +281,75 @@ export function PropertyCard({
                 <div
                     className={cn(
                         "pointer-events-none absolute bottom-0 left-0 z-10 flex w-full flex-col justify-end",
-                        isSpotlight ? "p-3 md:p-4" : "p-2 sm:p-2.5",
+                        isSpotlight ? "p-3 md:p-4" : "p-2.5 sm:p-3",
                     )}
                 >
                     <div
                         className={cn(
-                            "relative w-full overflow-hidden border transition-all duration-500",
+                            "relative w-full overflow-hidden transition-all duration-500",
                             isSpotlight
-                                ? "rounded-[1.75rem] border-white/60 bg-white/70 shadow-[0_8px_30px_rgb(0,0,0,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-zinc-900/80 group-hover:bg-white/80"
-                                : "rounded-[1.5rem] border-white/60 bg-white/70 shadow-[0_4px_20px_rgb(0,0,0,0.06)] backdrop-blur-2xl dark:border-white/10 dark:bg-zinc-900/80 group-hover:bg-white/80",
+                                ? "rounded-[1.5rem] bg-surface-light/90 shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-black/5 backdrop-blur-2xl dark:bg-surface-dark/90 dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] dark:ring-white/10 group-hover:bg-surface-light/95 dark:group-hover:bg-surface-dark/95"
+                                : "rounded-[1.25rem] bg-surface-light/90 shadow-[0_4px_20px_rgb(0,0,0,0.08)] ring-1 ring-black/5 backdrop-blur-2xl dark:bg-surface-dark/90 dark:shadow-[0_4px_20px_rgb(0,0,0,0.4)] dark:ring-white/10 group-hover:bg-surface-light/95 dark:group-hover:bg-surface-dark/95",
                         )}
                     >
-                        <div className={isSpotlight ? "p-4 sm:p-5" : "p-3 sm:p-4"}>
-                            <div className="mb-1 flex items-start justify-between gap-2">
+                        {/* Elegant top highlight for glassmorphism */}
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent dark:via-white/10" />
+
+                        <div className={isSpotlight ? "p-4 sm:p-5" : "p-3.5 sm:p-4"}>
+                            <div className="mb-1.5 flex items-start justify-between gap-2">
                                 <div className="min-w-0 flex-1">
-                                    <div className="mb-2 flex items-center justify-between">
+                                    <div className="mb-2.5 flex items-center justify-between">
                                         {categoryLabel ? (
                                             <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary dark:bg-primary/20 dark:text-blue-300">
                                                 {categoryLabel}
                                             </span>
                                         ) : <div />}
                                         {typeof rating === "number" && rating > 0 ? (
-                                            <div className="flex shrink-0 items-center justify-center gap-0.5 rounded-full bg-amber-100/60 px-2 py-0.5 text-[11px] font-bold text-amber-700 backdrop-blur-sm dark:bg-amber-500/10 dark:text-amber-400">
+                                            <div className="flex shrink-0 items-center justify-center gap-1 rounded-full bg-amber-100/80 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 shadow-sm backdrop-blur-sm dark:bg-amber-500/20 dark:text-amber-300">
                                                 <span className="mt-0.5">{formatRating(rating)}</span>
-                                                <span className="material-symbols-outlined text-[13px]">star</span>
+                                                <span className="material-symbols-outlined text-[13px] text-amber-500 dark:text-amber-400">star</span>
                                             </div>
                                         ) : null}
                                     </div>
                                     <h3
                                         className={cn(
                                             "font-extrabold tracking-tight text-slate-900 dark:text-white",
-                                            isSpotlight ? "mb-1.5 line-clamp-2 text-xl md:text-2xl" : "mb-1 line-clamp-1 text-base sm:text-lg",
+                                            isSpotlight ? "mb-1.5 line-clamp-2 text-xl md:text-2xl" : "mb-1 line-clamp-2 text-base sm:text-lg",
                                         )}
                                     >
                                         {title}
                                     </h3>
                                     {locationLabel ? (
                                         <div className="flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300 text-[12px] sm:text-[13px]">
-                                            <span className="material-symbols-outlined text-[15px]">location_on</span>
+                                            <span className="material-symbols-outlined text-[15px] text-slate-400 dark:text-slate-400">location_on</span>
                                             <span className="truncate">{locationLabel}</span>
                                         </div>
                                     ) : null}
                                 </div>
                             </div>
 
-                            <hr className={cn("border-slate-300/40 dark:border-white/10", isSpotlight ? "my-3 sm:my-4" : "my-2.5 sm:my-3.5")} />
+                            <hr className={cn("border-slate-200 dark:border-white/10", isSpotlight ? "my-3.5 sm:my-4" : "my-3 sm:my-3.5")} />
 
                             <div className="flex items-end justify-between gap-2">
-                                <div className="flex flex-col">
+                                <div className="flex shrink flex-col">
                                     <span className="mb-0.5 text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400">
                                         {AR.startsFrom || "يبدأ من"}
                                     </span>
-                                    <div className="flex items-baseline gap-1 text-primary dark:text-blue-400">
+                                    <div className="flex items-baseline gap-1 text-primary dark:text-blue-400 whitespace-nowrap">
                                         <span className={cn("font-black tracking-tighter", isSpotlight ? "text-2xl md:text-3xl" : "text-lg sm:text-xl")}>
                                             {price.toLocaleString("ar-EG")}
                                         </span>
-                                        <span className="text-xs font-bold">{AR.currency}</span>
-                                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 mx-0.5">/ {priceUnitLabel}</span>
+                                        <span className="text-xs font-extrabold">{AR.currency}</span>
+                                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mx-0.5">/ {priceUnitLabel}</span>
                                     </div>
                                 </div>
 
                                 {metaItems.length > 0 ? (
-                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                    <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
                                         {metaItems.slice(0, 3).map((item) => (
-                                            <div key={item.label} className="flex items-center gap-1 bg-slate-100/50 dark:bg-white/5 px-1.5 sm:px-2 py-1 rounded-lg border border-white/40 dark:border-white/5 shadow-sm">
-                                                <span className="text-[10px] sm:text-[12px] font-bold text-slate-800 dark:text-slate-200">{item.label.split(' ')[0]}</span>
-                                                <span className="material-symbols-outlined text-[13px] sm:text-[16px] text-slate-500 dark:text-slate-400">{item.icon}</span>
+                                            <div key={item.label} className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-800/80 px-2 py-1.5 rounded-[0.6rem] ring-1 ring-slate-200/50 dark:ring-white/5 shadow-sm backdrop-blur-md transition-colors hover:bg-white dark:hover:bg-slate-800">
+                                                <span className="text-[11px] sm:text-[12px] font-bold text-slate-800 dark:text-slate-200">{item.label.split(' ')[0]}</span>
+                                                <span className="material-symbols-outlined text-[14px] sm:text-[16px] text-slate-500 dark:text-slate-400">{item.icon}</span>
                                             </div>
                                         ))}
                                     </div>

@@ -52,7 +52,7 @@ export default function MyPropertiesStatsPanel({
             {statItems.map((item) => (
                 <div
                     key={item.key}
-                    className="rounded-[1.35rem] border border-slate-200/80 bg-white/92 p-3.5 shadow-[0_10px_25px_-18px_rgba(15,23,42,0.32)] dark:border-white/10 dark:bg-white/[0.04]"
+                    className="flex flex-col items-center justify-center rounded-[1.35rem] border border-slate-200/80 bg-slate-50 p-4 text-center shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] dark:border-[#2a3142] dark:bg-[#121520]"
                 >
                     <div
                         className={cn(

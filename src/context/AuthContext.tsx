@@ -27,6 +27,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const guestAuthContext: AuthContextType = {
+    user: null,
+    loading: false,
+    login: async () => false,
+    register: async () => false,
+    signInWithProvider: async () => ({
+        success: false,
+        error: 'تسجيل الدخول غير متاح الآن.',
+    }),
+    logout: () => {},
+    isAuthenticated: false,
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
@@ -415,8 +428,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
     const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within AuthProvider');
-    }
-    return context;
+    return context ?? guestAuthContext;
 }

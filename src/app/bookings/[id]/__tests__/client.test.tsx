@@ -124,12 +124,12 @@ describe('BookingDetailsClient', () => {
     });
 
     it('renders the tenant dashboard with invoice, note, and receipt upload', async () => {
-        render(<BookingDetailsClient bookingId="booking-1" isCreatedFlow={true} />);
+        render(<BookingDetailsClient bookingId="booking-1" isCreatedFlow={true} entryView="tenant" />);
 
         expect(await screen.findByText('تم إرسال طلب الحجز بنجاح')).toBeInTheDocument();
         expect(screen.getByText('الفاتورة')).toBeInTheDocument();
-        expect(screen.getByText('ملاحظة المؤجر')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /إلغاء الحجز/ })).toBeInTheDocument();
+        expect(screen.getByText('رسالة المؤجر')).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: /إلغاء الحجز/ }).length).toBeGreaterThan(0);
         expect(screen.getByText('اختيار صورة الإيصال')).toBeInTheDocument();
     });
 
@@ -139,13 +139,34 @@ describe('BookingDetailsClient', () => {
             loading: false,
         });
 
-        render(<BookingDetailsClient bookingId="booking-1" isCreatedFlow={false} />);
+        render(<BookingDetailsClient bookingId="booking-1" isCreatedFlow={false} entryView="landlord" />);
 
         expect(await screen.findByText('بيانات المستأجر')).toBeInTheDocument();
-        expect(screen.getByText('ملخص العائد')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /قبول/ })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /رفض/ })).toBeInTheDocument();
+        expect(screen.getByText('صافي الأرباح')).toBeInTheDocument();
+        expect(screen.getAllByRole('button', { name: /قبول/ }).length).toBeGreaterThan(0);
+        expect(screen.getAllByRole('button', { name: /رفض/ }).length).toBeGreaterThan(0);
         expect(screen.getByText('Tenant One')).toBeInTheDocument();
+        // Landlord shouldn't see payment transfer number
+        expect(screen.queryByText('الرقم المخصص للتحويل')).not.toBeInTheDocument();
+    });
+
+    it('falls back to role inference if entryView is invalid (security check)', async () => {
+        // User is tenant, but tries to pass entryView="landlord"
+        mockUseAuth.mockReturnValue({
+            user: { id: 'tenant-1', role: 'tenant' },
+            loading: false,
+        });
+
+        render(<BookingDetailsClient bookingId="booking-1" isCreatedFlow={false} entryView="landlord" />);
+        
+        // Should fallback to tenant view since they don't own the property
+        expect(await screen.findByText('الفاتورة')).toBeInTheDocument();
+        expect(screen.queryByText('بيانات المستأجر')).not.toBeInTheDocument();
+    });
+
+    it('falls back to role inference if no entryView is provided', async () => {
+        render(<BookingDetailsClient bookingId="booking-1" isCreatedFlow={false} />);
+        expect(await screen.findByText('الفاتورة')).toBeInTheDocument();
     });
 
     it('renders the not found state when the booking cannot be loaded', async () => {

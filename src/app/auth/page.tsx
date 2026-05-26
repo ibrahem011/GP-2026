@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import SignUpForm from '@/components/auth/SignUpForm';
@@ -34,13 +34,7 @@ function AuthPageContent() {
     const modeParam = searchParams.get('mode');
     const mode: AuthView = isAuthView(modeParam) ? modeParam : 'login';
     const redirectTo = sanitizeRedirectPath(searchParams.get('redirect'));
-    const [view, setView] = useState<AuthView>(mode);
-
-    useEffect(() => {
-        if (mode !== view) {
-            setView(mode);
-        }
-    }, [mode, view]);
+    const view = mode;
 
     useEffect(() => {
         if (!authLoading && isAuthenticated) {
@@ -49,7 +43,6 @@ function AuthPageContent() {
     }, [authLoading, isAuthenticated, redirectTo, router]);
 
     const switchView = (nextView: AuthView) => {
-        setView(nextView);
         const params = new URLSearchParams(searchParams.toString());
         params.set('mode', nextView);
         params.set('redirect', redirectTo);
@@ -60,15 +53,12 @@ function AuthPageContent() {
 
     return (
         <div className="bg-background-light dark:bg-background-dark font-display relative flex min-h-screen items-center justify-center px-3 py-4 sm:px-5 sm:py-6 lg:p-6">
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                <div className="absolute -top-20 left-[-120px] h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
-                <div className="absolute -bottom-16 right-[-120px] h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
-            </div>
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(59,130,246,0.08)_0%,transparent_32%),linear-gradient(0deg,rgba(14,17,27,0.03),rgba(14,17,27,0.03))] dark:bg-[linear-gradient(180deg,rgba(59,130,246,0.12)_0%,transparent_36%)]" />
 
             {isSplitView ? (
                 <div
                     dir="ltr"
-                    className="relative z-10 w-full max-w-[1240px] overflow-hidden rounded-3xl lg:border lg:border-border-light/80 lg:dark:border-border-dark/80 lg:bg-surface-light/80 lg:dark:bg-surface-dark/70 lg:shadow-2xl lg:grid lg:min-h-[700px] lg:grid-cols-[1.05fr_0.95fr]"
+                    className="relative z-10 w-full max-w-[1240px] overflow-hidden rounded-[28px] lg:border lg:border-border-light/80 lg:dark:border-border-dark/80 lg:bg-surface-light/88 lg:dark:bg-surface-dark/80 lg:shadow-[0_24px_70px_rgba(15,23,42,0.12)] lg:grid lg:min-h-[700px] lg:grid-cols-[1.05fr_0.95fr]"
                 >
                     <div className="pointer-events-none absolute inset-y-0 left-[52.5%] z-20 hidden w-14 -translate-x-1/2 bg-gradient-to-r from-slate-900/25 via-slate-500/12 to-transparent blur-md lg:block" />
                     <div className="pointer-events-none absolute inset-y-0 left-[52.5%] z-20 hidden w-px -translate-x-1/2 bg-white/35 lg:block" />

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useUser } from '@/hooks/useUser';
+import { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import {
     getAllNotifications,
     markNotificationAsRead,
@@ -12,25 +12,30 @@ import NotificationCard from '@/components/notifications/NotificationCard';
 import EmptyState from '@/components/notifications/EmptyState';
 
 export default function NotificationsPage() {
-    const { user } = useUser();
+    const { user, loading: authLoading } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Initial Load
-    useEffect(() => {
-        if (user) {
-            refreshData();
-        }
-    }, [user]);
-
-    const refreshData = () => {
+    const refreshData = useCallback(() => {
         if (!user) return;
         const data = getAllNotifications(user.id);
         setNotifications(data);
         setUnreadCount(getUnreadCount(user.id));
         setIsLoading(false);
-    };
+    }, [user]);
+
+    // Initial Load
+    useEffect(() => {
+        if (authLoading) {
+            return;
+        }
+        if (user) {
+            queueMicrotask(refreshData);
+        } else {
+            setIsLoading(false);
+        }
+    }, [authLoading, refreshData, user]);
 
     const handleNotificationClick = (notification: Notification) => {
         if (notification.status === 'unread') {
@@ -48,14 +53,14 @@ export default function NotificationsPage() {
 
     if (!user) {
         return (
-            <div className="min-h-screen pt-24 flex items-center justify-center">
+            <div className="min-h-screen pt-24 flex items-center justify-center bg-background-light dark:bg-background-dark">
                 <div className="animate-pulse w-8 h-8 bg-blue-500 rounded-full" />
             </div>
         );
     }
 
     return (
-        <main className="min-h-screen bg-gray-50 dark:bg-black pb-24">
+        <main className="min-h-screen bg-background-light dark:bg-background-dark pb-24">
             {/* 
               Hero Context (Compact) 
               h-[18vh] as per spec
@@ -68,8 +73,8 @@ export default function NotificationsPage() {
                 {/* Glass Container */}
                 <div className="
                     relative z-10 w-full max-w-lg mx-4 p-6 text-center
-                    bg-white/30 dark:bg-black/30 backdrop-blur-md
-                    rounded-3xl border border-white/20 shadow-xl
+                    bg-surface-light/88 dark:bg-surface-dark/86 backdrop-blur-md
+                    rounded-[24px] border border-slate-200/80 dark:border-white/10 shadow-sm
                 ">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                         مركز الإشعارات
@@ -88,7 +93,7 @@ export default function NotificationsPage() {
                 {isLoading ? (
                     // Skeleton Loading
                     [...Array(3)].map((_, i) => (
-                        <div key={i} className="h-24 w-full bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
+                        <div key={i} className="h-24 w-full bg-slate-200 dark:bg-surface-dark rounded-2xl animate-pulse" />
                     ))
                 ) : notifications.length > 0 ? (
                     <div className="space-y-3">

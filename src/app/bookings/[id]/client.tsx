@@ -48,25 +48,111 @@ function buildTimeline(booking: Booking) {
     return entries;
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
     return (
-        <article className="rounded-[1.8rem] border border-white/70 bg-white/95 p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900/95">
-            <h3 className="text-lg font-black text-slate-950 dark:text-white">{title}</h3>
-            <div className="mt-4">{children}</div>
+        <article className={`pt-6 ${className}`}>
+            <h3 className="text-lg font-black text-slate-950 dark:text-white mb-4">{title}</h3>
+            <div>{children}</div>
         </article>
     );
 }
 
 function KeyValue({ label, value }: { label: string; value: React.ReactNode }) {
     return (
-        <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-white/[0.05]">
-            <div className="text-xs font-bold text-slate-400">{label}</div>
-            <div className="mt-1 text-sm font-bold text-slate-900 dark:text-white">{value}</div>
+        <div className="py-2">
+            <div className="text-xs font-bold text-slate-400 mb-1">{label}</div>
+            <div className="text-sm font-bold text-slate-900 dark:text-white">{value}</div>
         </div>
     );
 }
 
-export default function BookingDetailsClient({ bookingId, isCreatedFlow }: { bookingId: string; isCreatedFlow?: boolean }) {
+function BookingTimeline({ entries }: { entries: ReturnType<typeof buildTimeline> }) {
+    return (
+        <div className="relative">
+            <div className="absolute top-4 bottom-4 right-5 w-[2px] bg-slate-100 dark:bg-zinc-800"></div>
+            <div className="space-y-6 relative">
+                {entries.map((entry, index) => {
+                    const isLast = index === entries.length - 1;
+                    return (
+                        <div key={entry.key} className="flex gap-4">
+                            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white border-2 border-slate-200 text-slate-500 z-10 dark:bg-black dark:border-zinc-700 dark:text-slate-300">
+                                <span className="material-symbols-outlined text-[18px]">{entry.icon}</span>
+                            </div>
+                            <div className="flex-1 pt-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <h4 className={`font-bold ${isLast ? 'text-primary dark:text-blue-400' : 'text-slate-900 dark:text-white'}`}>{entry.title}</h4>
+                                    <span className="text-xs font-bold text-slate-400">{formatDateTime(entry.date)}</span>
+                                </div>
+                                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-300">{entry.description}</p>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function BookingActionPanel({ 
+    canCancel, 
+    canRespond, 
+    isLandlordView, 
+    cancelBooking, 
+    openConversation, 
+    setDecisionAction 
+}: { 
+    canCancel: boolean; 
+    canRespond: boolean; 
+    isLandlordView: boolean; 
+    cancelBooking: () => void; 
+    openConversation: () => void; 
+    setDecisionAction: (a: DecisionAction) => void;
+}) {
+    if (!canCancel && !canRespond) {
+        return (
+            <div className="space-y-3">
+                <button type="button" onClick={() => void openConversation()} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-100 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-slate-200 dark:bg-white/[0.06] dark:text-slate-100 dark:hover:bg-white/10">
+                    <span className="material-symbols-outlined text-[18px]">chat</span>
+                    مراسلة الطرف الآخر
+                </button>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-500 dark:border-zinc-700 dark:bg-white/[0.05] dark:text-slate-300">
+                    هذا الحجز في حالة نهائية حالياً، ويمكنك فقط متابعة التفاصيل أو التواصل مع الطرف الآخر.
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-3">
+            {canRespond ? (
+                <div className="grid grid-cols-2 gap-3">
+                    <button type="button" onClick={() => setDecisionAction('landlord_confirm')} className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white transition hover:bg-emerald-600 shadow-sm">
+                        <span className="material-symbols-outlined text-[18px]">check</span>
+                        قبول
+                    </button>
+                    <button type="button" onClick={() => setDecisionAction('landlord_reject')} className="flex items-center justify-center gap-2 rounded-2xl bg-rose-50 px-4 py-3.5 text-sm font-bold text-rose-600 transition hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20">
+                        <span className="material-symbols-outlined text-[18px]">close</span>
+                        رفض
+                    </button>
+                </div>
+            ) : null}
+            
+            {canCancel ? (
+                <button type="button" onClick={() => void cancelBooking()} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-50 py-3.5 text-sm font-bold text-rose-600 transition hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20">
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                    إلغاء الحجز
+                </button>
+            ) : null}
+
+            <button type="button" onClick={() => void openConversation()} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-3.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-slate-100 dark:hover:bg-zinc-800">
+                <span className="material-symbols-outlined text-[18px]">chat</span>
+                مراسلة الطرف الآخر
+            </button>
+        </div>
+    );
+}
+
+export default function BookingDetailsClient({ bookingId, isCreatedFlow, entryView }: { bookingId: string; isCreatedFlow?: boolean; entryView?: 'tenant' | 'landlord' }) {
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
     const { showToast } = useToast();
@@ -109,16 +195,26 @@ export default function BookingDetailsClient({ bookingId, isCreatedFlow }: { boo
         if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     }, []);
 
-    const viewerRole = useMemo(() => {
+    const effectiveView = useMemo(() => {
         if (!booking || !user) return null;
-        if (booking.userId === user.id) return 'tenant';
-        if (booking.property?.ownerId === user.id) return 'landlord';
+        
+        const userIsTenant = booking.userId === user.id;
+        const userIsLandlord = booking.property?.ownerId === user.id;
+        
+        // If entryView is provided, validate it against the actual user roles
+        if (entryView === 'tenant' && userIsTenant) return 'tenant';
+        if (entryView === 'landlord' && userIsLandlord) return 'landlord';
+        
+        // Fallback to the first available valid role if entryView is invalid or missing
+        if (userIsTenant) return 'tenant';
+        if (userIsLandlord) return 'landlord';
+        
         return null;
-    }, [booking, user]);
+    }, [booking, user, entryView]);
 
 
-    const isTenantView = viewerRole === 'tenant';
-    const isLandlordView = viewerRole === 'landlord';
+    const isTenantView = effectiveView === 'tenant';
+    const isLandlordView = effectiveView === 'landlord';
     const isElectronicPayment = booking?.paymentMethod === 'vodafone_cash' || booking?.paymentMethod === 'instapay';
     const canUploadReceipt = Boolean(isTenantView && isElectronicPayment && booking && !booking.paymentProof);
     const canCancel = Boolean(booking && isTenantView && canTenantCancelBooking(booking.status));
@@ -209,73 +305,192 @@ export default function BookingDetailsClient({ bookingId, isCreatedFlow }: { boo
         return <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-black"><div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-7 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900"><h1 className="text-2xl font-black text-slate-900 dark:text-white">يجب تسجيل الدخول أولاً</h1><p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-300">لتتمكن من عرض تفاصيل الحجز وإدارته.</p><button type="button" onClick={() => router.push(`/auth?mode=login&redirect=${encodeURIComponent(`/bookings/${bookingId}`)}`)} className="mt-6 w-full rounded-2xl bg-primary px-4 py-3.5 font-bold text-white transition hover:bg-primary/90">تسجيل الدخول</button></div></main>;
     }
 
-    if (error || !booking || !viewerRole) {
+    if (error || !booking || !effectiveView) {
         return <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-black"><div className="w-full max-w-md rounded-[2rem] border border-rose-200 bg-white p-7 text-center shadow-sm dark:border-rose-900/40 dark:bg-zinc-900"><h1 className="text-2xl font-black text-slate-900 dark:text-white">تعذر عرض الحجز</h1><p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-300">{error || 'هذا الحجز غير متاح حالياً.'}</p><button type="button" onClick={() => router.push('/bookings')} className="mt-6 w-full rounded-2xl bg-primary px-4 py-3.5 font-bold text-white transition hover:bg-primary/90">العودة إلى مركز الحجوزات</button></div></main>;
     }
 
     return (
-        <main className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] pb-24 dark:bg-black">
+        <main className="min-h-screen bg-slate-50 pb-28 lg:pb-12 dark:bg-black">
             <div className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl dark:border-white/10 dark:bg-black/80">
-                <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 lg:px-6">
-                    <button type="button" onClick={() => router.push('/bookings')} className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:text-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200" aria-label="العودة إلى الحجوزات"><span className="material-symbols-outlined">arrow_forward</span></button>
+                <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-4">
+                    <button type="button" onClick={() => router.push('/bookings')} className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800" aria-label="العودة إلى الحجوزات"><span className="material-symbols-outlined">arrow_forward</span></button>
                     <div className="text-center"><p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Booking</p><h1 className="text-lg font-black text-slate-950 dark:text-white">تفاصيل الحجز</h1></div>
-                    <button type="button" onClick={() => void copyReference()} className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:text-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">#{reference}</button>
+                    <button type="button" onClick={() => void copyReference()} className="rounded-full bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-200 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800">#{reference}</button>
                 </div>
             </div>
 
-            <div className="mx-auto max-w-6xl px-4 py-6 lg:px-6">
-                {isCreatedFlow ? <section className="mb-5 rounded-[1.8rem] border border-emerald-200 bg-emerald-50/90 p-5 text-emerald-800 shadow-sm dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-200"><h2 className="text-lg font-black">تم إرسال طلب الحجز بنجاح</h2><p className="mt-1 text-sm leading-7">هذه الصفحة أصبحت مركز الحجز الدائم: منها ستتابع الحالة، الفاتورة، الدفع، ورد المؤجر.</p></section> : null}
+            <div className="mx-auto max-w-5xl px-4 py-6">
+                {isCreatedFlow ? <section className="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-5 text-emerald-800 shadow-sm dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-200"><h2 className="text-lg font-black">تم إرسال طلب الحجز بنجاح</h2><p className="mt-1 text-sm leading-7">هذه الصفحة أصبحت مركز الحجز الدائم: منها ستتابع الحالة، الفاتورة، الدفع، ورد المؤجر.</p></section> : null}
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-                    <section className="space-y-6 lg:col-span-8">
-                        <article className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/95 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.35)] dark:border-white/10 dark:bg-zinc-900/95">
-                            <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-[220px_minmax(0,1fr)]">
-                                <div className="relative h-52 overflow-hidden rounded-[1.5rem] bg-slate-100 dark:bg-zinc-800">{booking.property?.images?.[0] ? <Image src={booking.property.images[0]} alt={booking.property.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 220px" /> : <div className="flex h-full items-center justify-center text-slate-300 dark:text-zinc-600"><span className="material-symbols-outlined text-5xl">image</span></div>}</div>
-                                <div className="min-w-0">
-                                    <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-3 py-1 text-xs font-bold shadow-sm ${getBookingStatusBadgeClass(booking.status)}`}>{getBookingStatusLabel(booking.status)}</span><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">{viewerRole === 'tenant' ? 'عرض المستأجر' : 'عرض المؤجر'}</span></div>
-                                    <h2 className="mt-4 text-2xl font-black leading-tight text-slate-950 dark:text-white">{booking.property?.title || 'العقار غير متوفر'}</h2>
-                                    <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-300">{getBookingStatusDescription(booking.status)}</p>
-                                    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"><KeyValue label="الفترة" value={`${formatDate(booking.startDate)} - ${formatDate(booking.endDate)}`} /><KeyValue label="الإجمالي" value={`${formatMoney(booking.totalAmount)} ج.م`} /><KeyValue label="طريقة الدفع" value={formatPaymentMethod(booking.paymentMethod)} /><KeyValue label="حالة الدفع" value={formatPaymentStatus(booking.paymentStatus)} /></div>
-                                    <div className="mt-5 flex flex-wrap items-center gap-3"><Link href={`/property/${booking.propertyId}`} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-primary/30 hover:text-primary dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"><span className="material-symbols-outlined text-[18px]">home_work</span>عرض العقار</Link><button type="button" onClick={() => void openConversation()} className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-primary/90"><span className="material-symbols-outlined text-[18px]">chat</span>مراسلة الطرف الآخر</button></div>
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+                    
+                    <section className="lg:col-span-8">
+                        {/* Hero Section */}
+                        <article className="overflow-hidden rounded-3xl bg-white shadow-sm border border-slate-100 dark:border-white/5 dark:bg-zinc-900">
+                            <div className="grid grid-cols-1 sm:grid-cols-[200px_minmax(0,1fr)]">
+                                <div className="relative h-48 sm:h-full overflow-hidden bg-slate-100 dark:bg-zinc-800">{booking.property?.images?.[0] ? <Image src={booking.property.images[0]} alt={booking.property.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 200px" /> : <div className="flex h-full items-center justify-center text-slate-300 dark:text-zinc-600"><span className="material-symbols-outlined text-5xl">image</span></div>}</div>
+                                <div className="p-6">
+                                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                                        <span className={`rounded-full px-3 py-1 text-xs font-bold shadow-sm ${getBookingStatusBadgeClass(booking.status)}`}>{getBookingStatusLabel(booking.status)}</span>
+                                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">{isTenantView ? 'عرض المستأجر' : 'عرض المؤجر'}</span>
+                                    </div>
+                                    <h2 className="text-2xl font-black leading-tight text-slate-950 dark:text-white">{booking.property?.title || 'العقار غير متوفر'}</h2>
+                                    <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-300">{getBookingStatusDescription(booking.status)}</p>
+                                    
+                                    <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                            <span className="material-symbols-outlined text-[18px] opacity-70">calendar_month</span>
+                                            <span className="font-bold">{formatDate(booking.startDate)} - {formatDate(booking.endDate)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-slate-900 dark:text-white">
+                                            <span className="material-symbols-outlined text-[18px] opacity-70">payments</span>
+                                            <span className="font-black">{formatMoney(booking.totalAmount)} ج.م</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </article>
 
-                        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                            <Section title="الفاتورة"><PriceBreakdown rentalType={booking.rentalType} duration={duration} pricePerUnit={unitPrice} basePrice={booking.basePrice} serviceFee={booking.serviceFee} depositAmount={booking.depositAmount} totalAmount={booking.totalAmount} /></Section>
-                            <Section title="الدفع">
-                                <div className="space-y-3 text-sm">
-                                    <KeyValue label="رقم التحويل" value={`#${reference}`} />
-                                    <KeyValue label="طريقة الدفع" value={formatPaymentMethod(booking.paymentMethod)} />
-                                    <KeyValue label="حالة الدفع" value={formatPaymentStatus(booking.paymentStatus)} />
-                                    {isElectronicPayment ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200"><p className="text-sm font-bold">الرقم المخصص للتحويل</p><div className="mt-2 flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-slate-900 dark:bg-zinc-950 dark:text-white"><span className="font-black">{PAYMENT_NUMBER}</span><span className="font-black">{formatMoney(booking.totalAmount)} ج.م</span></div></div> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-200">سيتم تحصيل المبلغ عند الاستلام.</div>}
-                                    {booking.paymentProof ? <a href={booking.paymentProof} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-slate-700 transition hover:border-primary/30 hover:text-primary dark:border-zinc-700 dark:text-zinc-100"><span className="inline-flex items-center gap-2 font-bold"><span className="material-symbols-outlined text-[18px]">receipt_long</span>معاينة إيصال الدفع</span><span className="material-symbols-outlined text-[18px]">open_in_new</span></a> : null}
-                                </div>
+                        {/* Quiet Sections without heavy boxing */}
+                        <div className="mt-8 space-y-2 divide-y divide-slate-100 dark:divide-white/5">
+                            
+                            {isTenantView ? (
+                                <>
+                                    <Section title="الفاتورة">
+                                        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm dark:bg-zinc-900 dark:border-white/5">
+                                            <PriceBreakdown rentalType={booking.rentalType} duration={duration} pricePerUnit={unitPrice} basePrice={booking.basePrice} serviceFee={booking.serviceFee} depositAmount={booking.depositAmount} totalAmount={booking.totalAmount} />
+                                        </div>
+                                    </Section>
+                                    
+                                    <Section title="الدفع">
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                            <KeyValue label="طريقة الدفع" value={formatPaymentMethod(booking.paymentMethod)} />
+                                            <KeyValue label="حالة الدفع" value={formatPaymentStatus(booking.paymentStatus)} />
+                                        </div>
+                                        {isElectronicPayment ? (
+                                            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-amber-800 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
+                                                <p className="text-sm font-bold">الرقم المخصص للتحويل</p>
+                                                <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-white/60 px-4 py-3 text-slate-900 dark:bg-black/20 dark:text-white">
+                                                    <span className="font-black text-lg">{PAYMENT_NUMBER}</span>
+                                                    <span className="font-black">{formatMoney(booking.totalAmount)} ج.م</span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-700 dark:border-zinc-700 dark:bg-white/5 dark:text-slate-300">
+                                                سيتم تحصيل المبلغ نقداً عند الوصول.
+                                            </div>
+                                        )}
+                                        {booking.paymentProof ? (
+                                            <a href={booking.paymentProof} target="_blank" rel="noopener noreferrer" className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-4 font-bold text-primary shadow-sm border border-slate-100 transition hover:border-primary/30 dark:bg-zinc-900 dark:border-white/5 dark:hover:border-primary/30">
+                                                <span className="inline-flex items-center gap-2"><span className="material-symbols-outlined text-[20px]">receipt_long</span>معاينة الإيصال المرفق</span>
+                                                <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                                            </a>
+                                        ) : null}
+                                    </Section>
+
+                                    {canUploadReceipt ? (
+                                        <Section title="إرفاق إيصال الدفع">
+                                            <p className="text-sm leading-6 text-slate-500 mb-4 dark:text-slate-300">ارفع صورة إيصال التحويل البنكي أو المحفظة الإلكترونية لتوثيق الدفع.</p>
+                                            {previewUrl ? <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 dark:border-zinc-700"><div className="relative h-64 w-full bg-slate-100 dark:bg-zinc-800"><Image src={previewUrl} alt="معاينة الإيصال" fill className="object-contain" unoptimized /></div></div> : null}
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3.5 text-sm font-bold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200">
+                                                    <input type="file" accept="image/*" onChange={uploadReceipt} disabled={uploadState === 'uploading'} className="hidden" />
+                                                    <span className="material-symbols-outlined text-[18px]">upload</span>
+                                                    {uploadState === 'uploading' ? 'جاري الرفع...' : 'اختيار صورة الإيصال'}
+                                                </label>
+                                                {uploadMessage ? <span className="text-sm font-bold text-slate-500 dark:text-slate-400">{uploadMessage}</span> : null}
+                                            </div>
+                                        </Section>
+                                    ) : null}
+                                </>
+                            ) : (
+                                <>
+                                    <Section title="بيانات الطلب والدفع">
+                                        <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm dark:bg-zinc-900 dark:border-white/5 space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <KeyValue label="طريقة الدفع" value={formatPaymentMethod(booking.paymentMethod)} />
+                                                <KeyValue label="حالة الدفع" value={formatPaymentStatus(booking.paymentStatus)} />
+                                            </div>
+                                            {booking.paymentProof ? (
+                                                <div className="pt-2 border-t border-slate-100 dark:border-white/5 mt-2">
+                                                    <a href={booking.paymentProof} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3 rounded-2xl bg-emerald-50 px-4 py-4 font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30">
+                                                        <span className="inline-flex items-center gap-2"><span className="material-symbols-outlined text-[20px]">receipt_long</span>عرض إيصال التحويل المرفق من المستأجر</span>
+                                                        <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                                                    </a>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    </Section>
+                                </>
+                            )}
+
+                            {booking.landlordNote ? (
+                                <Section title="رسالة المؤجر">
+                                    <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-5 dark:border-blue-900/20 dark:bg-blue-900/10">
+                                        <p className="whitespace-pre-wrap text-sm leading-7 text-blue-900 dark:text-blue-100">{booking.landlordNote}</p>
+                                        {booking.landlordNoteUpdatedAt ? <p className="mt-3 text-xs font-bold text-blue-500/70 dark:text-blue-300/50">آخر تحديث: {formatDateTime(booking.landlordNoteUpdatedAt)}</p> : null}
+                                    </div>
+                                </Section>
+                            ) : null}
+
+                            <Section title="سجل الحالة">
+                                <BookingTimeline entries={timeline} />
                             </Section>
                         </div>
-
-                        {canUploadReceipt ? <Section title="رفع إيصال الدفع"><p className="text-sm leading-7 text-slate-500 dark:text-slate-300">ارفع صورة الإيصال ليتمكن المؤجر أو الإدارة من مراجعتها بسرعة.</p>{previewUrl ? <div className="mt-4 overflow-hidden rounded-[1.4rem] border border-slate-200 dark:border-zinc-700"><div className="relative h-64 w-full bg-slate-100 dark:bg-zinc-800"><Image src={previewUrl} alt="معاينة الإيصال" fill className="object-contain" unoptimized /></div></div> : null}<div className="mt-4 flex flex-wrap items-center gap-3"><label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-primary/90"><input type="file" accept="image/*" onChange={uploadReceipt} disabled={uploadState === 'uploading'} className="hidden" /><span className="material-symbols-outlined text-[18px]">upload</span>{uploadState === 'uploading' ? 'جاري الرفع...' : 'اختيار صورة الإيصال'}</label>{uploadMessage ? <span className="text-sm text-slate-500 dark:text-slate-300">{uploadMessage}</span> : null}</div></Section> : null}
-
-                        {booking.landlordNote ? <article className="rounded-[1.8rem] border border-blue-200 bg-blue-50/80 p-5 shadow-sm dark:border-blue-900/30 dark:bg-blue-950/20"><h3 className="text-lg font-black text-blue-900 dark:text-blue-100">ملاحظة المؤجر</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-blue-800 dark:text-blue-200">{booking.landlordNote}</p>{booking.landlordNoteUpdatedAt ? <p className="mt-2 text-xs font-bold text-blue-500 dark:text-blue-300">آخر تحديث: {formatDateTime(booking.landlordNoteUpdatedAt)}</p> : null}</article> : null}
-
-                        <Section title="الخط الزمني"><div className="space-y-4">{timeline.map((entry) => <div key={entry.key} className="flex gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-200"><span className="material-symbols-outlined text-[20px]">{entry.icon}</span></div><div className="min-w-0 flex-1 rounded-2xl bg-slate-50 px-4 py-3 dark:bg-white/[0.05]"><div className="flex flex-wrap items-center justify-between gap-2"><h4 className="font-bold text-slate-900 dark:text-white">{entry.title}</h4><span className="text-xs font-bold text-slate-400">{formatDateTime(entry.date)}</span></div><p className="mt-1 text-sm leading-7 text-slate-500 dark:text-slate-300">{entry.description}</p></div></div>)}</div></Section>
                     </section>
 
-                    <aside className="space-y-6 lg:col-span-4">
-                        <Section title={isTenantView ? 'بيانات المؤجر' : 'بيانات المستأجر'}><div className="space-y-3 text-sm"><KeyValue label={isTenantView ? 'الاسم' : 'اسم المستأجر'} value={isTenantView ? booking.property?.ownerName || 'غير متوفر' : booking.tenantName || booking.user?.fullName || 'غير متوفر'} /><KeyValue label="الهاتف" value={isTenantView ? booking.property?.ownerPhone || 'غير متوفر' : booking.tenantPhone || booking.user?.phone || 'غير متوفر'} /><KeyValue label="البريد الإلكتروني" value={isTenantView ? 'يتم التواصل عبر الرسائل أو الهاتف' : booking.tenantEmail || booking.user?.email || 'غير متوفر'} /></div></Section>
-
-                        <Section title={isTenantView ? 'إدارة الحجز' : 'لوحة القرار'}>
-                            <div className="space-y-3">
-                                <button type="button" onClick={() => void openConversation()} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-100 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-slate-200 dark:bg-white/[0.06] dark:text-slate-100 dark:hover:bg-white/10"><span className="material-symbols-outlined text-[18px]">chat</span>مراسلة الطرف الآخر</button>
-                                {canCancel ? <button type="button" onClick={() => void cancelBooking()} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-500 py-3.5 text-sm font-bold text-white transition hover:bg-rose-600"><span className="material-symbols-outlined text-[18px]">close</span>إلغاء الحجز</button> : null}
-                                {canRespond ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><button type="button" onClick={() => setDecisionAction('landlord_confirm')} className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-white transition hover:bg-emerald-600"><span className="material-symbols-outlined text-[18px]">check</span>قبول</button><button type="button" onClick={() => setDecisionAction('landlord_reject')} className="flex items-center justify-center gap-2 rounded-2xl bg-rose-500 py-3.5 text-sm font-bold text-white transition hover:bg-rose-600"><span className="material-symbols-outlined text-[18px]">close</span>رفض</button></div> : null}
-                                {!canCancel && !canRespond ? <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-7 text-slate-500 dark:border-zinc-700 dark:bg-white/[0.05] dark:text-slate-300">هذا الحجز في حالة نهائية حالياً، ويمكنك فقط متابعة التفاصيل أو التواصل مع الطرف الآخر.</div> : null}
+                    <aside className="lg:col-span-4">
+                        <div className="sticky top-28 space-y-6">
+                            
+                            {/* Desktop Decision Panel */}
+                            <div className="hidden lg:block bg-white rounded-3xl p-6 shadow-[0_8px_30px_-12px_rgba(15,23,42,0.12)] border border-slate-100 dark:bg-zinc-900 dark:border-white/5">
+                                <h3 className="text-lg font-black text-slate-950 dark:text-white mb-5">{isTenantView ? 'الإجراءات' : 'القرار'}</h3>
+                                <BookingActionPanel 
+                                    canCancel={canCancel} 
+                                    canRespond={canRespond} 
+                                    isLandlordView={isLandlordView} 
+                                    cancelBooking={cancelBooking} 
+                                    openConversation={openConversation} 
+                                    setDecisionAction={setDecisionAction} 
+                                />
                             </div>
-                        </Section>
 
-                        {isLandlordView ? <Section title="ملخص العائد"><div className="space-y-3 text-sm"><KeyValue label="قيمة الإيجار الأساسية" value={`${formatMoney(booking.basePrice)} ج.م`} /><KeyValue label="رسوم المنصة" value={`${formatMoney(booking.serviceFee)} ج.م`} /><KeyValue label="إجمالي الدفع من المستأجر" value={`${formatMoney(booking.totalAmount)} ج.م`} /></div></Section> : null}
+                            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 dark:bg-zinc-900 dark:border-white/5">
+                                <h3 className="text-lg font-black text-slate-950 dark:text-white mb-4">{isTenantView ? 'بيانات المؤجر' : 'بيانات المستأجر'}</h3>
+                                <div className="space-y-1">
+                                    <KeyValue label={isTenantView ? 'الاسم' : 'اسم المستأجر'} value={isTenantView ? booking.property?.ownerName || 'غير متوفر' : booking.tenantName || booking.user?.fullName || 'غير متوفر'} />
+                                    <KeyValue label="الهاتف" value={isTenantView ? booking.property?.ownerPhone || 'غير متوفر' : booking.tenantPhone || booking.user?.phone || 'غير متوفر'} />
+                                    <KeyValue label="البريد الإلكتروني" value={isTenantView ? 'يتم التواصل عبر الرسائل أو الهاتف' : booking.tenantEmail || booking.user?.email || 'غير متوفر'} />
+                                </div>
+                            </div>
+
+                            {isLandlordView ? (
+                                <div className="bg-slate-100 rounded-3xl p-6 dark:bg-white/5">
+                                    <h3 className="text-lg font-black text-slate-950 dark:text-white mb-4">صافي الأرباح</h3>
+                                    <div className="space-y-1">
+                                        <KeyValue label="قيمة الإيجار الأساسية" value={`${formatMoney(booking.basePrice)} ج.م`} />
+                                        <KeyValue label="رسوم المنصة" value={`${formatMoney(booking.serviceFee)} ج.م`} />
+                                        <div className="pt-3 mt-2 border-t border-slate-200 dark:border-white/10">
+                                            <KeyValue label="إجمالي العائد لك" value={`${formatMoney(booking.totalAmount)} ج.م`} />
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
                     </aside>
                 </div>
+            </div>
+
+            {/* Mobile Sticky Action Bar */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/80 bg-white/90 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden dark:border-white/10 dark:bg-black/90 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                <BookingActionPanel 
+                    canCancel={canCancel} 
+                    canRespond={canRespond} 
+                    isLandlordView={isLandlordView} 
+                    cancelBooking={cancelBooking} 
+                    openConversation={openConversation} 
+                    setDecisionAction={setDecisionAction} 
+                />
             </div>
 
             <BookingDecisionDialog open={Boolean(decisionAction)} action={decisionAction || 'landlord_confirm'} bookingTitle={booking.property?.title || 'الحجز'} guestName={booking.tenantName || booking.user?.fullName} initialNote={booking.landlordNote} loading={decisionLoading} onClose={() => { if (!decisionLoading) setDecisionAction(null); }} onSubmit={submitDecision} />

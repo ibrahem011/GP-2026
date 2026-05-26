@@ -19,11 +19,11 @@ export default function FloatingActions({
 }: FloatingActionsProps) {
     return (
         <div
-            className="md:hidden fixed left-0 right-0 z-40"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom) + var(--chrome-bottom) + 12px)' }}
+            className="md:hidden fixed left-0 right-0 z-40 transition-all duration-300 pointer-events-none"
+            style={{ bottom: 'max(env(safe-area-inset-bottom) + 16px, 16px)' }}
         >
-            <div className="mx-auto max-w-md px-3">
-                <div className="bg-white/90 dark:bg-black/80 backdrop-blur border border-gray-200 dark:border-white/10 shadow-xl rounded-2xl p-2 flex items-center justify-between">
+            <div className="mx-auto max-w-md px-4 sm:px-6 pointer-events-auto">
+                <div className="bg-surface-light/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] rounded-[24px] p-2 flex items-center justify-between ring-1 ring-black/5 dark:ring-white/10">
                     {/* Filters */}
                     <button
                         onClick={onOpenFilters}

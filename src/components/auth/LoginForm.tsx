@@ -68,7 +68,7 @@ export default function LoginForm({
         try {
             const success = await login(email, password);
             if (!success) {
-                setError('بيانات الدخول غير صحيحة');
+                setError('البريد الإلكتروني أو كلمة المرور غير صحيحة. تحقق من بياناتك وحاول مجدداً.');
                 return;
             }
             router.replace(redirectUrl || '/');
@@ -149,7 +149,7 @@ export default function LoginForm({
 
                     <div className="relative flex items-center py-1">
                         <div className="flex-grow border-t border-border-light dark:border-border-dark" />
-                        <span className="mx-3 text-xs text-text-muted dark:text-gray-400">أو عبر البريد</span>
+                        <span className="mx-3 text-xs text-text-muted dark:text-gray-400">أو سجل باستخدام بريدك الإلكتروني</span>
                         <div className="flex-grow border-t border-border-light dark:border-border-dark" />
                     </div>
 
@@ -161,7 +161,7 @@ export default function LoginForm({
                             className="w-full h-12 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark/80 px-4 text-right text-base text-text-main dark:text-white placeholder:text-text-muted/60 dark:placeholder:text-gray-400/60 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                             id="email"
                             name="email"
-                            placeholder="example@domain.com"
+                            placeholder="بريدك الإلكتروني (مثل: name@mail.com)"
                             type="email"
                             autoComplete="email"
                             inputMode="email"
@@ -188,7 +188,7 @@ export default function LoginForm({
                                 className="w-full h-12 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark/80 px-4 pl-12 text-right text-base text-text-main dark:text-white placeholder:text-text-muted/60 dark:placeholder:text-gray-400/60 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
                                 id="password"
                                 name="password"
-                                placeholder="********"
+                                placeholder="أدخل كلمة المرور"
                                 type={showPassword ? 'text' : 'password'}
                                 autoComplete="current-password"
                                 required

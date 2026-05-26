@@ -77,21 +77,20 @@ export default function ProfilePage() {
             setStatsError(null);
 
             try {
-                // NOTE: If possible, replace these with count-only queries inside supabaseService
-                // to avoid downloading long lists just to count them.
-                const [myProps, unlocked, favoriteResult] = await Promise.all([
-                    supabaseService.getProperties({ ownerId: u.id }),
-                    supabaseService.getUnlockedProperties(u.id),
-                    supabaseService.getFavorites(u.id),
-                ]);
+                const statsResult = await supabaseService.getProfileStats(u.id, {
+                    timeoutMs: 8_000,
+                    maxRetries: 0,
+                    retryOnTimeout: false,
+                    operationKey: 'profileStats',
+                });
 
                 if (cancelled) return;
 
-                setStats({
-                    properties: Array.isArray(myProps) ? myProps.length : 0,
-                    unlocked: Array.isArray(unlocked) ? unlocked.length : 0,
-                    favorites: Array.isArray(favoriteResult.data) ? favoriteResult.data.length : 0,
-                });
+                if (statsResult.error) {
+                    throw statsResult.error;
+                }
+
+                setStats(statsResult.stats);
             } catch (e) {
                 console.error(e);
                 if (cancelled) return;
@@ -113,11 +112,10 @@ export default function ProfilePage() {
         return <LoggedOutCTA />;
     }
 
-    const isLandlord = role.key === 'landlord';
     const isAdmin = role.key === 'admin';
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-black pb-28" dir="rtl">
+        <div className="min-h-screen bg-background-light dark:bg-background-dark pb-28" dir="rtl">
             {/* Mobile Sticky Top Bar */}
             <div className="sm:hidden sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5 px-4 h-14 flex items-center justify-between">
                 <button
@@ -201,7 +199,7 @@ export default function ProfilePage() {
 
                         <SectionCard title="إحصائيات سريعة">
                             {statsError ? (
-                                <div className="p-5">
+                                <div className="p-5" data-testid="profile-stats-error">
                                     <p className="text-sm font-bold text-red-600 dark:text-red-400 mb-3">{statsError}</p>
                                     <button
                                         type="button"
@@ -524,7 +522,7 @@ function normalizeUser(user: UserLike | null, overrides: ProfileOverrides | null
     const avatar = user?.avatar ?? user?.avatar_url ?? null;
     const role = user?.role ?? null;
 
-    const isVerified = Boolean((user as any)?.isVerified ?? (user as any)?.is_verified ?? false);
+    const isVerified = Boolean(user?.isVerified ?? user?.is_verified ?? false);
     const email = user?.email ?? null;
 
     return {
@@ -571,7 +569,7 @@ function getRolePresentation(role: string | null | undefined) {
 
 function ProfilePageSkeleton() {
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-black pb-28" dir="rtl">
+        <div className="min-h-screen bg-background-light dark:bg-background-dark pb-28" dir="rtl">
             <div className="mx-auto w-full max-w-6xl px-4 pt-6 lg:pt-10 animate-pulse">
                 <div className="h-8 w-40 rounded-lg bg-gray-200 dark:bg-zinc-800" />
                 <div className="mt-3 h-4 w-80 rounded bg-gray-200 dark:bg-zinc-800" />
@@ -604,7 +602,7 @@ function ProfilePageSkeleton() {
 
 function LoggedOutCTA() {
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-black flex items-center justify-center p-6 pb-24" dir="rtl">
+        <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center p-6 pb-24" dir="rtl">
             <div className="w-full max-w-md text-center">
                 <div className="w-24 h-24 bg-white dark:bg-zinc-900 rounded-full mb-8 mx-auto flex items-center justify-center border border-gray-100 dark:border-white/5 shadow-xl">
                     <span className="material-symbols-outlined text-gray-300 text-6xl">person_off</span>

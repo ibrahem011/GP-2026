@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { unlockProperty as unlockPropertyInMock, addNotification } from '@/lib/storage';
-import { useUser } from '@/hooks/useUser';
+import { useAuth } from '@/context/AuthContext';
 import { supabaseService } from '@/services/supabaseService';
 import { getIsMockMode } from '@/config/constants';
 
@@ -15,7 +15,7 @@ interface UnlockModalProps {
 const UNLOCK_AMOUNT = 50;
 
 export function UnlockModal({ propertyId, onClose, onSuccess }: UnlockModalProps) {
-    const { user } = useUser();
+    const { user } = useAuth();
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [step, setStep] = useState(1);

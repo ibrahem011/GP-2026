@@ -166,6 +166,30 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
     return c;
   }, [activeFilters]);
 
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string; icon: string }> = [];
+    if (collection) chips.push({ key: 'collection', label: 'قائمة محفوظة', icon: 'bookmark' });
+    if (activeFilters.category && activeFilters.category !== 'all') {
+      chips.push({ key: 'category', label: activeFilters.category, icon: 'apartment' });
+    }
+    if (activeFilters.area && activeFilters.area !== 'all') {
+      chips.push({ key: 'area', label: activeFilters.area, icon: 'location_on' });
+    }
+    if (activeFilters.minPrice || activeFilters.maxPrice) {
+      const min = activeFilters.minPrice ? Number(activeFilters.minPrice).toLocaleString('ar-EG') : '';
+      const max = activeFilters.maxPrice ? Number(activeFilters.maxPrice).toLocaleString('ar-EG') : '';
+      const priceLabel =
+        min && max ? `من ${min} إلى ${max} ج.م` : min ? `من ${min} ج.م` : `حتى ${max} ج.م`;
+      chips.push({ key: 'price', label: priceLabel, icon: 'payments' });
+    }
+    if (activeFilters.bedrooms) chips.push({ key: 'bedrooms', label: `${activeFilters.bedrooms} غرف`, icon: 'bed' });
+    if (activeFilters.bathrooms) chips.push({ key: 'bathrooms', label: `${activeFilters.bathrooms} حمام`, icon: 'bathtub' });
+    if (activeFilters.features) {
+      chips.push({ key: 'features', label: `${activeFilters.features.split(',').filter(Boolean).length} مميزات`, icon: 'tune' });
+    }
+    return chips;
+  }, [activeFilters, collection]);
+
   const sortedProperties = useMemo(() => {
     if (sort === 'newest') return properties;
     const copy = [...properties];
@@ -175,25 +199,28 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
   }, [properties, sort]);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-28 dark:bg-black md:pb-6">
+    <div className="min-h-screen bg-background-light pb-28 dark:bg-background-dark md:pb-6">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-xl px-4 py-4 border-b border-gray-200 dark:border-white/10 transition-all duration-300">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 xl:max-w-[1400px]">
-          <button onClick={handleBack} className="h-11 w-11 rounded-2xl bg-gray-100 dark:bg-white/10 flex items-center justify-center shrink-0" aria-label="رجوع">
-            <span className="material-symbols-outlined">arrow_forward</span>
-          </button>
-          <div className="relative flex-1 group">
-            <input
-              type="text"
-              placeholder="ابحث بالاسم أو المنطقة..."
-              className="w-full p-4 pr-12 rounded-2xl bg-gray-100 dark:bg-white/10 border-2 border-transparent focus:border-primary/50 focus:bg-white dark:focus:bg-black text-gray-900 dark:text-white transition-all outline-none shadow-sm placeholder-gray-500"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">
-              search
-            </span>
+      <div className="sticky top-0 z-30 border-b border-slate-200 bg-surface-light/94 px-4 py-3 backdrop-blur-xl transition-all duration-300 dark:border-white/10 dark:bg-background-dark/90">
+        <div className="mx-auto max-w-7xl xl:max-w-[1400px]">
+          <div className="flex items-center gap-3">
+            <button onClick={handleBack} className="touch-target rounded-2xl bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 focus-visible:ring-2 focus-visible:ring-primary/50" aria-label="رجوع">
+              <span className="material-symbols-outlined">arrow_forward</span>
+            </button>
+            <div className="relative flex-1 group">
+              <input
+                type="text"
+                placeholder="ابحث بالاسم أو المنطقة..."
+                className="min-h-12 w-full p-4 pr-12 rounded-2xl bg-slate-100 dark:bg-white/10 border-2 border-transparent focus:border-primary/50 focus:bg-surface-light dark:focus:bg-surface-dark text-gray-900 dark:text-white transition-all outline-none shadow-sm placeholder-gray-500"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">
+                search
+              </span>
+            </div>
           </div>
+
         </div>
       </div>
 
@@ -204,25 +231,25 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
             عرض {sortedProperties.length} مسكن
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setIsFilterOpen(true)} className="flex items-center gap-2 px-4 h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm">
+            <button onClick={() => setIsFilterOpen(true)} className="flex min-h-11 items-center gap-2 px-4 rounded-xl border border-slate-200 dark:border-white/10 bg-surface-light dark:bg-white/5 text-sm dark:text-white focus-visible:ring-2 focus-visible:ring-primary/50">
               <span className="material-symbols-outlined text-[18px]">tune</span>
               فلترة {appliedCount > 0 && <span className="bg-primary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{appliedCount}</span>}
             </button>
 
-            <button onClick={() => setViewMode(v => v === 'list' ? 'map' : 'list')} className="flex items-center gap-2 px-4 h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm">
+            <button onClick={() => setViewMode(v => v === 'list' ? 'map' : 'list')} className="flex min-h-11 items-center gap-2 px-4 rounded-xl border border-slate-200 dark:border-white/10 bg-surface-light dark:bg-white/5 text-sm dark:text-white focus-visible:ring-2 focus-visible:ring-primary/50">
               <span className="material-symbols-outlined text-[18px]">{viewMode === 'list' ? 'map' : 'format_list_bulleted'}</span>
               {viewMode === 'list' ? 'الخريطة' : 'القائمة'}
             </button>
 
-            <button onClick={() => setSort('newest')} className={`flex items-center gap-2 px-4 h-10 rounded-xl border text-sm ${sort === 'newest' ? 'border-primary text-primary bg-primary/5' : 'border-gray-200 dark:border-white/10'}`}>
+            <button onClick={() => setSort('newest')} className={`flex min-h-11 items-center gap-2 px-4 rounded-xl border text-sm dark:text-white focus-visible:ring-2 focus-visible:ring-primary/50 ${sort === 'newest' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 dark:border-white/10'}`}>
               <span className="material-symbols-outlined text-[18px]">schedule</span> الأحدث
             </button>
 
-            <button onClick={() => setSort('price_asc')} className={`flex items-center gap-2 px-4 h-10 rounded-xl border text-sm ${sort === 'price_asc' ? 'border-primary text-primary bg-primary/5' : 'border-gray-200 dark:border-white/10'}`}>
+            <button onClick={() => setSort('price_asc')} className={`flex min-h-11 items-center gap-2 px-4 rounded-xl border text-sm dark:text-white focus-visible:ring-2 focus-visible:ring-primary/50 ${sort === 'price_asc' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 dark:border-white/10'}`}>
               <span className="material-symbols-outlined text-[18px]">arrow_upward</span> الأقل سعرًا
             </button>
 
-            <button onClick={() => setSort('price_desc')} className={`flex items-center gap-2 px-4 h-10 rounded-xl border text-sm ${sort === 'price_desc' ? 'border-primary text-primary bg-primary/5' : 'border-gray-200 dark:border-white/10'}`}>
+            <button onClick={() => setSort('price_desc')} className={`flex min-h-11 items-center gap-2 px-4 rounded-xl border text-sm dark:text-white focus-visible:ring-2 focus-visible:ring-primary/50 ${sort === 'price_desc' ? 'border-primary text-primary bg-primary/5' : 'border-slate-200 dark:border-white/10'}`}>
               <span className="material-symbols-outlined text-[18px]">arrow_downward</span> الأعلى سعرًا
             </button>
           </div>
@@ -283,7 +310,7 @@ export default function SearchPageClient({ initialProperties, initialSearchParam
         footer={
           <button
             onClick={() => setIsFilterOpen(false)}
-            className="w-full h-12 rounded-2xl bg-primary text-white font-bold"
+            className="w-full min-h-12 rounded-2xl bg-primary text-white font-bold focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             عرض النتائج ({sortedProperties.length})
           </button>

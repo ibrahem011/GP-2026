@@ -25,19 +25,49 @@ export interface RequestResilienceOptions {
     timeoutMs?: number;
     maxRetries?: number;
     signal?: AbortSignal;
+    retryOnTimeout?: boolean;
+    operationKey?: string;
 }
 
 export interface CreateFullPropertyOptions extends RequestResilienceOptions {
     onStageChange?: (stage: 'preparing' | 'uploading' | 'saving') => void;
 }
 
+export interface ProfileStats {
+    properties: number;
+    unlocked: number;
+    favorites: number;
+}
+
+export interface ProfileStatsResult {
+    stats: ProfileStats;
+    error: any;
+    isTimeout: boolean;
+}
+
 const DEFAULT_REQUEST_TIMEOUT_MS = 8000;
+const REQUEST_CIRCUIT_TIMEOUT_THRESHOLD = 3;
+const REQUEST_CIRCUIT_WINDOW_MS = 30_000;
+const REQUEST_CIRCUIT_OPEN_MS = 30_000;
+
+type RequestCircuitState = {
+    timeoutTimestamps: number[];
+    openUntil: number;
+};
+
+const requestCircuitState = new Map<string, RequestCircuitState>();
+const EMPTY_PROFILE_STATS: ProfileStats = {
+    properties: 0,
+    unlocked: 0,
+    favorites: 0,
+};
 
 export async function withTimeout<T>(promise: Promise<T>, timeoutMs?: number, signal?: AbortSignal): Promise<T> {
     const ms = timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
-            const err: any = new Error('Request timed out');
+            const err: any = new Error('REQUEST_TIMEOUT');
+            err.name = 'TimeoutError';
             err.code = 'REQUEST_TIMEOUT';
             reject(err);
         }, ms);
@@ -73,17 +103,101 @@ export function isTimeoutLikeError(error: any) {
     return error?.code === 'REQUEST_TIMEOUT' || error?.name === 'AbortError' || error?.message?.toLowerCase().includes('timeout');
 }
 
+function getRequestCircuit(operationKey?: string): RequestCircuitState | null {
+    if (!operationKey) {
+        return null;
+    }
+
+    const existing = requestCircuitState.get(operationKey);
+    if (existing) {
+        return existing;
+    }
+
+    const state = { timeoutTimestamps: [], openUntil: 0 };
+    requestCircuitState.set(operationKey, state);
+    return state;
+}
+
+function pruneCircuitTimeouts(state: RequestCircuitState, now: number) {
+    state.timeoutTimestamps = state.timeoutTimestamps.filter((timestamp) => now - timestamp <= REQUEST_CIRCUIT_WINDOW_MS);
+}
+
+function isRequestCircuitOpen(operationKey?: string, now = Date.now()) {
+    const state = getRequestCircuit(operationKey);
+    if (!state) {
+        return false;
+    }
+
+    if (state.openUntil <= now) {
+        state.openUntil = 0;
+        pruneCircuitTimeouts(state, now);
+        return false;
+    }
+
+    return true;
+}
+
+function recordRequestTimeout(operationKey?: string, now = Date.now()) {
+    const state = getRequestCircuit(operationKey);
+    if (!state) {
+        return false;
+    }
+
+    pruneCircuitTimeouts(state, now);
+    state.timeoutTimestamps.push(now);
+
+    if (state.timeoutTimestamps.length >= REQUEST_CIRCUIT_TIMEOUT_THRESHOLD) {
+        state.openUntil = now + REQUEST_CIRCUIT_OPEN_MS;
+        return true;
+    }
+
+    return false;
+}
+
+function clearRequestCircuit(operationKey?: string) {
+    if (operationKey) {
+        requestCircuitState.delete(operationKey);
+    }
+}
+
+export function resetRequestResilienceStateForTests() {
+    requestCircuitState.clear();
+}
+
 export async function fetchWithRetry<T>(fn: () => Promise<T>, options?: RequestResilienceOptions): Promise<T> {
-    const maxRetries = options?.maxRetries ?? 1;
+    const maxRetries = Math.max(0, options?.maxRetries ?? 0);
+    const retryOnTimeout = options?.retryOnTimeout === true;
+    const operationKey = options?.operationKey;
     let attempt = 0;
     while (true) {
         try {
-            return await withTimeout(fn(), options?.timeoutMs, options?.signal);
+            const result = await withTimeout(fn(), options?.timeoutMs, options?.signal);
+            clearRequestCircuit(operationKey);
+            return result;
         } catch (error) {
-            if (attempt >= maxRetries || !isTimeoutLikeError(error)) {
+            const isTimeout = isTimeoutLikeError(error);
+            const openedCircuit = isTimeout ? recordRequestTimeout(operationKey) : false;
+            const circuitOpen = isTimeout ? isRequestCircuitOpen(operationKey) : false;
+            const canRetry = isTimeout && retryOnTimeout && attempt < maxRetries && !circuitOpen;
+
+            if (!canRetry) {
+                if (isTimeout && retryOnTimeout && maxRetries > 0 && (circuitOpen || openedCircuit)) {
+                    console.warn('[fetchWithRetry] Retry skipped while circuit is open.', {
+                        operationKey,
+                        attempt,
+                        timeoutMs: options?.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+                    });
+                }
                 throw error;
             }
+
             attempt++;
+            console.warn('[fetchWithRetry] Retrying timed-out request.', {
+                operationKey,
+                attempt,
+                maxRetries,
+                timeoutMs: options?.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+            });
             await new Promise(res => setTimeout(res, 1000 * attempt));
         }
     }
@@ -124,7 +238,7 @@ let publicBookingPeriodsRpcAvailable = PUBLIC_BOOKING_PERIODS_RPC_ENABLED;
 
 type GetPropertiesLogLevel = 'error' | 'warn' | 'silent';
 
-export interface GetPropertiesFilters {
+export interface GetPropertiesFilters extends RequestResilienceOptions {
     status?: string;
     category?: string;
     area?: string;
@@ -138,9 +252,8 @@ export interface GetPropertiesFilters {
     collection?: PropertyCollection;
     limit?: number;
     offset?: number;
-    signal?: AbortSignal;
-    timeoutMs?: number;
     logLevel?: GetPropertiesLogLevel;
+    throwOnError?: boolean;
 }
 
 type PropertyQueryErrorLike = {
@@ -735,6 +848,24 @@ async function getUserBookingsFallback(userId: string): Promise<{ bookings: any[
     return { bookings: await hydrateBookingsWithPropertyImages(bookings), error: null };
 }
 
+async function countRowsByEquality(
+    table: string,
+    selectColumn: string,
+    filterColumn: string,
+    filterValue: string,
+): Promise<number> {
+    const { count, error } = await (supabase
+        .from(table)
+        .select(selectColumn, { count: 'exact', head: true })
+        .eq(filterColumn, filterValue) as any);
+
+    if (error) {
+        throw error;
+    }
+
+    return typeof count === 'number' ? count : 0;
+}
+
 function normalizeDateOnly(value: string): string | null {
     if (!value) return null;
 
@@ -957,8 +1088,17 @@ const _mockFavorites = new Set<string>();
 const _mockUnlocked = new Set<string>();
 
 export const supabaseService = {
-    async respondToBookingRequest(bookingId: string, status: string, propertyOwnerId?: string): Promise<{ success: boolean; error: any }> {
-        const { error } = await supabase.from('bookings').update({ status }).eq('id', bookingId);
+    async respondToBookingRequest(bookingId: string, action: string, landlordNote?: string): Promise<{ success: boolean; error: any }> {
+        if (shouldShortCircuitMock()) {
+            return { success: true, error: null };
+        }
+
+        const trimmedNote = landlordNote?.trim() || null;
+        const { error } = await supabase.rpc('transition_booking_status', {
+            p_booking_id: bookingId,
+            p_action: action,
+            p_landlord_note: trimmedNote,
+        });
         return { success: !error, error };
     },
     // ====== Mock Auth Hub ======
@@ -1222,20 +1362,32 @@ export const supabaseService = {
         }
 
         try {
-            const { data, error } = await query;
-            if (error) {
-                logGetPropertiesFailure(error, filters, timeout.didTimeout());
-                return [];
-            }
+            return await fetchWithRetry(async () => {
+                const { data, error } = await query;
+                if (error) {
+                    throw error;
+                }
 
-            return await hydratePropertyRows((data || []) as PropertyRow[]);
+                return await hydratePropertyRows((data || []) as PropertyRow[]);
+            }, {
+                timeoutMs: filters?.timeoutMs,
+                maxRetries: filters?.maxRetries,
+                signal: filters?.signal,
+                retryOnTimeout: filters?.retryOnTimeout,
+                operationKey: filters?.operationKey ?? 'getProperties',
+            });
         } catch (error: any) {
             logGetPropertiesFailure({
                 message: error?.message,
                 code: error?.code,
                 hint: error?.hint,
                 details: error?.details || error?.stack,
-            }, filters, timeout.didTimeout());
+            }, filters, timeout.didTimeout() || isTimeoutLikeError(error));
+
+            if (filters?.throwOnError) {
+                throw error;
+            }
+
             return [];
         } finally {
             timeout.cleanup();
@@ -1356,7 +1508,10 @@ export const supabaseService = {
                 }
 
                 return await hydratePropertyRows((data || []) as PropertyRow[]);
-            }, options);
+            }, {
+                operationKey: 'getFavorites',
+                ...options,
+            });
 
             return { data: rows, error: null, isTimeout: false };
         } catch (error: any) {
@@ -1428,6 +1583,49 @@ export const supabaseService = {
         }
 
         return data.map(u => u.property_id);
+    },
+
+    async getProfileStats(userId: string, options?: RequestResilienceOptions): Promise<ProfileStatsResult> {
+        if (shouldShortCircuitMock()) {
+            return {
+                stats: {
+                    properties: MOCK_PROPERTIES.filter((property) => property.owner_id === userId).length,
+                    unlocked: _mockUnlocked.size,
+                    favorites: _mockFavorites.size,
+                },
+                error: null,
+                isTimeout: false,
+            };
+        }
+
+        try {
+            const stats = await fetchWithRetry(async () => {
+                const [properties, unlocked, favorites] = await Promise.all([
+                    countRowsByEquality('properties', 'id', 'owner_id', userId),
+                    countRowsByEquality('unlocked_properties', 'property_id', 'user_id', userId),
+                    countRowsByEquality('favorites', 'property_id', 'user_id', userId),
+                ]);
+
+                return { properties, unlocked, favorites };
+            }, {
+                operationKey: 'profileStats',
+                ...options,
+            });
+
+            return { stats, error: null, isTimeout: false };
+        } catch (error: any) {
+            if (isTimeoutLikeError(error)) {
+                console.warn('[getProfileStats] Request timed out after retry budget.');
+                return {
+                    stats: { ...EMPTY_PROFILE_STATS },
+                    error: { code: 'REQUEST_TIMEOUT', message: 'REQUEST_TIMEOUT' },
+                    isTimeout: true,
+                };
+            }
+
+            console.error('[getProfileStats Unexpected Error]', error);
+            return { stats: { ...EMPTY_PROFILE_STATS }, error, isTimeout: false };
+        }
     },
 
     async isPropertyUnlocked(userId: string, propertyId: string): Promise<boolean> {
@@ -2740,64 +2938,88 @@ export const supabaseService = {
      */
     async getUserBookings(userId: string, options?: RequestResilienceOptions): Promise<{ bookings: any[]; error: any; isTimeout?: boolean }> {
         if (shouldShortCircuitMock()) {
-            return { bookings: [], error: null };
+            return { bookings: [], error: null, isTimeout: false };
         }
 
         try {
-            const { data, error } = await supabase
-                .rpc('get_user_bookings', { uid: userId });
+            return await fetchWithRetry(async () => {
+                const { data, error } = await supabase
+                    .rpc('get_user_bookings', { uid: userId });
 
-            if (error) {
-                if (isMissingRpcFunctionError(error, 'get_user_bookings')) {
-                    return await getUserBookingsFallback(userId);
+                if (error) {
+                    if (isMissingRpcFunctionError(error, 'get_user_bookings')) {
+                        const fallback = await getUserBookingsFallback(userId);
+                        return {
+                            bookings: fallback.bookings,
+                            error: fallback.error,
+                            isTimeout: Boolean(fallback.isTimeout),
+                        };
+                    }
+
+                    console.error('[getUserBookings RPC Error]', {
+                        message: error.message,
+                        code: error.code,
+                        hint: error.hint,
+                        details: error.details,
+                    });
+                    return { bookings: [], error, isTimeout: false };
                 }
 
-                console.error('[getUserBookings RPC Error]', {
-                    message: error.message,
-                    code: error.code,
-                    hint: error.hint,
-                    details: error.details,
-                });
-                return { bookings: [], error };
-            }
+                const bookings = ((data || []) as UserBookingsRpcRow[]).map((row) => ({
+                    id: row.booking_id,
+                    propertyId: row.booking_property_id,
+                    userId: row.booking_user_id,
+                    startDate: row.start_date,
+                    endDate: row.end_date,
+                    totalAmount: row.total_amount,
+                    status: row.status,
+                    createdAt: row.created_at,
+                    tenantName: row.tenant_name,
+                    bookingType: row.booking_type,
+                    property: {
+                        id: row.prop_id,
+                        title: row.prop_title,
+                        images: row.prop_images || [],
+                        area: row.prop_area,
+                        ownerId: row.prop_owner_id,
+                        ownerName: row.prop_owner_name,
+                        ownerPhone: row.prop_owner_phone,
+                    },
+                    user: row.booking_type === 'owner'
+                        ? {
+                            id: row.profile_id,
+                            fullName: row.profile_full_name,
+                            avatarUrl: row.profile_avatar_url,
+                        }
+                        : null,
+                }));
 
-            const bookings = ((data || []) as UserBookingsRpcRow[]).map((row) => ({
-                id: row.booking_id,
-                propertyId: row.booking_property_id,
-                userId: row.booking_user_id,
-                startDate: row.start_date,
-                endDate: row.end_date,
-                totalAmount: row.total_amount,
-                status: row.status,
-                createdAt: row.created_at,
-                tenantName: row.tenant_name,
-                bookingType: row.booking_type,
-                property: {
-                    id: row.prop_id,
-                    title: row.prop_title,
-                    images: row.prop_images || [],
-                    area: row.prop_area,
-                    ownerId: row.prop_owner_id,
-                    ownerName: row.prop_owner_name,
-                    ownerPhone: row.prop_owner_phone,
-                },
-                user: row.booking_type === 'owner'
-                    ? {
-                        id: row.profile_id,
-                        fullName: row.profile_full_name,
-                        avatarUrl: row.profile_avatar_url,
-                    }
-                    : null,
-            }));
-
-            return { bookings: await hydrateBookingsWithPropertyImages(bookings), error: null };
+                return { bookings: await hydrateBookingsWithPropertyImages(bookings), error: null, isTimeout: false };
+            }, {
+                operationKey: 'getUserBookings',
+                ...options,
+            });
         } catch (error: any) {
             if (isMissingRpcFunctionError(error, 'get_user_bookings')) {
-                return await getUserBookingsFallback(userId);
+                const fallback = await getUserBookingsFallback(userId);
+                return {
+                    bookings: fallback.bookings,
+                    error: fallback.error,
+                    isTimeout: Boolean(fallback.isTimeout),
+                };
+            }
+
+            if (isTimeoutLikeError(error)) {
+                console.warn('[getUserBookings] Request timed out after retry budget.');
+                return {
+                    bookings: [],
+                    error: { code: 'REQUEST_TIMEOUT', message: 'REQUEST_TIMEOUT' },
+                    isTimeout: true,
+                };
             }
 
             console.error('[getUserBookings Unexpected Error]', error);
-            return { bookings: [], error };
+            return { bookings: [], error, isTimeout: false };
         }
     },
 

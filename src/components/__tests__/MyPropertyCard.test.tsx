@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Property } from '@/types';
+import { STATUS_AR, type Property } from '@/types';
 import MyPropertyCard from '../MyPropertyCard';
 
 vi.mock('next/image', () => ({
@@ -88,5 +88,25 @@ describe('MyPropertyCard', () => {
 
         expect(onDelete).toHaveBeenCalledTimes(1);
         expect(onDelete).toHaveBeenCalledWith('p1');
+    });
+
+    it('limits owner status changes to available, pending, and rented', async () => {
+        const user = userEvent.setup();
+
+        render(
+            <MyPropertyCard
+                property={makeProperty()}
+                onDelete={vi.fn()}
+                onStatusChange={vi.fn()}
+                layout="mobile"
+            />,
+        );
+
+        await user.click(screen.getByRole('button', { name: new RegExp(STATUS_AR.available) }));
+
+        expect(screen.getAllByRole('button', { name: new RegExp(STATUS_AR.available) }).length).toBeGreaterThan(0);
+        expect(screen.getByRole('button', { name: new RegExp(STATUS_AR.pending) })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: new RegExp(STATUS_AR.rented) })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: new RegExp(STATUS_AR.rejected) })).not.toBeInTheDocument();
     });
 });

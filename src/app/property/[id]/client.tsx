@@ -81,14 +81,14 @@ function BookingStateCard({
                 <button
                     type="button"
                     onClick={onOpenBookings}
-                    className="flex-1 rounded-2xl border border-gray-300 px-4 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                    className="flex-1 min-h-11 rounded-2xl border border-gray-300 px-4 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary/50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
                 >
                     عرض حجوزاتي
                 </button>
                 <button
                     type="button"
                     onClick={onMessageOwner}
-                    className="flex-1 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
+                    className="flex-1 min-h-11 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                     مراسلة المالك
                 </button>
@@ -416,8 +416,8 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
     };
 
     return (
-        <main className="min-h-screen bg-gray-50 pb-56 dark:bg-black">
-            <section className="relative min-h-[360px] overflow-hidden bg-black md:min-h-[480px]">
+        <main className="min-h-screen bg-background-light pb-56 dark:bg-background-dark">
+            <section className="relative min-h-[360px] overflow-hidden bg-slate-950 md:min-h-[480px]">
                 {!heroImageLoaded && (
                     <div className="absolute inset-0 z-10">
                         <ImageSkeleton />
@@ -457,7 +457,7 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                     <button
                         type="button"
                         onClick={() => router.back()}
-                        className="flex h-11 w-11 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md transition hover:bg-black/50"
+                        className="flex touch-target items-center justify-center rounded-full bg-slate-950/35 text-white backdrop-blur-md transition hover:bg-slate-950/50 focus-visible:ring-2 focus-visible:ring-primary/60"
                         aria-label="الرجوع"
                     >
                         <span className="material-symbols-outlined">arrow_forward</span>
@@ -467,8 +467,8 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                         <button
                             type="button"
                             onClick={handleFavoriteClick}
-                            className={`flex h-11 w-11 items-center justify-center rounded-full backdrop-blur-md transition ${
-                                isFavorite ? 'bg-white text-error shadow-lg' : 'bg-black/35 text-white hover:bg-black/50'
+                            className={`flex touch-target items-center justify-center rounded-full backdrop-blur-md transition focus-visible:ring-2 focus-visible:ring-primary/60 ${
+                                isFavorite ? 'bg-surface-light text-error shadow-lg' : 'bg-slate-950/35 text-white hover:bg-slate-950/50'
                             }`}
                             aria-label={isFavorite ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
                         >
@@ -482,7 +482,7 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                         <button
                             type="button"
                             onClick={handleShare}
-                            className="flex h-11 w-11 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md transition hover:bg-black/50"
+                            className="flex touch-target items-center justify-center rounded-full bg-slate-950/35 text-white backdrop-blur-md transition hover:bg-slate-950/50 focus-visible:ring-2 focus-visible:ring-primary/60"
                             aria-label="مشاركة العقار"
                         >
                             <span className="material-symbols-outlined">share</span>
@@ -496,7 +496,7 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                             type="button"
                             onClick={() => scrollToImage(activeImageIndex - 1)}
                             disabled={activeImageIndex === 0}
-                            className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="absolute left-4 top-1/2 z-20 flex touch-target -translate-y-1/2 items-center justify-center rounded-full bg-slate-950/35 text-white backdrop-blur-md transition hover:bg-slate-950/50 focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-40"
                             aria-label="الصورة السابقة"
                         >
                             <span className="material-symbols-outlined">chevron_left</span>
@@ -505,7 +505,7 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                             type="button"
                             onClick={() => scrollToImage(activeImageIndex + 1)}
                             disabled={activeImageIndex === galleryImages.length - 1}
-                            className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-md transition hover:bg-black/50 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="absolute right-4 top-1/2 z-20 flex touch-target -translate-y-1/2 items-center justify-center rounded-full bg-slate-950/35 text-white backdrop-blur-md transition hover:bg-slate-950/50 focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-40"
                             aria-label="الصورة التالية"
                         >
                             <span className="material-symbols-outlined">chevron_right</span>
@@ -514,7 +514,7 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                 ) : null}
 
                 <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-3 px-4 pb-6">
-                    <div className="rounded-full bg-black/35 px-4 py-1 text-xs font-bold text-white backdrop-blur-md">
+                    <div className="rounded-full bg-slate-950/35 px-4 py-1 text-xs font-bold text-white backdrop-blur-md">
                         {activeImageIndex + 1} / {galleryImages.length}
                     </div>
 
@@ -538,10 +538,10 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                 </div>
             </section>
 
-            <section className="relative z-10 mx-auto -mt-16 max-w-4xl px-4" dir="rtl">
-                <div className="rounded-3xl border border-white/20 bg-white/80 p-6 shadow-2xl backdrop-blur-xl dark:border-gray-700 dark:bg-gray-900/80">
-                    <div className="mb-4 flex items-start justify-between gap-4">
-                        <div className="flex-1">
+            <section className="relative z-10 mx-auto -mt-14 max-w-4xl px-4" dir="rtl">
+                <div className="rounded-3xl border border-slate-200 bg-surface-light p-5 shadow-[0_18px_48px_-32px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-surface-dark md:p-6">
+                    <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
                             <div className="mb-2 flex flex-wrap items-center gap-2">
                                 <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
                                     {CATEGORY_AR[initialProperty.category]}
@@ -551,15 +551,21 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                                         <span className="material-symbols-outlined text-[14px]">fact_check</span>
                                         العقار مراجع
                                     </span>
-                                ) : initialProperty.status === 'pending' ? (
+                                ) : null}
+                                {initialProperty.status === 'pending' ? (
                                     <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-600 dark:bg-amber-950/40 dark:text-amber-300">
                                         <span className="material-symbols-outlined text-[14px]">pending_actions</span>
                                         قيد المراجعة
                                     </span>
+                                ) : initialProperty.status === 'rented' ? (
+                                    <span className="flex items-center gap-1 rounded-full bg-sky-500/10 px-3 py-1 text-xs font-bold text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+                                        <span className="material-symbols-outlined text-[14px]">event_busy</span>
+                                        محجوز
+                                    </span>
                                 ) : null}
                             </div>
 
-                            <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
+                            <h1 className="mb-2 text-2xl font-black leading-snug text-gray-900 dark:text-white md:text-3xl">
                                 {initialProperty.title}
                             </h1>
                             <p className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
@@ -568,11 +574,32 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                             </p>
                         </div>
 
-                        <div className="text-left">
-                            <p className="text-2xl font-bold text-primary md:text-3xl">
+                        <div className="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-right sm:text-left">
+                            <p className="text-2xl font-black text-primary md:text-3xl">
                                 {initialProperty.price.toLocaleString('ar-EG')} <span className="text-sm font-normal">ج.م</span>
                             </p>
-                            <p className="text-xs text-gray-400">لكل {PRICE_UNIT_AR[initialProperty.priceUnit]}</p>
+                            <p className="mt-1 text-xs font-bold text-gray-500 dark:text-gray-300">لكل {PRICE_UNIT_AR[initialProperty.priceUnit]}</p>
+                        </div>
+                    </div>
+
+                    <div className="mb-5 grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-surface-dim p-2 dark:border-white/10 dark:bg-white/5">
+                        <div className="rounded-xl bg-surface-light px-2 py-3 text-center dark:bg-surface-dark">
+                            <span className="material-symbols-outlined text-[20px] text-primary">verified_user</span>
+                            <p className="mt-1 text-[11px] font-bold text-gray-700 dark:text-gray-200">
+                                {initialProperty.isVerified ? 'عقار مراجع' : 'بيانات قابلة للمراجعة'}
+                            </p>
+                        </div>
+                        <div className="rounded-xl bg-surface-light px-2 py-3 text-center dark:bg-surface-dark">
+                            <span className="material-symbols-outlined text-[20px] text-primary">event_available</span>
+                            <p className="mt-1 text-[11px] font-bold text-gray-700 dark:text-gray-200">
+                                {nextPublicPeriod ? 'توجد فترة محجوزة' : 'يمكن طلب الحجز'}
+                            </p>
+                        </div>
+                        <div className="rounded-xl bg-surface-light px-2 py-3 text-center dark:bg-surface-dark">
+                            <span className="material-symbols-outlined text-[20px] text-primary">photo_library</span>
+                            <p className="mt-1 text-[11px] font-bold text-gray-700 dark:text-gray-200">
+                                {galleryImages.length.toLocaleString('ar-EG')} صور للمعاينة
+                            </p>
                         </div>
                     </div>
 
@@ -645,8 +672,9 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                     </div>
 
                     <div className="mb-8">
-                        <h2 className="mb-3 border-r-4 border-primary pr-3 text-lg font-bold text-gray-900 dark:text-white">
-                            عن هذا العقار
+                        <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white">
+                            <span className="material-symbols-outlined rounded-xl bg-primary/10 p-2 text-[20px] text-primary">notes</span>
+                            <span>عن هذا العقار</span>
                         </h2>
                         <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300 md:text-base">
                             {initialProperty.description}
@@ -654,8 +682,9 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                     </div>
 
                     <div className="mb-8">
-                        <h2 className="mb-4 border-r-4 border-primary pr-3 text-lg font-bold text-gray-900 dark:text-white">
-                            الموقع على الخريطة
+                        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white">
+                            <span className="material-symbols-outlined rounded-xl bg-primary/10 p-2 text-[20px] text-primary">map</span>
+                            <span>الموقع على الخريطة</span>
                         </h2>
 
                         {hasPreciseLocation ? (
@@ -690,8 +719,9 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                     </div>
 
                     <div>
-                        <h2 className="mb-4 border-r-4 border-primary pr-3 text-lg font-bold text-gray-900 dark:text-white">
-                            المميزات والخدمات
+                        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white">
+                            <span className="material-symbols-outlined rounded-xl bg-primary/10 p-2 text-[20px] text-primary">widgets</span>
+                            <span>المميزات والخدمات</span>
                         </h2>
                         <div className="grid grid-cols-2 gap-3">
                             {propertyFeatures.map((feature, index) => (
@@ -712,7 +742,7 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
             >
                 <div className="mx-auto max-w-4xl px-4">
-                    <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white/90 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-black/85">
+                    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-surface-light/92 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-surface-dark/90">
                         <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10">
                             <div>
                                 <p className="text-sm font-bold text-gray-900 dark:text-white">{collapsedPanelSummary}</p>
@@ -751,7 +781,7 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                                         setIsBottomPanelCollapsed(false);
                                         setIsBottomPanelAutoHidden(false);
                                     }}
-                                    className="rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-primary/90"
+                                    className="min-h-11 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/50"
                                 >
                                     إظهار التفاصيل
                                 </button>
@@ -781,14 +811,14 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                                         <button
                                             type="button"
                                             onClick={() => void handleMessageOwner()}
-                                            className="rounded-2xl border border-gray-300 px-4 py-4 text-sm font-bold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                                            className="min-h-12 rounded-2xl border border-gray-300 px-4 py-4 text-sm font-bold text-gray-700 transition hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary/50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
                                         >
                                             مراسلة المالك
                                         </button>
                                         <button
                                             type="button"
                                             onClick={handleBookingClick}
-                                            className="flex-1 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 py-4 font-bold text-white shadow-lg shadow-blue-500/30 transition-all active:scale-95 hover:from-blue-700 hover:to-blue-800"
+                                            className="flex-1 min-h-12 rounded-2xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/25 transition-all active:scale-95 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/50"
                                         >
                                             <span className="flex items-center justify-center gap-2">
                                                 <span className="material-symbols-outlined">calendar_today</span>
@@ -825,7 +855,7 @@ export default function ClientPropertyDetails({ initialProperty }: ClientPropert
                                         <button
                                             type="button"
                                             onClick={handleUnlockClick}
-                                            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/30 transition-all active:scale-95"
+                                            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-bold text-white shadow-lg shadow-primary/25 transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50"
                                         >
                                             <span className="material-symbols-outlined">lock_open</span>
                                             <span>فك قفل الحجز لهذا العقار (50 ج.م)</span>

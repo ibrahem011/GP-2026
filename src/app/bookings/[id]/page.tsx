@@ -9,6 +9,10 @@ export default async function BookingDetailsPage({ params, searchParams }: Booki
     const { id } = await params;
     const resolvedSearchParams = searchParams ? await searchParams : {};
     const isCreatedFlow = resolvedSearchParams.created === '1';
+    
+    let entryView: 'tenant' | 'landlord' | undefined;
+    if (resolvedSearchParams.view === 'tenant') entryView = 'tenant';
+    if (resolvedSearchParams.view === 'landlord') entryView = 'landlord';
 
-    return <BookingDetailsClient bookingId={id} isCreatedFlow={isCreatedFlow} />;
+    return <BookingDetailsClient bookingId={id} isCreatedFlow={isCreatedFlow} entryView={entryView} />;
 }

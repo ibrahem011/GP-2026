@@ -12,34 +12,37 @@ import NotificationsPopover from './notifications/NotificationsPopover';
 
 export default function Header() {
     const pathname = usePathname();
-    const { user, logout, isAuthenticated } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isScrolledState, setIsScrolledState] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const [mounted, setMounted] = useState(false);
     const isDesktop = useMediaQuery('(min-width: 768px)');
 
     const isHome = pathname === '/';
     const isScrolled = isScrolledState || !isHome;
 
     useEffect(() => {
-        setMounted(true);
         const handleScroll = () => {
             setIsScrolledState(window.scrollY > 20);
         };
         window.addEventListener('scroll', handleScroll);
         // Initial check
-        handleScroll();
-        return () => window.removeEventListener('scroll', handleScroll);
+        const frame = requestAnimationFrame(handleScroll);
+        return () => {
+            cancelAnimationFrame(frame);
+            window.removeEventListener('scroll', handleScroll);
+        };
     }, []);
 
     useEffect(() => {
         if (user) {
             const userNotifications = getNotifications(user.id);
-            setNotifications(userNotifications);
-            setUnreadCount(getUnreadNotificationCount(user.id));
+            queueMicrotask(() => {
+                setNotifications(userNotifications);
+                setUnreadCount(getUnreadNotificationCount(user.id));
+            });
         }
     }, [user]);
 
@@ -95,13 +98,13 @@ export default function Header() {
     };
 
     return (
-        <header className={`w-full transition-all duration-300 py-3 ${isScrolled ? "bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm border-b border-gray-200 dark:border-gray-800" : "bg-transparent md:bg-transparent bg-white/80 dark:bg-black/80"}`}>
-            <div className="flex items-center justify-between w-full max-w-7xl mx-auto px-6 relative">
+        <header className={`w-full transition-all duration-300 py-3 ${isScrolled ? "bg-surface-light/92 dark:bg-surface-dark/92 backdrop-blur-md shadow-sm border-b border-slate-200 dark:border-white/10" : "bg-transparent md:bg-transparent bg-surface-light/85 dark:bg-background-dark/80"}`}>
+            <div className="flex items-center justify-between w-full max-w-7xl mx-auto px-4 sm:px-6 relative gap-3">
                 {/* Right Side (Brand) */}
                 <div className="flex items-center">
-                    <Link href="/" className="flex items-center gap-2 group">
+                    <Link href="/" className="group flex min-w-0 items-center gap-2 rounded-2xl focus-visible:ring-2 focus-visible:ring-primary/60">
                         <div className="size-10 bg-primary text-white rounded-xl flex items-center justify-center font-bold text-xl shadow-lg transition-transform group-hover:scale-105 shrink-0">ع</div>
-                        <span className={`text-base md:text-xl font-bold transition-colors ${isScrolled ? 'text-gray-900 dark:text-white group-hover:text-primary' : 'text-gray-900 dark:text-white md:text-white drop-shadow-md md:group-hover:text-white/90'}`}>عقارات جمصة</span>
+                        <span className={`max-w-[8.5rem] truncate text-sm font-black transition-colors sm:max-w-none sm:text-base md:text-xl ${isScrolled ? 'text-gray-900 dark:text-white group-hover:text-primary' : 'text-gray-900 dark:text-white md:text-white drop-shadow-md md:group-hover:text-white/90'}`}>عقارات جمصة</span>
                     </Link>
                 </div>
 
@@ -124,7 +127,7 @@ export default function Header() {
                                 <button
                                     data-notifications-trigger="true"
                                     onClick={() => setShowNotifications(!showNotifications)}
-                                    className={`relative flex items-center justify-center size-10 rounded-full shadow-sm border transition-all duration-300 ${isScrolled
+                                    className={`relative flex touch-target items-center justify-center rounded-full shadow-sm border transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/60 ${isScrolled
                                         ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300'
                                         : 'bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40'}`}
                                 >
@@ -137,8 +140,7 @@ export default function Header() {
                                 </button>
 
                                 {/* Notifications Component Rendered based on device width */}
-                                {mounted && (
-                                    isDesktop ? (
+                                {isDesktop ? (
                                         <NotificationsPopover
                                             open={showNotifications}
                                             onClose={() => setShowNotifications(false)}
@@ -160,12 +162,11 @@ export default function Header() {
                                             getNotificationIcon={getNotificationIcon}
                                             getNotificationColor={getNotificationColor}
                                         />
-                                    )
-                                )}
+                                    )}
                             </div>
 
                             {/* User Menu */}
-                            <Link href="/profile" className="flex items-center gap-2 group ml-2">
+                            <Link href="/profile" className="group ms-1 hidden items-center gap-2 rounded-full focus-visible:ring-2 focus-visible:ring-primary/60 sm:flex lg:ms-2">
                                 <div className="relative">
                                     <div className="bg-cover bg-center rounded-full size-10 border-2 border-primary/20 bg-gray-100 flex items-center justify-center overflow-hidden">
                                         {user.avatar ? (
@@ -178,21 +179,23 @@ export default function Header() {
                                 </div>
                             </Link>
 
-                            {/* Logout button */}
-                            <button
-                                onClick={logout}
-                                className={`p-2 transition-colors rounded-full ${isScrolled ? 'text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30' : 'text-white/80 hover:text-white hover:bg-white/20'}`}
-                                title="تسجيل الخروج"
+                            <Link
+                                href="/profile"
+                                aria-label="حسابي"
+                                title="حسابي"
+                                className={`touch-target flex items-center justify-center rounded-full border transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 sm:hidden ${isScrolled
+                                    ? 'border-gray-100 bg-white text-gray-600 shadow-sm hover:bg-gray-50 hover:text-primary dark:border-white/10 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/20'
+                                    : 'border-white/30 bg-white/20 text-white backdrop-blur-md hover:bg-white/40'}`}
                             >
-                                <span className="material-symbols-outlined text-[20px]">logout</span>
-                            </button>
+                                <span className="material-symbols-outlined text-[22px]">person</span>
+                            </Link>
                         </div>
                     ) : (
                         <div className="flex gap-2">
-                            <Link href="/auth?mode=login" className={`px-4 py-2 rounded-xl font-medium transition-colors text-sm ${isScrolled ? 'bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-900 dark:text-white' : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-md'}`}>
+                            <Link href="/auth?mode=login" className={`inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-bold transition-colors focus-visible:ring-2 focus-visible:ring-primary/60 sm:px-4 ${isScrolled ? 'bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-900 dark:text-white' : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-md'}`}>
                                 تسجيل الدخول
                             </Link>
-                            <Link href="/auth?mode=signup" className="px-4 py-2 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/30 text-sm">
+                            <Link href="/auth?mode=signup" className="hidden min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/25 transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/60 sm:inline-flex">
                                 إنشاء حساب
                             </Link>
                         </div>

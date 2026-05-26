@@ -27,7 +27,7 @@ export default function MyPropertiesStatsSheet({
         <Sheet open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
             <SheetContent
                 side="bottom"
-                className="rounded-t-[2rem] border-x-0 border-b-0 px-4 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-8 sm:max-w-none"
+                className="rounded-t-[2rem] border-x-0 border-b-0 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-8 sm:max-w-none dark:border-[#2a3142] dark:bg-[#1e2130]"
                 onCloseAutoFocus={(event) => {
                     if (!returnFocusRef?.current) {
                         return;

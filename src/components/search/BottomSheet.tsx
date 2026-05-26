@@ -35,7 +35,7 @@ export default function BottomSheet({ open, title, onClose, children, footer }: 
         <div className={`fixed inset-0 z-[60] ${open ? '' : 'pointer-events-none'}`} aria-hidden={!open}>
             {/* Overlay */}
             <div
-                className={`absolute inset-0 bg-black/40 transition-opacity ${open ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute inset-0 bg-slate-950/45 transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0'}`}
                 onClick={onClose}
             />
 
@@ -43,10 +43,10 @@ export default function BottomSheet({ open, title, onClose, children, footer }: 
             <div
                 className={[
                     'absolute left-0 right-0 bottom-0',
-                    'bg-white dark:bg-black',
-                    'rounded-t-3xl border-t border-gray-200 dark:border-white/10',
+                    'bg-surface-light dark:bg-background-dark',
+                    'rounded-t-[28px] border-t border-slate-200 dark:border-white/10',
                     'shadow-2xl',
-                    'transition-transform duration-300',
+                    'transition-transform duration-300 ease-out',
                     open ? 'translate-y-0' : 'translate-y-full',
                 ].join(' ')}
                 style={{
@@ -62,7 +62,7 @@ export default function BottomSheet({ open, title, onClose, children, footer }: 
 
                     <button
                         onClick={onClose}
-                        className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
+                        className="touch-target rounded-full bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary/50 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 flex items-center justify-center"
                         aria-label="إغلاق"
                     >
                         <span className="material-symbols-outlined">close</span>
@@ -70,11 +70,11 @@ export default function BottomSheet({ open, title, onClose, children, footer }: 
                 </div>
 
                 {/* Content */}
-                <div className="px-4 pb-4 max-h-[70vh] overflow-auto">{children}</div>
+                <div className="px-4 pb-4 max-h-[min(72vh,42rem)] overflow-auto overscroll-contain">{children}</div>
 
                 {/* Footer */}
                 {footer && (
-                    <div className="px-4 pt-3 border-t border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/80 backdrop-blur">
+                    <div className="px-4 pt-3 border-t border-slate-200 dark:border-white/10 bg-surface-light/90 dark:bg-background-dark/90 backdrop-blur">
                         {footer}
                     </div>
                 )}

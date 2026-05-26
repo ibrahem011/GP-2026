@@ -1,7 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import BottomSheet from '@/components/search/BottomSheet';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { PROPERTY_FEATURES } from '@/config/features';
 import { cn } from '@/lib/utils';
 import { CATEGORY_AR, type PropertyCategory } from '@/types';
@@ -101,44 +107,35 @@ export default function FavoritesFilterSortSheet({
     };
 
     return (
-        <BottomSheet
-            open={open}
-            title="فلترة وترتيب"
-            onClose={onClose}
-            footer={
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={resetDraft}
-                        className="h-12 flex-1 rounded-2xl border border-gray-200 bg-white font-bold text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200"
-                    >
-                        مسح الكل
-                    </button>
-                    <button
-                        type="button"
-                        onClick={applyDraft}
-                        className="h-12 flex-[1.4] rounded-2xl bg-primary font-bold text-white"
-                    >
-                        عرض النتائج
-                    </button>
-                </div>
-            }
-        >
-            <div className="space-y-6" data-testid="favorites-filter-sheet">
-                <div className="flex items-center justify-between rounded-[1.4rem] border border-primary/10 bg-primary/5 px-4 py-3 dark:border-primary/20 dark:bg-primary/10">
-                    <div>
-                        <p className="text-sm font-black text-slate-900 dark:text-white">
-                            اضبط الصفحة على مزاجك
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
-                            {activeCount > 0
-                                ? `${activeCount.toLocaleString('ar-EG')} إعدادات نشطة حالياً`
-                                : 'لا توجد تصفية أو ترتيب مخصص حالياً'}
-                        </p>
-                    </div>
+        <Sheet open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+            <SheetContent
+                side="bottom"
+                className="h-[calc(100vh-2rem)] overflow-y-auto rounded-t-[2rem] border-x-0 border-b-0 bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-8 sm:max-w-none dark:border-[#2a3142] dark:bg-[#1e2130]"
+            >
+                <div className="mx-auto max-w-md" data-testid="favorites-filter-sheet">
+                    <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-gray-200 dark:bg-white/10" />
+                    <SheetHeader className="text-right sm:text-right">
+                        <SheetTitle className="text-xl font-black">فلترة وترتيب</SheetTitle>
+                        <SheetDescription className="text-sm leading-6 text-slate-500 dark:text-slate-300">
+                            اضبط الصفحة على مزاجك، مع الحفاظ على التجربة سريعة وواضحة على الموبايل.
+                        </SheetDescription>
+                    </SheetHeader>
 
-                    <span className="material-symbols-outlined text-primary">tune</span>
-                </div>
+                    <div className="mt-6 space-y-6">
+                        <div className="flex items-center justify-between rounded-[1.4rem] border border-primary/10 bg-primary/5 px-4 py-3 dark:border-primary/20 dark:bg-primary/10">
+                            <div>
+                                <p className="text-sm font-black text-slate-900 dark:text-white">
+                                    ضبط سريع للصفحة
+                                </p>
+                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">
+                                    {activeCount > 0
+                                        ? `${activeCount.toLocaleString('ar-EG')} إعدادات نشطة حالياً`
+                                        : 'لا توجد تصفية أو ترتيب مخصص حالياً'}
+                                </p>
+                            </div>
+
+                            <span className="material-symbols-outlined text-primary">tune</span>
+                        </div>
 
                 <section className="space-y-3">
                     <h3 className="text-sm font-black text-slate-900 dark:text-white">
@@ -303,7 +300,26 @@ export default function FavoritesFilterSortSheet({
                         )}
                     </div>
                 </section>
+                </div>
+
+                <div className="mt-8 flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={resetDraft}
+                        className="flex h-12 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-white font-bold text-[#4e5f97] transition-all hover:bg-slate-50 dark:border-[#2a3142] dark:bg-[#1e2130] dark:text-slate-300 dark:hover:bg-white/5"
+                    >
+                        مسح الكل
+                    </button>
+                    <button
+                        type="button"
+                        onClick={applyDraft}
+                        className="flex h-12 flex-[1.4] items-center justify-center rounded-xl bg-primary font-bold text-white transition-all hover:bg-primary/90"
+                    >
+                        عرض النتائج
+                    </button>
+                </div>
             </div>
-        </BottomSheet>
+            </SheetContent>
+        </Sheet>
     );
 }

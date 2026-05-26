@@ -1,0 +1,403 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e5]:
+      - button "رجوع" [ref=e6] [cursor=pointer]:
+        - generic [ref=e7]: arrow_forward
+      - generic [ref=e8]:
+        - textbox "ابحث بالاسم أو المنطقة..." [ref=e9]
+        - generic [ref=e10]: search
+    - generic [ref=e12]:
+      - generic [ref=e13]: عرض 7 مسكن
+      - generic [ref=e14]:
+        - button "tune فلترة 1" [ref=e15] [cursor=pointer]:
+          - generic [ref=e16]: tune
+          - text: فلترة
+          - generic [ref=e17]: "1"
+        - button "map الخريطة" [ref=e18] [cursor=pointer]:
+          - generic [ref=e19]: map
+          - text: الخريطة
+        - button "schedule الأحدث" [ref=e20] [cursor=pointer]:
+          - generic [ref=e21]: schedule
+          - text: الأحدث
+        - button "arrow_upward الأقل سعرًا" [ref=e22] [cursor=pointer]:
+          - generic [ref=e23]: arrow_upward
+          - text: الأقل سعرًا
+        - button "arrow_downward الأعلى سعرًا" [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: arrow_downward
+          - text: الأعلى سعرًا
+    - generic [ref=e27]:
+      - article [ref=e28] [cursor=pointer]:
+        - generic [ref=e29]:
+          - img "شقه للايجار لي الطلبه" [ref=e30]
+          - link "عرض تفاصيل شقه للايجار لي الطلبه" [ref=e32]:
+            - /url: /property/e0b8b6a8-cfad-40a2-8e26-eea9a7749de5
+          - button "إضافة إلى المفضلة" [ref=e33]:
+            - generic [ref=e34]: favorite
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: فيلا
+                    - heading "شقه للايجار لي الطلبه" [level=3]
+                    - generic:
+                      - generic: location_on
+                      - generic: جنب مركز عند الفندق
+                - separator
+                - generic:
+                  - generic:
+                    - generic: يبدأ من
+                    - generic:
+                      - generic: ١٠٠
+                      - generic: ج.م
+                      - generic: / يوم
+                  - generic:
+                    - generic:
+                      - generic: ١
+                      - generic: bed
+                    - generic:
+                      - generic: ١
+                      - generic: bathtub
+                    - generic:
+                      - generic: ٩٠
+                      - generic: straighten
+      - article [ref=e35] [cursor=pointer]:
+        - generic [ref=e36]:
+          - img "0" [ref=e37]
+          - link "عرض تفاصيل 0" [ref=e39]:
+            - /url: /property/994361b9-47c0-417e-ba92-6de2de18dece
+          - button "إضافة إلى المفضلة" [ref=e40]:
+            - generic [ref=e41]: favorite
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: شقة
+                    - heading "0" [level=3]
+                    - generic:
+                      - generic: location_on
+                      - generic: "0"
+                - separator
+                - generic:
+                  - generic:
+                    - generic: يبدأ من
+                    - generic:
+                      - generic: ٦
+                      - generic: ج.م
+                      - generic: / يوم
+                  - generic:
+                    - generic:
+                      - generic: ١
+                      - generic: bed
+                    - generic:
+                      - generic: ١
+                      - generic: bathtub
+      - article [ref=e42] [cursor=pointer]:
+        - generic [ref=e43]:
+          - img "و" [ref=e44]
+          - link "عرض تفاصيل و" [ref=e46]:
+            - /url: /property/b21a881d-27d6-4d78-ad6f-18d19e8b23cb
+          - button "إضافة إلى المفضلة" [ref=e47]:
+            - generic [ref=e48]: favorite
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: استوديو
+                    - heading "و" [level=3]
+                    - generic:
+                      - generic: location_on
+                      - generic: "1"
+                - separator
+                - generic:
+                  - generic:
+                    - generic: يبدأ من
+                    - generic:
+                      - generic: ١
+                      - generic: ج.م
+                      - generic: / يوم
+                  - generic:
+                    - generic:
+                      - generic: ١
+                      - generic: bed
+                    - generic:
+                      - generic: ١
+                      - generic: bathtub
+      - article [ref=e49] [cursor=pointer]:
+        - generic [ref=e50]:
+          - img "شقه ممتاز في السعر وعليها عرض يجنن" [ref=e51]
+          - link "عرض تفاصيل شقه ممتاز في السعر وعليها عرض يجنن" [ref=e53]:
+            - /url: /property/4f1babf4-73de-45ac-8ff6-d5ef30d5869f
+          - button "إضافة إلى المفضلة" [ref=e54]:
+            - generic [ref=e55]: favorite
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: شقة
+                    - heading "شقه ممتاز في السعر وعليها عرض يجنن" [level=3]
+                    - generic:
+                      - generic: location_on
+                      - generic: شارع هدير
+                - separator
+                - generic:
+                  - generic:
+                    - generic: يبدأ من
+                    - generic:
+                      - generic: ١٠٣
+                      - generic: ج.م
+                      - generic: / يوم
+                  - generic:
+                    - generic:
+                      - generic: ٢
+                      - generic: bed
+                    - generic:
+                      - generic: ١
+                      - generic: bathtub
+                    - generic:
+                      - generic: ٩٩
+                      - generic: straighten
+      - article [ref=e56] [cursor=pointer]:
+        - generic [ref=e57]:
+          - img "hjhbkb" [ref=e58]
+          - link "عرض تفاصيل hjhbkb" [ref=e60]:
+            - /url: /property/cdea21fa-23ac-4732-9fbc-6614e60942a2
+          - button "إضافة إلى المفضلة" [ref=e61]:
+            - generic [ref=e62]: favorite
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: شقة
+                    - heading "hjhbkb" [level=3]
+                    - generic:
+                      - generic: location_on
+                      - generic: llk
+                - separator
+                - generic:
+                  - generic:
+                    - generic: يبدأ من
+                    - generic:
+                      - generic: ٢
+                      - generic: ج.م
+                      - generic: / يوم
+                  - generic:
+                    - generic:
+                      - generic: ١
+                      - generic: bed
+                    - generic:
+                      - generic: ١
+                      - generic: bathtub
+      - article [ref=e63] [cursor=pointer]:
+        - generic [ref=e64]:
+          - img "ىررؤ" [ref=e65]
+          - link "عرض تفاصيل ىررؤ" [ref=e67]:
+            - /url: /property/5450cfe1-5762-423f-89a7-05f907d31d1a
+          - button "إضافة إلى المفضلة" [ref=e68]:
+            - generic [ref=e69]: favorite
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: شقة
+                    - heading "ىررؤ" [level=3]
+                    - generic:
+                      - generic: location_on
+                      - generic: ل
+                - separator
+                - generic:
+                  - generic:
+                    - generic: يبدأ من
+                    - generic:
+                      - generic: ٦
+                      - generic: ج.م
+                      - generic: / يوم
+                  - generic:
+                    - generic:
+                      - generic: ١
+                      - generic: bed
+                    - generic:
+                      - generic: ١
+                      - generic: bathtub
+      - article [ref=e70] [cursor=pointer]:
+        - generic [ref=e71]:
+          - img "شقة تجريبية فاخرة بإطلالة بحرية" [ref=e72]
+          - link "عرض تفاصيل شقة تجريبية فاخرة بإطلالة بحرية" [ref=e74]:
+            - /url: /property/bd2a7dc9-0329-4167-bb3d-46d10de6effc
+          - generic:
+            - generic:
+              - generic: verified
+              - text: موثق
+          - button "إضافة إلى المفضلة" [ref=e75]:
+            - generic [ref=e76]: favorite
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: شقة
+                    - heading "شقة تجريبية فاخرة بإطلالة بحرية" [level=3]
+                    - generic:
+                      - generic: location_on
+                      - generic: شارع البحر الرئيسي
+                - separator
+                - generic:
+                  - generic:
+                    - generic: يبدأ من
+                    - generic:
+                      - generic: ٦٠٠
+                      - generic: ج.م
+                      - generic: / يوم
+                  - generic:
+                    - generic:
+                      - generic: ٣
+                      - generic: bed
+                    - generic:
+                      - generic: ٢
+                      - generic: bathtub
+                    - generic:
+                      - generic: ١٢٠
+                      - generic: straighten
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading [level=3]: عناصر التصفية
+          - button:
+            - generic: close
+        - generic:
+          - generic:
+            - generic:
+              - heading [level=4]:
+                - generic: category
+                - text: نوع العقار
+              - generic:
+                - button:
+                  - generic: apps
+                  - text: الكل
+                - button:
+                  - generic: apartment
+                  - text: شقة
+                - button:
+                  - generic: holiday_village
+                  - text: فيلا
+                - button:
+                  - generic: cabin
+                  - text: شاليه
+                - button:
+                  - generic: bed
+                  - text: غرفة
+            - generic:
+              - heading [level=4]:
+                - generic: payments
+                - text: نطاق السعر
+              - generic:
+                - generic:
+                  - text: الحد الأدنى
+                  - textbox:
+                    - /placeholder: "0"
+                - generic:
+                  - text: الحد الأقصى
+                  - textbox:
+                    - /placeholder: "5000"
+                    - text: "5000"
+              - slider: "5000"
+              - generic:
+                - button: حتى 2,000
+                - button: حتى 3,000
+                - button: حتى 5,000
+                - button: حتى 8,000
+                - button: حتى 10,000
+            - generic:
+              - heading [level=4]:
+                - generic: location_on
+                - text: المنطقة
+              - combobox
+            - generic:
+              - generic:
+                - generic: غرف النوم
+                - generic:
+                  - button:
+                    - generic: remove
+                  - generic: بدون تحديد
+                  - button:
+                    - generic: add
+              - generic:
+                - generic: الحمامات
+                - generic:
+                  - button:
+                    - generic: remove
+                  - generic: بدون تحديد
+                  - button:
+                    - generic: add
+            - generic:
+              - heading [level=4]:
+                - generic: star
+                - text: المميزات
+              - generic:
+                - button:
+                  - generic: ac_unit
+                  - text: تكييف
+                - button:
+                  - generic: wifi
+                  - text: واي فاي
+                - button:
+                  - generic: beach_access
+                  - text: قريب من البحر
+                - button:
+                  - generic: local_parking
+                  - text: موقف سيارة
+                - button:
+                  - generic: kitchen
+                  - text: مطبخ مجهز
+                - button:
+                  - generic: balcony
+                  - text: شرفة
+                - button:
+                  - generic: water
+                  - text: إطلالة بحرية
+                - button:
+                  - generic: chair
+                  - text: أثاث كامل
+              - button: عرض المزيد
+              - button: مسح الكل
+        - generic:
+          - button: عرض النتائج (7)
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - heading [level=3]: ترتيب النتائج
+          - button:
+            - generic: close
+        - generic:
+          - generic:
+            - button:
+              - generic:
+                - generic: schedule
+                - generic: الأحدث
+              - generic: check
+            - button:
+              - generic:
+                - generic: south
+                - generic: الأقل سعرًا
+            - button:
+              - generic:
+                - generic: north
+                - generic: الأعلى سعرًا
+        - generic:
+          - button: تم
+  - button "Open Next.js Dev Tools" [ref=e82] [cursor=pointer]:
+    - img [ref=e83]

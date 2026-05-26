@@ -1,0 +1,514 @@
+import React, { useState, useMemo } from 'react';
+import { 
+  Search, Filter, Calendar, FileText, MapPin, 
+  User, DollarSign, X, MessageCircle, 
+  Home, Building, Heart, CheckCircle2, XCircle, Bell, Menu, Inbox
+} from 'lucide-react';
+
+// ============================================================================
+// [قسم البيانات الوهمية - MOCK DATA]
+// ملاحظة للمبرمج: يتم استبدال هذه المصفوفات ببيانات حقيقية قادمة من الـ API (مثال: Supabase)
+// ============================================================================
+const myBookingsAsTenant = [
+  {
+    id: '#BK-2024-0009',
+    property: 'شقة فاخرة بإطلالة بحرية',
+    location: 'منطقة البحر، جدة',
+    otherPartyTitle: 'المؤجر',
+    otherPartyName: 'إبراهيم أشرف',
+    phone: '+966 50 123 4567',
+    checkIn: '21 مايو 2026',
+    checkOut: '31 مايو 2026',
+    nights: 10,
+    total: 21400,
+    paid: 10700,
+    status: 'مؤكد',
+    guests: 2,
+    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&q=80'
+  },
+  {
+    id: '#BK-2024-0006',
+    property: 'شاليه على البحر',
+    location: 'الساحل الشمالي',
+    otherPartyTitle: 'المؤجر',
+    otherPartyName: 'محمود حسن',
+    phone: '+966 51 513 2334',
+    checkIn: '8 مايو 2026',
+    checkOut: '13 مايو 2026',
+    nights: 5,
+    total: 6000,
+    paid: 6000,
+    status: 'بانتظار التأكيد',
+    guests: 4,
+    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&q=80'
+  }
+];
+
+const incomingRequestsAsLandlord = [
+  {
+    id: '#REQ-2024-0112',
+    property: 'فيلا راقية مع مسبح خاص',
+    location: 'حي الياسمين، الرياض',
+    otherPartyTitle: 'العميل',
+    otherPartyName: 'سارة علي أحمد',
+    phone: '+966 50 765 4321',
+    checkIn: '20 يونيو 2026',
+    checkOut: '22 يونيو 2026',
+    nights: 2,
+    total: 4500,
+    paid: 0,
+    status: 'طلب جديد',
+    guests: 6,
+    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=300&q=80'
+  }
+];
+
+export default function BookingsDashboard() {
+  // ============================================================================
+  // [إدارة الحالة - STATE MANAGEMENT]
+  // ============================================================================
+  
+  // 1. حالة وضع العرض: 'tenant' (حجوزاتي كمستأجر) أو 'landlord' (الطلبات الواردة لعقاراتي)
+  const [viewMode, setViewMode] = useState('tenant'); 
+  
+  // 2. حالة التبويب النشط (الكل، مؤكد، ملغي، الخ) للفلترة السريعة
+  const [activeTab, setActiveTab] = useState('الكل');
+  
+  // 3. حالة شريط البحث
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // 4. حالة القائمة الجانبية (Sidebar)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  // 5. حالة الحجز المحدد حالياً لعرضه في اللوحة الجانبية (Drawer)
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  
+  // 6. حالة فتح وإغلاق اللوحة الجانبية التفصيلية (Drawer)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // ============================================================================
+  // [معالجة البيانات - DATA PROCESSING]
+  // ============================================================================
+  
+  // تحديد مصدر البيانات بناءً على وضع العرض الحالي
+  const baseData = viewMode === 'tenant' ? myBookingsAsTenant : incomingRequestsAsLandlord;
+  
+  // فلترة البيانات ديناميكياً
+  const filteredData = useMemo(() => {
+    return baseData.filter(booking => {
+      const matchTab = activeTab === 'الكل' || booking.status === activeTab;
+      const matchSearch = 
+        booking.otherPartyName.includes(searchQuery) || 
+        booking.id.includes(searchQuery) ||
+        booking.property.includes(searchQuery);
+      
+      return matchTab && matchSearch;
+    });
+  }, [baseData, activeTab, searchQuery]);
+
+  // ============================================================================
+  // [وظائف مساعدة - HELPER FUNCTIONS]
+  // ============================================================================
+  
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'مؤكد': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'بانتظار التأكيد': 
+      case 'طلب جديد': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'ملغي': 
+      case 'مرفوض': return 'bg-rose-100 text-rose-700 border-rose-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  const handleRowClick = (booking) => {
+    setSelectedBooking(booking);
+    setIsDrawerOpen(true);
+  };
+
+  // ============================================================================
+  // [وظائف الـ API - API HANDLERS] 
+  // ============================================================================
+  const handleAcceptRequest = () => {
+    console.log("تم قبول الطلب: ", selectedBooking.id);
+    setIsDrawerOpen(false);
+  };
+
+  const handleRejectRequest = () => {
+    console.log("تم رفض الطلب: ", selectedBooking.id);
+    setIsDrawerOpen(false);
+  };
+
+  return (
+    <div dir="rtl" className="h-screen flex flex-col bg-[#f8fafc] font-sans text-slate-800 overflow-hidden">
+      
+      {/* =========================================
+          [1] الهيدر العلوي (TOP HEADER)
+      ========================================= */}
+      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-30 shrink-0 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-inner">
+            <Building size={18} />
+          </div>
+          <span className="text-xl font-bold text-slate-800 tracking-tight">Gamasa</span>
+        </div>
+
+        <div className="flex items-center gap-5">
+          <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition duration-200">
+            <Bell size={22} />
+            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+          </button>
+          
+          <div className="flex items-center gap-3 pl-2 border-r border-slate-200 cursor-pointer hover:bg-slate-50 p-1.5 pr-3 rounded-full transition duration-200">
+            <div className="text-left hidden sm:block">
+              <p className="font-bold text-sm text-slate-800 leading-none mb-1">إبراهيم أشرف</p>
+              <p className="text-xs text-slate-500 leading-none">مدير النظام</p>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">إ</div>
+          </div>
+        </div>
+      </header>
+
+      {/* =========================================
+          [2] منطقة العمل (WORKSPACE)
+      ========================================= */}
+      <div className="flex flex-1 overflow-hidden relative">
+        
+        {/* --- القائمة الجانبية (SIDEBAR) --- */}
+        <aside 
+          className={`bg-white border-l border-slate-200 transition-all duration-300 ease-in-out shrink-0 hidden lg:flex flex-col z-20
+            ${isSidebarOpen ? 'w-64 translate-x-0 opacity-100' : 'w-0 translate-x-full opacity-0 overflow-hidden'}`
+          }
+        >
+          <nav className="p-4 space-y-1 mt-2">
+            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition">
+              <Home size={20} className="shrink-0" /> <span className="font-medium whitespace-nowrap">الرئيسية</span>
+            </a>
+            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition">
+              <Building size={20} className="shrink-0" /> <span className="font-medium whitespace-nowrap">عقاراتي</span>
+            </a>
+            <a href="#" className="flex items-center gap-3 px-4 py-3 text-blue-700 bg-blue-50/80 rounded-xl transition border-r-4 border-blue-600 shadow-sm">
+              <Calendar size={20} className="shrink-0" /> <span className="font-bold whitespace-nowrap">حجوزاتي</span>
+            </a>
+            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition">
+              <Heart size={20} className="shrink-0" /> <span className="font-medium whitespace-nowrap">المفضلة</span>
+            </a>
+            <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl transition">
+              <User size={20} className="shrink-0" /> <span className="font-medium whitespace-nowrap">حسابي</span>
+            </a>
+          </nav>
+        </aside>
+
+        {/* --- المحتوى الرئيسي (MAIN CONTENT) --- */}
+        <main className={`flex-1 overflow-y-auto p-8 transition-all duration-300 relative bg-slate-50/50
+          ${isDrawerOpen ? 'lg:pr-8 lg:pl-[430px]' : 'px-8'}`}>
+          <div className="max-w-6xl w-full mx-auto pb-10">
+            
+            <div className="flex justify-between items-start mb-8">
+              <div className="flex items-start gap-4">
+                <button 
+                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  className="hidden lg:flex p-2.5 mt-1 bg-white border border-slate-200 rounded-xl shadow-sm text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
+                >
+                  <Menu size={24} />
+                </button>
+                <div>
+                  <h1 className="text-3xl font-extrabold text-slate-900 mb-2">إدارة الحجوزات</h1>
+                  <p className="text-slate-500 text-sm">تابع حجوزاتك القادمة وأدر طلبات عملائك من مكان واحد.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* --- كروت الإحصائيات (STATS CARDS) --- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div 
+                onClick={() => {setViewMode('tenant'); setActiveTab('الكل'); setSearchQuery('');}}
+                className={`p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
+                  viewMode === 'tenant' ? 'border-blue-600 shadow-md bg-white scale-[1.01]' : 'border-slate-200/50 bg-white shadow-sm opacity-80 hover:opacity-100 hover:border-blue-300'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex flex-col gap-3">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${viewMode === 'tenant' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
+                      <Calendar size={24} />
+                    </div>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                      2 قيد الانتظار
+                    </span>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-slate-500 font-medium mb-1">حجوزاتي</p>
+                    <h3 className="text-5xl font-black text-slate-800 tracking-tight">2</h3>
+                  </div>
+                </div>
+              </div>
+
+              <div 
+                onClick={() => {setViewMode('landlord'); setActiveTab('الكل'); setSearchQuery('');}}
+                className={`p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
+                  viewMode === 'landlord' ? 'border-blue-600 shadow-md bg-white scale-[1.01]' : 'border-slate-200/50 bg-white shadow-sm opacity-80 hover:opacity-100 hover:border-blue-300'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex flex-col gap-3">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${viewMode === 'landlord' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400'}`}>
+                      <FileText size={24} />
+                    </div>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                      1 طلب جديد
+                    </span>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-slate-500 font-medium mb-1">الطلبات الواردة</p>
+                    <h3 className="text-5xl font-black text-slate-800 tracking-tight">1</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* --- شريط الأدوات --- */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+              <div className="flex bg-white border border-slate-200 rounded-xl p-1 shadow-sm w-full md:w-auto overflow-x-auto">
+                {['الكل', viewMode === 'tenant' ? 'بانتظار التأكيد' : 'طلب جديد', 'مؤكد', 'ملغي'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
+                      activeTab === tab 
+                        ? 'bg-blue-50 text-blue-700 shadow-sm' 
+                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex w-full md:w-auto gap-3">
+                <div className="relative w-full md:w-64">
+                  <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="بحث بالاسم أو رقم الحجز..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
+                  />
+                </div>
+                <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl shadow-sm hover:bg-slate-50 transition text-sm font-semibold text-slate-600 shrink-0">
+                  <Filter size={18} /> <span className="hidden sm:inline">تصفية</span>
+                </button>
+              </div>
+            </div>
+
+            {/* --- جدول البيانات --- */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              {filteredData.length === 0 ? (
+                <div className="py-20 flex flex-col items-center justify-center text-center">
+                  <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    <Inbox size={40} className="text-slate-300" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-700 mb-1">لا توجد نتائج</h3>
+                  <p className="text-sm text-slate-500 max-w-sm">
+                    لم نتمكن من العثور على أي حجوزات تطابق شروط البحث أو الفلترة الحالية. حاول تغيير خيارات البحث.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-sm">
+                    <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold">
+                      <tr>
+                        <th className="py-5 px-6">العقار</th>
+                        <th className="py-5 px-6">{viewMode === 'tenant' ? 'المؤجر' : 'العميل'}</th>
+                        <th className="py-5 px-6">تاريخ الحجز</th>
+                        <th className="py-5 px-6">المبلغ (المدفوع)</th>
+                        <th className="py-5 px-6">الحالة</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredData.map((booking, idx) => (
+                        <tr 
+                          key={idx} 
+                          onClick={() => handleRowClick(booking)}
+                          className={`hover:bg-blue-50/50 cursor-pointer transition-all duration-200 
+                            ${selectedBooking?.id === booking.id && isDrawerOpen ? 'bg-blue-50/80 border-r-4 border-r-blue-600' : 'border-r-4 border-r-transparent'}`}
+                        >
+                          <td className="py-5 px-6 w-1/3">
+                            <div className="flex items-center gap-4">
+                              <img src={booking.image} alt={booking.property} className="w-16 h-16 rounded-xl object-cover shadow-sm border border-slate-100" />
+                              <div>
+                                <p className="font-bold text-slate-900 truncate max-w-[220px] mb-1">{booking.property}</p>
+                                <p className="text-xs text-slate-400 font-mono">{booking.id}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-5 px-6">
+                            <p className="font-bold text-slate-800 mb-1">{booking.otherPartyName}</p>
+                            <p className="text-xs text-slate-500 dir-ltr text-right font-mono bg-slate-50 inline-block px-2 py-0.5 rounded">
+                              {booking.phone}
+                            </p>
+                          </td>
+                          <td className="py-5 px-6 text-slate-600">
+                            <p className="font-bold text-slate-800">{booking.checkIn}</p>
+                            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                              إلى {booking.checkOut} <span className="bg-slate-100 px-1.5 rounded text-[10px]">{booking.nights} ليالي</span>
+                            </p>
+                          </td>
+                          <td className="py-5 px-6">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-slate-900">{booking.total.toLocaleString()} ر.س</span>
+                              {booking.paid === booking.total ? (
+                                <span className="text-xs font-semibold text-emerald-600 mt-1">✓ مدفوع بالكامل</span>
+                              ) : (
+                                <span className="text-xs font-semibold text-amber-600 mt-1">عربون: {booking.paid} ر.س</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-5 px-6">
+                            <span className={`px-3 py-1.5 rounded-full text-xs font-bold border shadow-sm ${getStatusBadge(booking.status)}`}>
+                              {booking.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+
+        {/* ============================================================================
+            [3] اللوحة الجانبية المنزلقة (SIDE DRAWER)
+        ============================================================================ */}
+        {isDrawerOpen && selectedBooking && (
+          <>
+            <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-40 lg:hidden transition-opacity" onClick={() => setIsDrawerOpen(false)}></div>
+            
+            <div className="absolute left-0 top-0 w-full lg:w-[420px] max-w-md bg-white border-r border-slate-200 shadow-[-10px_0_40px_rgba(0,0,0,0.05)] flex flex-col h-full z-50 animate-in slide-in-from-left duration-300">
+              
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">تفاصيل {viewMode === 'tenant' ? 'الحجز' : 'الطلب'}</h2>
+                  <p className="text-sm text-slate-500 mt-1 font-mono">{selectedBooking.id}</p>
+                </div>
+                <button 
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="p-2 bg-slate-50 border border-slate-200 text-slate-500 hover:text-rose-500 hover:bg-rose-50 rounded-full transition duration-200"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                
+                <div className="mb-8">
+                  <div className="relative h-52 rounded-2xl overflow-hidden mb-4 shadow-sm border border-slate-100 group">
+                    <img src={selectedBooking.image} alt={selectedBooking.property} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                    <div className="absolute top-3 left-3">
+                      <span className={`px-4 py-1.5 rounded-full text-xs font-bold shadow-md backdrop-blur-md bg-white/95 ${getStatusBadge(selectedBooking.status).replace('bg-', 'text-').split(' ')[1]}`}>
+                        {selectedBooking.status}
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-900 leading-tight mb-2">{selectedBooking.property}</h3>
+                  <p className="text-slate-500 flex items-center gap-1.5 text-sm font-medium">
+                    <MapPin size={16} className="text-blue-500" /> {selectedBooking.location}
+                  </p>
+                </div>
+
+                <div className="mb-8 bg-gradient-to-br from-blue-50 to-slate-50 rounded-2xl p-5 border border-blue-100/50 shadow-sm">
+                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm">
+                    <User size={18} className="text-blue-600" /> بيانات {selectedBooking.otherPartyTitle}
+                  </h4>
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white shadow-sm text-blue-700 rounded-full flex items-center justify-center font-black text-2xl border border-blue-100 shrink-0">
+                      {selectedBooking.otherPartyName.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-900 text-lg">{selectedBooking.otherPartyName}</p>
+                      <p className="text-sm text-slate-600 dir-ltr text-right mt-1 font-mono">{selectedBooking.phone}</p>
+                    </div>
+                    <button className="mr-auto w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center hover:bg-emerald-200 transition shadow-sm hover:scale-105">
+                      <MessageCircle size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm">
+                    <Calendar size={18} className="text-blue-600" /> تفاصيل الإقامة ({selectedBooking.guests} ضيوف)
+                  </h4>
+                  <div className="flex gap-3 mb-4">
+                    <div className="flex-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                      <p className="text-xs text-slate-500 mb-1 font-semibold">تاريخ الوصول</p>
+                      <p className="font-bold text-slate-900 text-lg">{selectedBooking.checkIn}</p>
+                    </div>
+                    <div className="flex-1 bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                      <p className="text-xs text-slate-500 mb-1 font-semibold">تاريخ المغادرة</p>
+                      <p className="font-bold text-slate-900 text-lg">{selectedBooking.checkOut}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-8 border-t border-slate-100 pt-6">
+                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm">
+                    <DollarSign size={18} className="text-blue-600" /> الملخص المالي
+                  </h4>
+                  <div className="space-y-4 text-sm bg-slate-50 p-5 rounded-2xl border border-slate-100 shadow-inner">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600 font-medium">إجمالي التكلفة</span>
+                      <span className="font-bold text-slate-900 text-base">{selectedBooking.total.toLocaleString()} ر.س</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600 font-medium">المدفوع {viewMode === 'landlord' && '(تم استلامه)'}</span>
+                      <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{selectedBooking.paid.toLocaleString()} ر.س</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-4 border-t border-slate-200 border-dashed">
+                      <span className="font-black text-slate-800">المبلغ المتبقي</span>
+                      <span className="font-black text-rose-600 text-xl">{(selectedBooking.total - selectedBooking.paid).toLocaleString()} <span className="text-sm font-bold">ر.س</span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-slate-200 bg-slate-50 shrink-0 flex gap-3 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+                
+                {viewMode === 'landlord' && selectedBooking.status === 'طلب جديد' && (
+                  <>
+                    <button 
+                      onClick={handleAcceptRequest}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-sm shadow-emerald-200 hover:-translate-y-0.5"
+                    >
+                      <CheckCircle2 size={20} /> قبول
+                    </button>
+                    <button 
+                      onClick={handleRejectRequest}
+                      className="flex-1 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2 hover:-translate-y-0.5"
+                    >
+                      <XCircle size={20} /> رفض
+                    </button>
+                  </>
+                )}
+
+                {viewMode === 'tenant' && (
+                  <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-sm shadow-blue-200 hover:-translate-y-0.5">
+                    <FileText size={20} /> تحميل الفاتورة
+                  </button>
+                )}
+
+                {!(viewMode === 'landlord' && selectedBooking.status === 'طلب جديد') && (
+                  <button className="flex-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 py-3.5 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-sm hover:-translate-y-0.5">
+                     تواصل بالرسائل
+                  </button>
+                )}
+              </div>
+              
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

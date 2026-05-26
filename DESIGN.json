@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-04-29T00:00:00+02:00",
+  "title": "Design System: Gamasa Properties",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Reliable Coastal Blue",
+        "canonical": "#3b82f6",
+        "tonalRamp": ["oklch(24% 0.08 255)", "oklch(34% 0.12 255)", "oklch(45% 0.16 255)", "oklch(56% 0.18 255)", "oklch(67% 0.15 255)", "oklch(78% 0.10 255)", "oklch(88% 0.05 255)", "oklch(96% 0.02 255)"]
+      },
+      "background-light": {
+        "role": "neutral",
+        "displayName": "Cool Page Mist",
+        "canonical": "#f6f7fb",
+        "tonalRamp": ["oklch(18% 0.01 255)", "oklch(30% 0.01 255)", "oklch(42% 0.01 255)", "oklch(55% 0.01 255)", "oklch(68% 0.01 255)", "oklch(80% 0.01 255)", "oklch(90% 0.01 255)", "oklch(97% 0.006 255)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero and major page statements only." },
+      "body": { "displayName": "Body", "purpose": "Readable Arabic product copy and helper text." }
+    },
+    "shadows": [
+      { "name": "soft-surface", "value": "0 4px 20px -2px rgba(0, 0, 0, 0.05)", "purpose": "Resting cards and calm panels." },
+      { "name": "bottom-navigation", "value": "0 -10px 40px rgba(0, 0, 0, 0.08)", "purpose": "Mobile navigation and floating action bars." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Default easing for state changes and sheet transitions." },
+      { "name": "duration-standard", "value": "180ms", "purpose": "Most control feedback." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "320px-767px" },
+      { "name": "tablet", "value": "768px-1023px" },
+      { "name": "desktop", "value": "1024px+" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action for booking, saving, applying, or adding a property.",
+      "html": "<button class=\"ds-btn-primary\">عرض النتائج</button>",
+      "css": ".ds-btn-primary{min-height:44px;border:0;border-radius:16px;background:#3b82f6;color:#fcfdff;padding:12px 20px;font:700 14px/1.4 'Noto Sans Arabic',system-ui,sans-serif;transition:background-color 180ms cubic-bezier(.22,1,.36,1),transform 180ms cubic-bezier(.22,1,.36,1)}.ds-btn-primary:hover{background:#2563eb}.ds-btn-primary:active{transform:scale(.98)}.ds-btn-primary:focus-visible{outline:2px solid #3b82f6;outline-offset:3px}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Primary text input for search and filter forms.",
+      "html": "<label class=\"ds-field\"><span>البحث</span><input placeholder=\"ابحث بالاسم أو المنطقة\" /></label>",
+      "css": ".ds-field{display:grid;gap:8px;font:700 14px/1.4 'Noto Sans Arabic',system-ui,sans-serif;color:#0e111b}.ds-field input{min-height:48px;border:2px solid transparent;border-radius:16px;background:#f8fafc;color:#0e111b;padding:14px 16px;font:400 16px/1.5 'Noto Sans Arabic',system-ui,sans-serif}.ds-field input:focus{outline:0;border-color:rgba(59,130,246,.55);background:#fcfdff;box-shadow:0 0 0 4px rgba(59,130,246,.12)}"
+    },
+    {
+      "name": "Mobile Navigation",
+      "kind": "nav",
+      "refersTo": "navigation-mobile",
+      "description": "Thumb-reachable primary navigation for mobile product surfaces.",
+      "html": "<nav class=\"ds-mobile-nav\"><a class=\"is-active\">الرئيسية</a><a>بحث</a><a>حسابي</a></nav>",
+      "css": ".ds-mobile-nav{display:flex;gap:4px;align-items:center;justify-content:space-around;border:1px solid #d0d5e7;border-radius:24px;background:rgba(252,253,255,.96);box-shadow:0 -10px 40px rgba(0,0,0,.08);padding:8px}.ds-mobile-nav a{min-height:44px;min-width:64px;display:grid;place-items:center;border-radius:16px;color:#4e5f97;font:700 12px/1.2 'Noto Sans Arabic',system-ui,sans-serif}.ds-mobile-nav a.is-active{background:rgba(59,130,246,.10);color:#3b82f6}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Trusted Coastal Desk",
+    "overview": "Gamasa Properties is a product interface, not a campaign surface. It should feel calm, competent, and local: a reliable real estate desk that happens to live on a phone, tablet, and desktop.",
+    "keyCharacteristics": ["Arabic-first and RTL-native.", "Calm, practical, and trustworthy.", "Touch-first on mobile, denser on desktop.", "Clear state handling for loading, empty, error, disabled, offline, and long-text cases."],
+    "rules": [
+      { "name": "The Accent Rarity Rule", "body": "Blue is functional, not decorative. If everything is blue, nothing is primary.", "section": "colors" },
+      { "name": "The Arabic Breathing Rule", "body": "Arabic text must not be clipped, over-compressed, or forced into one line when two lines are clearer.", "section": "typography" },
+      { "name": "The State-Only Lift Rule", "body": "Resting UI should feel stable. Motion and elevation appear mainly on hover, focus, active, open, or selected states.", "section": "elevation" }
+    ],
+    "dos": ["Do keep all primary touch targets at least 44px.", "Do test at 390px, 768px, 1024px, and 1440px.", "Do use progressive disclosure on mobile and denser information on desktop."],
+    "donts": ["Don't make the product feel like a generic SaaS landing page.", "Don't use heavy purple or blue-purple gradients as the dominant identity.", "Don't rely on decorative glassmorphism, nested cards, or noisy shadows.", "Don't hide important workflows on mobile.", "Don't make Arabic text feel squeezed, clipped, or secondary."]
+  }
+}

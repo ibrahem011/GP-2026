@@ -108,7 +108,7 @@ describe('FavoritesPage', () => {
         );
     });
 
-    it('renders a sticky mobile header with floating mobile controls', async () => {
+    it('renders mobile header with floating controls and desktop controls', async () => {
         mockGetFavorites.mockResolvedValueOnce({
             data: [{ id: 'p1', title: 'Property 1', images: ['img1.jpg'] }],
             error: null,
@@ -121,14 +121,12 @@ describe('FavoritesPage', () => {
 
         expect(within(mobileHeader).getByText('المفضلة')).toBeInTheDocument();
         expect(within(mobileHeader).getByRole('button', { name: 'الرجوع' })).toBeInTheDocument();
-        expect(mobileHeader).toHaveClass('top-0');
         expect(screen.getByTestId('favorites-desktop-hero')).toHaveClass('hidden', 'md:block');
         expect(screen.getByTestId('favorites-mobile-actions-bar')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'فتح فلترة وترتيب الموبايل' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'فتح الإحصاءات' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'فتح فلترة وترتيب الدسكتوب' })).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'فتح فلترة الموبايل' })).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'فتح إحصاءات الموبايل' })).not.toBeInTheDocument();
+        expect(screen.getByTestId('favorites-desktop-controls')).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'فتح فلترة وترتيب الدسكتوب' })).not.toBeInTheDocument();
     });
 
     it('navigates back from the mobile header button', async () => {
@@ -272,7 +270,7 @@ describe('FavoritesPage', () => {
         expect(screen.queryByTestId('favorites-mobile-actions-bar')).not.toBeInTheDocument();
     });
 
-    it('applies category and price filters from the combined sheet', async () => {
+    it('applies category and price filters directly on desktop controls', async () => {
         const user = userEvent.setup();
 
         mockGetFavorites.mockResolvedValueOnce({
@@ -288,12 +286,36 @@ describe('FavoritesPage', () => {
         expect(await screen.findByText('Property 1')).toBeInTheDocument();
         expect(screen.getByText('Property 2')).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'فتح فلترة وترتيب الموبايل' }));
+        const controls = screen.getByTestId('favorites-desktop-controls');
 
-        const sheet = await screen.findByTestId('favorites-filter-sheet');
-        await user.click(within(sheet).getByRole('button', { name: /فيلا/ }));
-        await user.type(within(sheet).getByLabelText('من'), '3000');
-        await user.click(screen.getByRole('button', { name: 'عرض النتائج' }));
+        await user.click(within(controls).getByRole('button', { name: /فيلا/ }));
+
+        await waitFor(() => {
+            expect(screen.queryByText('Property 1')).not.toBeInTheDocument();
+            expect(screen.getByText('Property 2')).toBeInTheDocument();
+        });
+    });
+
+    it('applies price filter directly on desktop controls', async () => {
+        const user = userEvent.setup();
+
+        mockGetFavorites.mockResolvedValueOnce({
+            data: [
+                { id: 'p1', title: 'Property 1', price: 1500, images: ['img1.jpg'] },
+                { id: 'p2', title: 'Property 2', price: 4500, images: ['img2.jpg'] },
+            ],
+            error: null,
+        });
+
+        render(<FavoritesPage />);
+
+        expect(await screen.findByText('Property 1')).toBeInTheDocument();
+        expect(screen.getByText('Property 2')).toBeInTheDocument();
+
+        const controls = screen.getByTestId('favorites-desktop-controls');
+        const minPriceInput = within(controls).getByPlaceholderText('من');
+
+        await user.type(minPriceInput, '3000');
 
         await waitFor(() => {
             expect(screen.queryByText('Property 1')).not.toBeInTheDocument();
@@ -335,11 +357,100 @@ describe('FavoritesPage', () => {
         expect(await screen.findByText('Property 1')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /إعادة التصفية/ })).not.toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'فتح فلترة وترتيب الدسكتوب' }));
-        const sheet = await screen.findByTestId('favorites-filter-sheet');
-        await user.click(within(sheet).getByRole('button', { name: /فيلا/ }));
-        await user.click(screen.getByRole('button', { name: 'عرض النتائج' }));
+        const controls = screen.getByTestId('favorites-desktop-controls');
+        await user.click(within(controls).getByRole('button', { name: /فيلا/ }));
 
         expect(await screen.findByRole('button', { name: /إعادة التصفية/ })).toBeInTheDocument();
+    });
+
+    it('removes an active filter pill and shows results restored', async () => {
+        const user = userEvent.setup();
+
+        mockGetFavorites.mockResolvedValueOnce({
+            data: [
+                { id: 'p1', title: 'Property 1', category: 'apartment', images: ['img1.jpg'] },
+                { id: 'p2', title: 'Property 2', category: 'villa', images: ['img2.jpg'] },
+            ],
+            error: null,
+        });
+
+        render(<FavoritesPage />);
+
+        expect(await screen.findByText('Property 1')).toBeInTheDocument();
+        expect(screen.getByText('Property 2')).toBeInTheDocument();
+
+        const controls = screen.getByTestId('favorites-desktop-controls');
+
+        await user.click(within(controls).getAllByRole('button', { name: /فيلا/ })[0]);
+
+        await waitFor(() => {
+            expect(screen.queryByText('Property 1')).not.toBeInTheDocument();
+        });
+
+        const pillsSection = within(controls).getByText('الفلاتر النشطة:').parentElement;
+        expect(pillsSection).not.toBeNull();
+        const pillWithClose = pillsSection!.querySelector('button > .material-symbols-outlined');
+        expect(pillWithClose).not.toBeNull();
+        const pillButton = pillWithClose!.parentElement as HTMLButtonElement;
+        await user.click(pillButton);
+
+        await waitFor(() => {
+            expect(screen.getByText('Property 1')).toBeInTheDocument();
+            expect(screen.getByText('Property 2')).toBeInTheDocument();
+        });
+    });
+
+    it('shows results count badge updates when filters are applied', async () => {
+        const user = userEvent.setup();
+
+        mockGetFavorites.mockResolvedValueOnce({
+            data: [
+                { id: 'p1', title: 'Property 1', category: 'apartment', images: ['img1.jpg'] },
+                { id: 'p2', title: 'Property 2', category: 'villa', images: ['img2.jpg'] },
+            ],
+            error: null,
+        });
+
+        render(<FavoritesPage />);
+
+        expect(await screen.findByText('Property 1')).toBeInTheDocument();
+
+        const controls = screen.getByTestId('favorites-desktop-controls');
+        const badge = within(controls).getByText((content) => content.includes('من') && content.includes('٢'));
+
+        expect(badge.textContent).toMatch(/٢ من ٢/);
+
+        await user.click(within(controls).getByRole('button', { name: /فيلا/ }));
+
+        await waitFor(() => {
+            const updatedBadge = within(controls).getByText((content) => content.includes('من') && content.includes('٢'));
+            expect(updatedBadge.textContent).toMatch(/١ من ٢/);
+        });
+    });
+
+    it('applies sort change directly on desktop controls', async () => {
+        const user = userEvent.setup();
+
+        mockGetFavorites.mockResolvedValueOnce({
+            data: [
+                { id: 'p1', title: 'Property 1', price: 1000, images: ['img1.jpg'] },
+                { id: 'p2', title: 'Property 2', price: 5000, images: ['img2.jpg'] },
+            ],
+            error: null,
+        });
+
+        render(<FavoritesPage />);
+
+        expect(await screen.findByText('Property 1')).toBeInTheDocument();
+        expect(screen.getByText('Property 2')).toBeInTheDocument();
+
+        const controls = screen.getByTestId('favorites-desktop-controls');
+        const sortSelect = within(controls).getByRole('combobox', { name: 'ترتيب المفضلة' });
+
+        await user.selectOptions(sortSelect, 'price_desc');
+
+        const sortedCards = await screen.findAllByTestId('property-card');
+        expect(sortedCards[0]).toHaveTextContent('Property 2');
+        expect(sortedCards[1]).toHaveTextContent('Property 1');
     });
 });

@@ -57,12 +57,12 @@ function makeServiceBooking(overrides: Record<string, unknown> = {}) {
     };
 }
 
-const genericErrorPattern = /حدث خطأ أثناء جلب البيانات\. يرجى المحاولة مرة أخرى\./u;
-const timeoutErrorPattern = /انتهت مهلة تحميل الحجوزات\. تحقق من الاتصال ثم حاول مرة أخرى\./u;
-const timeoutHelpPattern = /الخادم تأخر في الاستجابة/iu;
+const genericErrorPattern = /تعذر تحميل الحجوزات\. يرجى المحاولة مرة أخرى لاحقاً\./u;
+const timeoutErrorPattern = /تأخرت استجابة الخادم\. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى\./u;
+const timeoutHelpPattern = /يرجى التحقق من اتصالك والمحاولة لاحقاً\./u;
 const retryPattern = /المحاولة مرة أخرى/u;
-const tripsTabPattern = /رحلاتي/u;
-const detailsPattern = /عرض التفاصيل/u;
+const tripsTabPattern = /حجوزاتي/u;
+const detailsPattern = /تفاصيل الحجز/u;
 
 describe('BookingsPage', () => {
     afterEach(() => {
@@ -131,11 +131,13 @@ describe('BookingsPage', () => {
         await user.click(screen.getByRole('button', { name: retryPattern }));
 
         await waitFor(() => {
-            expect(screen.getByText('Sea View Chalet')).toBeInTheDocument();
+            expect(screen.getAllByText('Sea View Chalet').length).toBeGreaterThan(0);
         });
 
         expect(screen.getByRole('button', { name: tripsTabPattern })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: detailsPattern })).toHaveAttribute('href', '/bookings/booking-1');
+        const detailsLinks = screen.getAllByRole('link', { name: detailsPattern });
+        expect(detailsLinks.length).toBeGreaterThan(0);
+        expect(detailsLinks[0]).toHaveAttribute('href', '/bookings/booking-1?view=tenant');
         expect(screen.queryByText(genericErrorPattern)).not.toBeInTheDocument();
     });
 });

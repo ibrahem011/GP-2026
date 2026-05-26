@@ -40,11 +40,11 @@ type BookingErrors = {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_ERROR_MESSAGE = 'يرجى إدخال رقم موبايل مصري صحيح. نقبل 010... أو +201... وسيتم توحيده تلقائيًا.';
 const INVALID_STORED_PHONE_HELPER = 'رقم الهاتف المحفوظ في الحساب يحتاج مراجعة. أدخله بصيغة مصرية مثل 01012345678.';
-const STEPS: { id: BookingStep; label: string }[] = [
-  { id: 1, label: 'التواريخ' },
-  { id: 2, label: 'بيانات المستأجر' },
-  { id: 3, label: 'الدفع' },
-  { id: 4, label: 'المراجعة' },
+const STEPS: { id: BookingStep; label: string; helper: string; icon: string }[] = [
+  { id: 1, label: 'التواريخ', helper: 'اختر تاريخ الوصول والمغادرة', icon: 'calendar_month' },
+  { id: 2, label: 'بيانات المستأجر', helper: 'أكمل الاسم ورقم الهاتف', icon: 'badge' },
+  { id: 3, label: 'الدفع', helper: 'اختر طريقة دفع الطلب', icon: 'payments' },
+  { id: 4, label: 'المراجعة', helper: 'راجع التفاصيل قبل الإرسال', icon: 'fact_check' },
 ];
 
 const parseDateOnly = (date: string) => (date ? new Date(`${date}T00:00:00.000Z`) : null);
@@ -404,6 +404,7 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
 
   const primaryLabel = currentStep < 4 ? 'التالي' : (isSubmitting ? 'جارٍ التأكيد...' : 'تأكيد الحجز');
   const bookingRedirect = encodeURIComponent(`/property/${propertyId}/booking`);
+  const activeStepMeta = STEPS.find((step) => step.id === currentStep) ?? STEPS[0];
 
   if (authLoading || (user && propertyAccess === 'checking')) {
     return (
@@ -420,8 +421,8 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300"><span className="material-symbols-outlined">lock</span></div>
           <h2 className="mb-2 text-xl font-bold text-gray-900 dark:text-zinc-100">يجب تسجيل الدخول أولًا</h2>
           <p className="mb-6 text-sm text-gray-600 dark:text-zinc-300">لإتمام الحجز ومتابعة الطلب، سجّل الدخول ثم ارجع تلقائيًا لهذه الصفحة.</p>
-          <Link href={`/auth?mode=login&redirect=${bookingRedirect}`} className="block w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">تسجيل الدخول</Link>
-          <button type="button" onClick={() => router.push(`/property/${propertyId}`)} className="mt-3 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">العودة للعقار</button>
+          <Link href={`/auth?mode=login&redirect=${bookingRedirect}`} className="flex min-h-11 w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/50">تسجيل الدخول</Link>
+          <button type="button" onClick={() => router.push(`/property/${propertyId}`)} className="mt-3 min-h-11 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary/50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">العودة للعقار</button>
         </div>
       </div>
     );
@@ -434,7 +435,7 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-300"><span className="material-symbols-outlined">lock</span></div>
           <h2 className="mb-2 text-xl font-bold text-gray-900 dark:text-zinc-100">يجب فك قفل هذا العقار أولًا</h2>
           <p className="mb-6 text-sm text-gray-600 dark:text-zinc-300">ادفع رسوم فك القفل لهذا العقار من صفحة التفاصيل، وبعد تفعيل الوصول سيظهر لك زر الحجز هنا.</p>
-          <button type="button" onClick={() => router.push(`/property/${propertyId}`)} className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">العودة للعقار</button>
+          <button type="button" onClick={() => router.push(`/property/${propertyId}`)} className="min-h-11 w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/50">العودة للعقار</button>
         </div>
       </div>
     );
@@ -442,22 +443,48 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
 
   return (
     <div className="min-h-screen bg-background-light pb-[13rem] dark:bg-background-dark">
-      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-surface-light/95 backdrop-blur dark:border-zinc-800 dark:bg-surface-dark/92">
         <div className="mx-auto max-w-6xl px-4 py-3 lg:px-6">
           <div className="flex items-center justify-between gap-3">
-            <button type="button" onClick={() => router.back()} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"><span className="material-symbols-outlined">arrow_forward</span></button>
-            <h1 className="text-base font-bold text-gray-900 dark:text-zinc-100">إتمام الحجز</h1>
+            <button type="button" onClick={() => router.back()} className="inline-flex touch-target items-center justify-center rounded-full border border-gray-200 text-gray-700 transition hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary/50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"><span className="material-symbols-outlined">arrow_forward</span></button>
+            <div className="min-w-0 text-center">
+              <h1 className="text-base font-bold text-gray-900 dark:text-zinc-100">إتمام الحجز</h1>
+              <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-zinc-400">{activeStepMeta.helper}</p>
+            </div>
             <span className="w-10" />
           </div>
           <div className="mt-4">
             <div className="relative h-1 rounded-full bg-gray-200 dark:bg-zinc-800"><div className="absolute right-0 top-0 h-1 rounded-full bg-blue-600 transition-all" style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }} /></div>
-            <div className="mt-2 grid grid-cols-4 gap-2 text-center text-xs font-medium text-gray-500 dark:text-zinc-400">{STEPS.map((step) => { const done = currentStep > step.id; const active = currentStep === step.id; return <div key={step.id} className="space-y-1"><div className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full border text-[11px] ${done ? 'border-blue-600 bg-blue-600 text-white' : active ? 'border-blue-600 text-blue-600' : 'border-gray-300 text-gray-400 dark:border-zinc-700'}`}>{done ? <span className="material-symbols-outlined text-sm">check</span> : step.id}</div><p className={active || done ? 'text-blue-600 dark:text-blue-400' : ''}>{step.label}</p></div>; })}</div>
+            <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs font-medium text-gray-500 dark:text-zinc-400">
+              {STEPS.map((step) => {
+                const done = currentStep > step.id;
+                const active = currentStep === step.id;
+                return (
+                  <div key={step.id} className="min-w-0 space-y-1">
+                    <div className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full border text-[11px] transition ${done ? 'border-blue-600 bg-blue-600 text-white' : active ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-300' : 'border-gray-300 bg-white text-gray-400 dark:border-zinc-700 dark:bg-zinc-900'}`}>
+                      {done ? <span className="material-symbols-outlined text-sm">check</span> : <span className="material-symbols-outlined text-[17px]">{step.icon}</span>}
+                    </div>
+                    <p className={`truncate ${active || done ? 'font-bold text-blue-600 dark:text-blue-400' : ''}`}>{step.label}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </header>
 
       <main className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-12 lg:gap-8 lg:px-6">
         <section className="space-y-4 lg:col-span-7">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-sm text-blue-800 dark:border-blue-900/30 dark:bg-blue-950/20 dark:text-blue-200">
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined mt-0.5 text-[20px]">{activeStepMeta.icon}</span>
+              <div>
+                <p className="font-bold">{activeStepMeta.label}</p>
+                <p className="mt-1 text-xs leading-6 opacity-90">{activeStepMeta.helper}. يمكنك تعديل أي خطوة قبل تأكيد الحجز.</p>
+              </div>
+            </div>
+          </div>
+
           {currentStep === 1 ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
               <h2 className="mb-3 text-lg font-bold text-gray-900 dark:text-zinc-100">اختر التواريخ</h2>
@@ -509,7 +536,7 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
           {(errors.userId || errors.submit) ? <div id="booking-error-banner" ref={errorBannerRef} className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/20 dark:text-red-300">{errors.userId || errors.submit}</div> : null}
           <div className="hidden items-center justify-between border-t border-gray-200 pt-4 dark:border-zinc-800 lg:flex">
             {currentStep > 1 ? <button type="button" onClick={handlePrev} className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900">السابق</button> : <span />}
-            <button type="button" onClick={() => (currentStep < 4 ? handleNext() : void handleSubmit())} disabled={nextDisabled} className="inline-flex min-w-36 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting && currentStep === 4 ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : primaryLabel}</button>
+            <button type="button" onClick={() => (currentStep < 4 ? handleNext() : void handleSubmit())} disabled={nextDisabled} className="inline-flex min-h-11 min-w-36 items-center justify-center rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting && currentStep === 4 ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : primaryLabel}</button>
           </div>
         </section>
 
@@ -525,14 +552,35 @@ export default function BookingPageClient({ propertyId, initialProperty }: Booki
             </div>
             <div className="mt-4 hidden lg:block"><PriceBreakdown rentalType={rentalConfig.type} duration={priceDetails.duration} pricePerUnit={rentalConfig.pricePerUnit} basePrice={priceDetails.basePrice} serviceFee={priceDetails.serviceFee} depositAmount={priceDetails.depositAmount} totalAmount={priceDetails.totalAmount} /></div>
           </div>
+
+          <div className="hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 lg:block">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-zinc-100">خطوات الحجز</h2>
+            <div className="mt-4 space-y-3">
+              {STEPS.map((step) => {
+                const done = currentStep > step.id;
+                const active = currentStep === step.id;
+                return (
+                  <div key={step.id} className="flex items-start gap-3">
+                    <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[16px] ${done ? 'border-emerald-500 bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-300' : active ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 bg-gray-50 text-gray-400 dark:border-zinc-700 dark:bg-zinc-800'}`}>
+                      <span className="material-symbols-outlined text-[17px]">{done ? 'check' : step.icon}</span>
+                    </span>
+                    <div>
+                      <p className={`text-sm font-bold ${active ? 'text-primary' : 'text-gray-900 dark:text-zinc-100'}`}>{step.label}</p>
+                      <p className="mt-0.5 text-xs leading-5 text-gray-500 dark:text-zinc-400">{step.helper}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </aside>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white/95 px-4 pb-2 pt-3 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95 lg:hidden" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}>
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-surface-light/95 px-4 pb-2 pt-3 backdrop-blur dark:border-zinc-800 dark:bg-surface-dark/95 lg:hidden" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}>
         {priceDetails.totalAmount > 0 ? <PriceBreakdown rentalType={rentalConfig.type} duration={priceDetails.duration} pricePerUnit={rentalConfig.pricePerUnit} basePrice={priceDetails.basePrice} serviceFee={priceDetails.serviceFee} depositAmount={priceDetails.depositAmount} totalAmount={priceDetails.totalAmount} compact className="mb-3" /> : <p className="mb-3 text-center text-xs text-gray-500 dark:text-zinc-400">اختر التواريخ لحساب السعر الإجمالي</p>}
         <div className="flex items-center gap-2">
-          {currentStep > 1 ? <button type="button" onClick={handlePrev} className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-gray-300 text-gray-700 transition hover:bg-gray-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"><span className="material-symbols-outlined">arrow_forward</span></button> : null}
-          <button type="button" onClick={() => (currentStep < 4 ? handleNext() : void handleSubmit())} disabled={nextDisabled} className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting && currentStep === 4 ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : primaryLabel}</button>
+          {currentStep > 1 ? <button type="button" onClick={handlePrev} className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-gray-300 text-gray-700 transition hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary/50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"><span className="material-symbols-outlined">arrow_forward</span></button> : null}
+          <button type="button" onClick={() => (currentStep < 4 ? handleNext() : void handleSubmit())} disabled={nextDisabled} className="inline-flex h-12 flex-1 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-60">{isSubmitting && currentStep === 4 ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : primaryLabel}</button>
         </div>
       </div>
     </div>

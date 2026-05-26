@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockRpc, mockFrom } = vi.hoisted(() => ({
     mockRpc: vi.fn(),
@@ -35,7 +35,11 @@ vi.mock('@/lib/supabase', () => ({
     deleteImage: vi.fn(),
 }));
 
-import { supabaseService } from '../supabaseService';
+import {
+    fetchWithRetry,
+    resetRequestResilienceStateForTests,
+    supabaseService,
+} from '../supabaseService';
 
 function createTimeoutError() {
     const error = new Error('REQUEST_TIMEOUT') as Error & { code?: string };
@@ -89,9 +93,31 @@ function createMaybeSingleQuery(result: { data: any; error: any }) {
     };
 }
 
+function createCountQuery(result: { count: number | null; error: any }) {
+    const eq = vi.fn().mockResolvedValue(result);
+    return {
+        select: vi.fn(() => ({ eq })),
+        eq,
+    };
+}
+
+function createRejectingCountQuery(error: unknown) {
+    const eq = vi.fn().mockRejectedValue(error);
+    return {
+        select: vi.fn(() => ({ eq })),
+        eq,
+    };
+}
+
 describe('supabaseService RPC methods', () => {
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     beforeEach(() => {
-        vi.clearAllMocks();
+        mockRpc.mockReset();
+        mockFrom.mockReset();
+        resetRequestResilienceStateForTests();
         window.localStorage.removeItem('DEV_MOCK_MODE');
     });
 
@@ -147,10 +173,11 @@ describe('supabaseService RPC methods', () => {
                 error: null,
             });
 
-            const { bookings, error } = await supabaseService.getUserBookings('user-123');
+            const { bookings, error, isTimeout } = await supabaseService.getUserBookings('user-123');
 
             expect(mockRpc).toHaveBeenCalledWith('get_user_bookings', { uid: 'user-123' });
             expect(error).toBeNull();
+            expect(isTimeout).toBe(false);
             expect(bookings).toHaveLength(2);
             expect(bookings[0].id).toBe('b1');
             expect(bookings[0].property.title).toBe('Prop 1');
@@ -170,18 +197,21 @@ describe('supabaseService RPC methods', () => {
             expect(error).toBeDefined();
             expect(error.message).toBe('Unauthorized access');
             expect(isTimeout).toBe(false);
-            expect(mockRpc).toHaveBeenCalledTimes(2);
+            expect(mockRpc).toHaveBeenCalledTimes(1);
         });
 
         it('returns a timeout result when the RPC times out', async () => {
             mockRpc.mockRejectedValue(createTimeoutError());
 
-            const { bookings, error, isTimeout } = await supabaseService.getUserBookings('user-123');
+            const { bookings, error, isTimeout } = await supabaseService.getUserBookings('user-123', {
+                timeoutMs: 10,
+                maxRetries: 0,
+            });
 
             expect(bookings).toEqual([]);
             expect(error).toEqual({ code: 'REQUEST_TIMEOUT', message: 'REQUEST_TIMEOUT' });
             expect(isTimeout).toBe(true);
-            expect(mockRpc).toHaveBeenCalledTimes(2);
+            expect(mockRpc).toHaveBeenCalledTimes(1);
         });
 
         it('falls back to direct queries when the RPC function is missing', async () => {
@@ -314,18 +344,21 @@ describe('supabaseService RPC methods', () => {
             expect(error).toBeDefined();
             expect(error).toBeInstanceOf(Error);
             expect(isTimeout).toBe(false);
-            expect(mockRpc).toHaveBeenCalledTimes(2);
+            expect(mockRpc).toHaveBeenCalledTimes(1);
         });
 
         it('returns a timeout result when the RPC times out', async () => {
             mockRpc.mockRejectedValue(createTimeoutError());
 
-            const { data, error, isTimeout } = await supabaseService.getFavorites('user-123');
+            const { data, error, isTimeout } = await supabaseService.getFavorites('user-123', {
+                timeoutMs: 10,
+                maxRetries: 0,
+            });
 
             expect(data).toEqual([]);
             expect(error).toEqual({ code: 'REQUEST_TIMEOUT', message: 'REQUEST_TIMEOUT' });
             expect(isTimeout).toBe(true);
-            expect(mockRpc).toHaveBeenCalledTimes(2);
+            expect(mockRpc).toHaveBeenCalledTimes(1);
         });
 
         it('falls back to direct queries when the RPC function is missing', async () => {
@@ -364,6 +397,131 @@ describe('supabaseService RPC methods', () => {
             expect(error).toBeNull();
             expect(data.map((item) => item.id)).toEqual(['p2', 'p1']);
             expect(data[0].title).toBe('Property 2');
+        });
+    });
+
+    describe('getProfileStats', () => {
+        it('returns count-only profile stats', async () => {
+            const propertiesQuery = createCountQuery({ count: 7, error: null });
+            const unlockedQuery = createCountQuery({ count: 3, error: null });
+            const favoritesQuery = createCountQuery({ count: 2, error: null });
+
+            mockFrom.mockImplementation((table: string) => {
+                if (table === 'properties') return propertiesQuery;
+                if (table === 'unlocked_properties') return unlockedQuery;
+                if (table === 'favorites') return favoritesQuery;
+                throw new Error(`Unexpected table ${table}`);
+            });
+
+            const { stats, error, isTimeout } = await supabaseService.getProfileStats('user-123', {
+                timeoutMs: 8_000,
+                maxRetries: 0,
+                operationKey: 'profileStats-test',
+            });
+
+            expect(error).toBeNull();
+            expect(isTimeout).toBe(false);
+            expect(stats).toEqual({ properties: 7, unlocked: 3, favorites: 2 });
+            expect(propertiesQuery.select).toHaveBeenCalledWith('id', { count: 'exact', head: true });
+            expect(propertiesQuery.eq).toHaveBeenCalledWith('owner_id', 'user-123');
+            expect(unlockedQuery.select).toHaveBeenCalledWith('property_id', { count: 'exact', head: true });
+            expect(unlockedQuery.eq).toHaveBeenCalledWith('user_id', 'user-123');
+            expect(favoritesQuery.select).toHaveBeenCalledWith('property_id', { count: 'exact', head: true });
+            expect(favoritesQuery.eq).toHaveBeenCalledWith('user_id', 'user-123');
+        });
+
+        it('returns a timeout result when profile stats time out', async () => {
+            mockFrom.mockReturnValue(createRejectingCountQuery(createTimeoutError()));
+
+            const { stats, error, isTimeout } = await supabaseService.getProfileStats('user-123', {
+                timeoutMs: 10,
+                maxRetries: 0,
+                operationKey: 'profileStats-timeout-test',
+            });
+
+            expect(stats).toEqual({ properties: 0, unlocked: 0, favorites: 0 });
+            expect(error).toEqual({ code: 'REQUEST_TIMEOUT', message: 'REQUEST_TIMEOUT' });
+            expect(isTimeout).toBe(true);
+        });
+
+        it('returns an error without hanging when one profile stats count fails', async () => {
+            const propertiesQuery = createCountQuery({ count: 7, error: null });
+            const unlockedQuery = createCountQuery({ count: 3, error: null });
+            const favoritesQuery = createCountQuery({ count: null, error: { message: 'favorites failed' } });
+
+            mockFrom.mockImplementation((table: string) => {
+                if (table === 'properties') return propertiesQuery;
+                if (table === 'unlocked_properties') return unlockedQuery;
+                if (table === 'favorites') return favoritesQuery;
+                throw new Error(`Unexpected table ${table}`);
+            });
+
+            const { stats, error, isTimeout } = await supabaseService.getProfileStats('user-123', {
+                timeoutMs: 8_000,
+                maxRetries: 0,
+                operationKey: 'profileStats-error-test',
+            });
+
+            expect(stats).toEqual({ properties: 0, unlocked: 0, favorites: 0 });
+            expect(error).toEqual({ message: 'favorites failed' });
+            expect(isTimeout).toBe(false);
+        });
+    });
+
+    describe('fetchWithRetry', () => {
+        it('does not retry timeout errors unless retryOnTimeout is enabled', async () => {
+            const fn = vi.fn().mockRejectedValue(createTimeoutError());
+
+            await expect(fetchWithRetry(fn, {
+                timeoutMs: 10,
+                maxRetries: 2,
+                operationKey: 'no-retry-by-default-test',
+            })).rejects.toMatchObject({ code: 'REQUEST_TIMEOUT' });
+
+            expect(fn).toHaveBeenCalledTimes(1);
+        });
+
+        it('retries timeout errors when retryOnTimeout is enabled', async () => {
+            vi.useFakeTimers();
+            const fn = vi.fn()
+                .mockRejectedValueOnce(createTimeoutError())
+                .mockResolvedValueOnce('ok');
+
+            const promise = fetchWithRetry(fn, {
+                timeoutMs: 10,
+                maxRetries: 1,
+                retryOnTimeout: true,
+                operationKey: 'retry-enabled-test',
+            });
+
+            await vi.advanceTimersByTimeAsync(1_000);
+
+            await expect(promise).resolves.toBe('ok');
+            expect(fn).toHaveBeenCalledTimes(2);
+        });
+
+        it('skips retry when the operation circuit is open', async () => {
+            const operationKey = 'circuit-open-test';
+
+            for (let i = 0; i < 3; i += 1) {
+                await expect(fetchWithRetry(
+                    vi.fn().mockRejectedValue(createTimeoutError()),
+                    { timeoutMs: 10, maxRetries: 0, operationKey },
+                )).rejects.toMatchObject({ code: 'REQUEST_TIMEOUT' });
+            }
+
+            const fn = vi.fn()
+                .mockRejectedValueOnce(createTimeoutError())
+                .mockResolvedValueOnce('ok');
+
+            await expect(fetchWithRetry(fn, {
+                timeoutMs: 10,
+                maxRetries: 1,
+                retryOnTimeout: true,
+                operationKey,
+            })).rejects.toMatchObject({ code: 'REQUEST_TIMEOUT' });
+
+            expect(fn).toHaveBeenCalledTimes(1);
         });
     });
 

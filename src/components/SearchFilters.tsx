@@ -85,7 +85,7 @@ export default function SearchFilters({
     <div className={containerClass}>
       {showHeader && (
         <div className="flex justify-between items-center">
-          <h3 className="font-bold text-lg text-text-main">الفلاتر</h3>
+          <h3 className="font-bold text-lg text-slate-900 dark:text-white">الفلاتر</h3>
           <button onClick={resetAll} className="text-xs text-primary font-bold hover:underline">
             مسح الكل
           </button>
@@ -94,7 +94,7 @@ export default function SearchFilters({
 
       {/* Category */}
       <div id="filter-category">
-        <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-text-main">
+        <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-slate-900 dark:text-white">
           <span className="material-symbols-outlined text-primary text-[18px]">category</span>
           نوع العقار
         </h4>
@@ -119,30 +119,30 @@ export default function SearchFilters({
 
       {/* Price */}
       <div id="filter-price">
-        <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-text-main">
+        <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-slate-900 dark:text-white">
           <span className="material-symbols-outlined text-primary text-[18px]">payments</span>
           نطاق السعر
         </h4>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="space-y-1">
-            <label className="text-xs text-text-muted">الحد الأدنى</label>
+            <label className="text-xs text-slate-500 dark:text-slate-300">الحد الأدنى</label>
             <input
               inputMode="numeric"
               value={minPrice || ''}
               onChange={(e) => setMinPrice(Number(e.target.value || 0))}
               placeholder="0"
-              className="w-full p-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 outline-none"
+              className="w-full p-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-900 dark:text-white outline-none"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-text-muted">الحد الأقصى</label>
+            <label className="text-xs text-slate-500 dark:text-slate-300">الحد الأقصى</label>
             <input
               inputMode="numeric"
               value={maxPrice || ''}
               onChange={(e) => setMaxPrice(Number(e.target.value || 0))}
               placeholder="5000"
-              className="w-full p-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 outline-none"
+              className="w-full p-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-900 dark:text-white outline-none"
             />
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function SearchFilters({
             <button
               key={v}
               onClick={() => setMaxPrice(v)}
-              className="shrink-0 px-3 py-2 rounded-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm"
+              className="shrink-0 px-3 py-2 rounded-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-slate-900 dark:text-white"
             >
               حتى {v.toLocaleString()}
             </button>
@@ -172,14 +172,14 @@ export default function SearchFilters({
 
       {/* Area */}
       <div id="filter-area">
-        <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-text-main">
+        <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-slate-900 dark:text-white">
           <span className="material-symbols-outlined text-primary text-[18px]">location_on</span>
           المنطقة
         </h4>
         <select
           value={selectedArea}
           onChange={(e) => setSelectedArea(e.target.value)}
-          className="w-full p-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm outline-none"
+          className="w-full p-3 rounded-xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-slate-900 dark:text-white outline-none"
         >
           <option value="all">كل المناطق</option>
           {AREAS.map((area) => (
@@ -193,7 +193,7 @@ export default function SearchFilters({
       {/* Rooms */}
       <div id="filter-rooms" className="grid grid-cols-2 gap-3">
         <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4">
-          <div className="text-sm font-bold mb-3 text-text-main">غرف النوم</div>
+          <div className="text-sm font-bold mb-3 text-slate-900 dark:text-white">غرف النوم</div>
           <div className="flex items-center justify-between">
             <button
               onClick={() => setBedrooms((v) => Math.max(0, v - 1))}
@@ -214,7 +214,7 @@ export default function SearchFilters({
         </div>
 
         <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-4">
-          <div className="text-sm font-bold mb-3 text-text-main">الحمامات</div>
+          <div className="text-sm font-bold mb-3 text-slate-900 dark:text-white">الحمامات</div>
           <div className="flex items-center justify-between">
             <button
               onClick={() => setBathrooms((v) => Math.max(0, v - 1))}
@@ -237,7 +237,7 @@ export default function SearchFilters({
 
       {/* Features */}
       <div id="filter-features">
-        <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-text-main">
+        <h4 className="font-bold mb-3 flex items-center gap-2 text-sm text-slate-900 dark:text-white">
           <span className="material-symbols-outlined text-primary text-[18px]">star</span>
           المميزات
         </h4>
@@ -269,7 +269,7 @@ export default function SearchFilters({
           </button>
         )}
 
-        <button onClick={resetAll} className="mt-5 w-full h-11 rounded-2xl border border-gray-200 dark:border-white/10">
+        <button onClick={resetAll} className="mt-5 w-full h-11 rounded-2xl border border-gray-200 dark:border-white/10 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
           مسح الكل
         </button>
       </div>

@@ -1,13 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Property, PropertyStatus } from '@/types';
 import { getIsMockMode } from '@/config/constants';
-import { supabaseService } from '@/services/supabaseService';
+import { isTimeoutLikeError, supabaseService } from '@/services/supabaseService';
 import { fromPropertyRow } from '@/lib/propertyMapper';
 
 interface UseMyPropertiesCallbacks {
     onSuccess?: (message: string) => void;
     onError?: (message: string) => void;
 }
+
+const LOAD_TIMEOUT_MS = 15_000;
+const TIMEOUT_ERROR_MESSAGE = '\u0627\u0646\u062a\u0647\u062a \u0645\u0647\u0644\u0629 \u0627\u0644\u0627\u062a\u0635\u0627\u0644. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.';
+const GENERIC_ERROR_MESSAGE = '\u0641\u0634\u0644 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0639\u0642\u0627\u0631\u0627\u062a. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0627\u062d\u0642\u0627.';
 
 export function useMyProperties(userId: string | undefined, callbacks?: UseMyPropertiesCallbacks) {
     const [properties, setProperties] = useState<Property[]>([]);
@@ -25,44 +29,38 @@ export function useMyProperties(userId: string | undefined, callbacks?: UseMyPro
         setError(null);
 
         try {
-            const TIMEOUT_MS = 15_000;
-            const MAX_RETRIES = 2;
+            const rows = await supabaseService.getProperties({
+                ownerId: userId,
+                timeoutMs: LOAD_TIMEOUT_MS,
+                maxRetries: 0,
+                retryOnTimeout: false,
+                operationKey: 'myProperties',
+                logLevel: 'warn',
+                throwOnError: true,
+            });
 
-            let lastError: any = null;
-            for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-                try {
-                    const rows = await supabaseService.getProperties({
-                        ownerId: userId,
-                        timeoutMs: TIMEOUT_MS,
-                        logLevel: 'warn',
-                    });
+            setProperties(rows.map(fromPropertyRow));
+        } catch (err: any) {
+            const timedOut = isTimeoutLikeError(err);
 
-                    setProperties(rows.map(fromPropertyRow));
-                    lastError = null;
-                    break;
-                } catch (err: any) {
-                    lastError = err;
-                    console.error(`Attempt ${attempt + 1} failed:`, err);
-
-                    if (attempt < MAX_RETRIES - 1) {
-                        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-                    }
-                }
+            if (timedOut) {
+                console.warn('[useMyProperties] Properties request timed out.', {
+                    code: err?.code ?? 'REQUEST_TIMEOUT',
+                    operationKey: 'myProperties',
+                    timeoutMs: LOAD_TIMEOUT_MS,
+                });
+            } else {
+                console.error('[useMyProperties] Failed to load properties:', err);
             }
 
-            if (lastError) {
-                if (getIsMockMode()) {
-                    const mockRows = await supabaseService.getProperties({ ownerId: userId });
-                    setProperties(mockRows.map(fromPropertyRow));
-                } else {
-                    const isTimeout = lastError?.name === 'AbortError' || lastError?.message === 'TIMEOUT';
-                    const msg = isTimeout
-                        ? 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.'
-                        : 'فشل تحميل العقارات. يرجى المحاولة لاحقاً.';
-                    setError(msg);
-                    setProperties([]);
-                }
+            if (getIsMockMode()) {
+                const mockRows = await supabaseService.getProperties({ ownerId: userId });
+                setProperties(mockRows.map(fromPropertyRow));
+                return;
             }
+
+            setError(timedOut ? TIMEOUT_ERROR_MESSAGE : GENERIC_ERROR_MESSAGE);
+            setProperties([]);
         } finally {
             setLoading(false);
         }
@@ -78,13 +76,13 @@ export function useMyProperties(userId: string | undefined, callbacks?: UseMyPro
             const success = await supabaseService.deleteProperty(id);
             if (success) {
                 setProperties((prev) => prev.filter((p) => p.id !== id));
-                callbacks?.onSuccess?.('تم حذف العقار بنجاح');
+                callbacks?.onSuccess?.('\u062a\u0645 \u062d\u0630\u0641 \u0627\u0644\u0639\u0642\u0627\u0631 \u0628\u0646\u062c\u0627\u062d');
             } else {
-                callbacks?.onError?.('فشل حذف العقار، يرجى المحاولة مرة أخرى');
+                callbacks?.onError?.('\u0641\u0634\u0644 \u062d\u0630\u0641 \u0627\u0644\u0639\u0642\u0627\u0631\u060c \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649');
             }
         } catch (err) {
             console.error('Error deleting property:', err);
-            callbacks?.onError?.('فشل حذف العقار. يرجى المحاولة مرة أخرى.');
+            callbacks?.onError?.('\u0641\u0634\u0644 \u062d\u0630\u0641 \u0627\u0644\u0639\u0642\u0627\u0631. \u064a\u0631\u062c\u0649 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.');
         } finally {
             setDeletingId(null);
         }
@@ -94,16 +92,16 @@ export function useMyProperties(userId: string | undefined, callbacks?: UseMyPro
         try {
             const updated = await supabaseService.updateProperty(id, { status: newStatus });
             if (updated) {
-                setProperties((prev) => 
+                setProperties((prev) =>
                     prev.map((p) => (p.id === id ? fromPropertyRow(updated) : p))
                 );
-                callbacks?.onSuccess?.('تم تحديث حالة العقار بنجاح');
+                callbacks?.onSuccess?.('\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u062d\u0627\u0644\u0629 \u0627\u0644\u0639\u0642\u0627\u0631 \u0628\u0646\u062c\u0627\u062d');
             } else {
-                callbacks?.onError?.('فشل تحديث حالة العقار');
+                callbacks?.onError?.('\u0641\u0634\u0644 \u062a\u062d\u062f\u064a\u062b \u062d\u0627\u0644\u0629 \u0627\u0644\u0639\u0642\u0627\u0631');
             }
         } catch (err) {
             console.error('Error updating status:', err);
-            callbacks?.onError?.('فشل تحديث حالة العقار');
+            callbacks?.onError?.('\u0641\u0634\u0644 \u062a\u062d\u062f\u064a\u062b \u062d\u0627\u0644\u0629 \u0627\u0644\u0639\u0642\u0627\u0631');
         }
     }, [callbacks]);
 
