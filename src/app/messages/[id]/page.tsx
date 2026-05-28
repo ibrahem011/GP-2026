@@ -202,10 +202,11 @@ export default function ChatPage({ params }: ChatPageProps) {
             <div className="bg-white dark:bg-zinc-800 border-b border-gray-100 dark:border-zinc-700 p-3 flex items-center justify-between shadow-sm z-20">
                 <div className="flex items-center gap-3">
                     <button
+                        aria-label="الرجوع"
                         onClick={() => router.back()}
-                        className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
+                        className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary"
                     >
-                        <span className="material-symbols-outlined text-gray-500">arrow_forward</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-gray-500">arrow_forward</span>
                     </button>
 
                     <div className="flex items-center gap-3">
@@ -230,11 +231,11 @@ export default function ChatPage({ params }: ChatPageProps) {
                 </div>
 
                 <div className="flex gap-2">
-                    <button className="w-10 h-10 rounded-full bg-gray-50 dark:bg-zinc-700 flex items-center justify-center text-gray-500 hover:text-primary transition-colors">
-                        <span className="material-symbols-outlined">call</span>
+                    <button aria-label="اتصال" className="w-10 h-10 rounded-full bg-gray-50 dark:bg-zinc-700 flex items-center justify-center text-gray-500 hover:text-primary transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary">
+                        <span aria-hidden="true" className="material-symbols-outlined">call</span>
                     </button>
-                    <button className="w-10 h-10 rounded-full bg-gray-50 dark:bg-zinc-700 flex items-center justify-center text-gray-500 hover:text-primary transition-colors">
-                        <span className="material-symbols-outlined">more_vert</span>
+                    <button aria-label="مزيد من الخيارات" className="w-10 h-10 rounded-full bg-gray-50 dark:bg-zinc-700 flex items-center justify-center text-gray-500 hover:text-primary transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary">
+                        <span aria-hidden="true" className="material-symbols-outlined">more_vert</span>
                     </button>
                 </div>
             </div>
