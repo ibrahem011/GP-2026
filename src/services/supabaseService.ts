@@ -1544,14 +1544,17 @@ export const supabaseService = {
             }
         }
 
-        const { data: existing } = await supabase
+        // ⚡ Bolt: Using { count: 'exact', head: true } performs a lightweight HEAD request
+        // instead of transferring full row data over the network via .select('*').single().
+        // This is significantly faster for simple existence checks and avoids PostgREST
+        // PGRST116 errors when zero rows are found.
+        const { count } = await supabase
             .from('favorites')
-            .select('*')
+            .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        if (existing) {
+        if ((count ?? 0) > 0) {
             await supabase
                 .from('favorites')
                 .delete()
@@ -1633,14 +1636,17 @@ export const supabaseService = {
             return _mockUnlocked.has(propertyId);
         }
 
-        const { data } = await supabase
+        // ⚡ Bolt: Using { count: 'exact', head: true } performs a lightweight HEAD request
+        // instead of transferring full row data over the network via .select('*').single().
+        // This is significantly faster for simple existence checks and avoids PostgREST
+        // PGRST116 errors when zero rows are found.
+        const { count } = await supabase
             .from('unlocked_properties')
-            .select('*')
+            .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        return !!data;
+        return (count ?? 0) > 0;
     },
 
     async getPublicBookingPeriods(propertyId: string): Promise<PublicBookingPeriod[]> {
