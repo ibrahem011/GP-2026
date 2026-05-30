@@ -1,0 +1,3 @@
+## 2024-04-14 - Parallelizing I/O-Bound Supabase Operations
+**Learning:** Sequential `for...of` loops used for uploading multiple images, resolving individual fallback signed URLs, and handling bulk cleanup (e.g., deleting orphaned images upon creation failure) create significant `O(N)` network bottlenecks in Supabase service methods, stalling the main thread while waiting for individual HTTP requests to complete.
+**Action:** Always replace sequential I/O operations with parallel execution using `Promise.all` (for concurrent fetches/uploads where a single failure should short-circuit) or `Promise.allSettled` (for bulk cleanup scenarios where every attempt must run regardless of individual rejections).
