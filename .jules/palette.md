@@ -1,0 +1,3 @@
+## 2024-05-18 - Localized ARIA Labels for Icon-Only Buttons in RTL
+**Learning:** Found an English `aria-label` ("Switch to dark mode") on a ThemeToggle component in an exclusively Arabic RTL application. This mismatch can severely disorient screen reader users. Furthermore, the icon-only button lacked a `title` for visual users on hover, and its inner icon was not hidden from screen readers.
+**Action:** When implementing or fixing icon-only interactive elements in an RTL/Arabic context, always ensure that `aria-label` and `title` attributes use the application's localized language (Arabic). Additionally, explicitly hide purely decorative inner icon elements (e.g., `aria-hidden="true"`) to prevent redundant or confusing screen reader announcements.
