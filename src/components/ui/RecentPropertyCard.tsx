@@ -63,9 +63,11 @@ export function RecentPropertyCard({
                         e.preventDefault();
                         onFavoriteClick?.();
                     }}
-                    className="absolute top-3 right-3 size-8 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white transition-colors group/btn"
+                    className="absolute top-3 right-3 size-8 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white transition-colors group/btn focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary"
+                    aria-label="إضافة للمفضلة"
+                    title="إضافة للمفضلة"
                 >
-                    <span className="material-symbols-outlined text-white group-hover/btn:text-error text-[20px] transition-colors">
+                    <span className="material-symbols-outlined text-white group-hover/btn:text-error text-[20px] transition-colors" aria-hidden="true">
                         favorite
                     </span>
                 </button>

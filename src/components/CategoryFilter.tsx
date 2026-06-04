@@ -31,7 +31,7 @@ export function CategoryFilter() {
                 : 'bg-white dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/20 border border-gray-200 dark:border-white/20'
               }`}
           >
-            <span className="material-symbols-outlined text-[20px]">
+            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
               {category.icon}
             </span>
             <span className="text-sm font-medium">{category.label}</span>
