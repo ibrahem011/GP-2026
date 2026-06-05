@@ -42,6 +42,7 @@ export function PropertyFilters({ sortBy, setSortBy, viewMode, setViewMode }: Pr
                     onClick={() => setViewMode('list')}
                     className={`p-1.5 rounded-lg transition-all duration-300 ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                     title="عرض كقائمة"
+                    aria-label="عرض كقائمة"
                 >
                     <List className="w-5 h-5" />
                 </button>
@@ -49,6 +50,7 @@ export function PropertyFilters({ sortBy, setSortBy, viewMode, setViewMode }: Pr
                     onClick={() => setViewMode('grid')}
                     className={`p-1.5 rounded-lg transition-all duration-300 ${viewMode === 'grid' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                     title="عرض كشبكة"
+                    aria-label="عرض كشبكة"
                 >
                     <Grid3X3 className="w-5 h-5" />
                 </button>
