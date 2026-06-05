@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -64,7 +64,8 @@ const AR = {
     per: "\u0644\u0643\u0644",
 };
 
-export function PropertyCard({
+// ⚡ Bolt Performance Optimization: Wrapped PropertyCard in React.memo to prevent unnecessary re-renders in search and list views
+export const PropertyCard = memo(function PropertyCard({
     id,
     title,
     location,
@@ -361,4 +362,4 @@ export function PropertyCard({
             </div>
         </article>
     );
-}
+});
