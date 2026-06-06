@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -64,7 +64,8 @@ const AR = {
     per: "\u0644\u0643\u0644",
 };
 
-export function PropertyCard({
+// ⚡ Bolt Performance Optimization: Memoize PropertyCard to prevent unnecessary re-renders when parent components (like home page, search results) update state frequently (e.g., search queries, filters).
+export const PropertyCard = React.memo(function PropertyCard({
     id,
     title,
     location,
@@ -361,4 +362,4 @@ export function PropertyCard({
             </div>
         </article>
     );
-}
+});
