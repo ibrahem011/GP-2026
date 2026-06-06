@@ -1,0 +1,3 @@
+## 2024-05-18 - React.memo on List Components
+**Learning:** In a codebase with frequently updated parent state (e.g., search or filter pages with debounced typing), deeply nested list components like `PropertyCard` can become significant performance bottlenecks due to cascading re-renders. While `React.memo` is standard, its impact is exceptionally high in applications with complex, image-heavy card components.
+**Action:** When working on lists or grids of complex components (especially those rendering user-generated content or multiple images/icons), proactively evaluate the need for `React.memo` to prevent unnecessary re-rendering triggered by sibling or parent state changes.
