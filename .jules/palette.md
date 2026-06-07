@@ -1,0 +1,3 @@
+## 2026-06-07 - [Add ARIA labels to icon-only buttons]
+**Learning:** In this RTL Arabic application, icon-only buttons require explicit Arabic `aria-label` and `title` attributes. Relying on default English terms or text ligatures (e.g., 'dark_mode') breaks the localized screen reader experience. Always use `aria-hidden="true"` on the ligature span to prevent it from being read aloud instead of the label.
+**Action:** Whenever adding an icon-only button, apply `focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary` for keyboard navigation, an Arabic `aria-label` and `title`, and `aria-hidden="true"` on the inner icon element.
