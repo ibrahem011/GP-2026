@@ -1,0 +1,3 @@
+## 2026-06-08 - Memoization for Frequently Rendered List Components
+**Learning:** Frequently rendered list components (like `PropertyCard`) that receive primitive props should be wrapped in `React.memo` to prevent unnecessary re-renders cascading from parent state updates, such as typing in a debounced search field or updating filters. The `PropertyCard` was not memoized, causing all items in lists/grids to re-render when list-level state changed.
+**Action:** Use `React.memo` for list item components (especially those representing entities like cards or rows) by default to maintain smooth scrolling and typing performance in React applications.
