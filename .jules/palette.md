@@ -1,0 +1,3 @@
+## 2024-06-11 - Accessible Icon-Only Theme Toggles
+**Learning:** When using Material Symbols (text ligatures) inside icon-only buttons (like ThemeToggle), simply adding an `aria-label` is not enough. The `aria-label` must be in Arabic due to the application context, it should have a matching `title` for sighted user tooltips, and most importantly, the inner `<span>` containing the ligature must have `aria-hidden="true"` to prevent screen readers from reading the english text like "dark_mode" aloud.
+**Action:** Always verify icon-only buttons have Arabic `aria-label`, a matching `title`, `focus-visible` styles for keyboard navigation, and `aria-hidden="true"` on the actual icon element to ensure true accessibility.
