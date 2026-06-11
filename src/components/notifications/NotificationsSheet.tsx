@@ -40,6 +40,7 @@ export default function NotificationsSheet({
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
     }, []);
 
@@ -107,8 +108,8 @@ export default function NotificationsSheet({
                                     قراءة الكل
                                 </button>
                             )}
-                            <button onClick={onClose} className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400">
-                                <span className="material-symbols-outlined text-xl">close</span>
+                            <button aria-label="إغلاق" onClick={onClose} className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400">
+                                <span className="material-symbols-outlined text-xl" aria-hidden="true">close</span>
                             </button>
                         </div>
                     </div>
