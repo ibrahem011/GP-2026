@@ -64,7 +64,9 @@ const AR = {
     per: "\u0644\u0643\u0644",
 };
 
-export function PropertyCard({
+import React from "react";
+
+export const PropertyCard = React.memo(function PropertyCard({
     id,
     title,
     location,
@@ -82,6 +84,7 @@ export function PropertyCard({
     initialIsFavorite,
     onFavoriteChange,
 }: PropertyCardProps) {
+    // ⚡ Bolt Performance Optimization: Wrapped PropertyCard in React.memo() to prevent unnecessary re-renders in list views (e.g., search results) when parent state updates.
     const [isFavorite, setIsFavorite] = useState(Boolean(initialIsFavorite));
     const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
     const [imgError, setImgError] = useState(false);
@@ -361,4 +364,4 @@ export function PropertyCard({
             </div>
         </article>
     );
-}
+});
