@@ -23,7 +23,7 @@ export default function StatCard({ label, value, icon, color }: StatCardProps) {
             <div className={`absolute top-0 inset-x-0 h-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-r ${gradientClasses}`} />
             <div className="flex items-center gap-3 mb-3">
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${colorClasses}`}>
-                    <span className="material-symbols-outlined text-[24px]">{icon}</span>
+                    <span aria-hidden="true" className="material-symbols-outlined text-[24px]">{icon}</span>
                 </div>
                 <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">{label}</span>
             </div>

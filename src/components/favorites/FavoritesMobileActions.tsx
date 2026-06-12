@@ -30,7 +30,7 @@ export default function FavoritesMobileActions({
                             aria-label="فتح فلترة وترتيب الموبايل"
                             className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl text-sm font-bold text-[#0e111b] transition-all hover:bg-slate-50 active:scale-[0.98] dark:text-white dark:hover:bg-white/5"
                         >
-                            <span className="material-symbols-outlined text-[20px]">tune</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">tune</span>
                             <span>فلترة</span>
                             {activeCount > 0 ? (
                                 <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
@@ -45,7 +45,7 @@ export default function FavoritesMobileActions({
                             aria-label="فتح الإحصاءات"
                             className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl text-sm font-bold text-[#0e111b] transition-all hover:bg-slate-50 active:scale-[0.98] dark:text-white dark:hover:bg-white/5"
                         >
-                            <span className="material-symbols-outlined text-[20px]">bar_chart</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">bar_chart</span>
                             <span>الإحصاءات</span>
                         </button>
                     </div>

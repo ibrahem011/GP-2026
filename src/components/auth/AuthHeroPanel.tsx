@@ -26,7 +26,7 @@ export default function AuthHeroPanel() {
                 className="relative z-10 flex h-full w-full flex-col items-start justify-end p-10 text-right text-white xl:p-12"
             >
                 <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-white/15 backdrop-blur-md">
-                    <span className="material-symbols-outlined text-3xl">home_work</span>
+                    <span aria-hidden="true" className="material-symbols-outlined text-3xl">home_work</span>
                 </div>
 
                 <h2 className="max-w-xl text-4xl font-black leading-tight drop-shadow-md xl:text-5xl">

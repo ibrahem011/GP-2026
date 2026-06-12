@@ -132,7 +132,7 @@ export function PropertyContextHeader({
                         onClick={() => router.back()}
                         className="w-10 h-10 -mr-2 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-gray-500"
                     >
-                        <span className="material-symbols-outlined">arrow_forward</span>
+                        <span aria-hidden="true" className="material-symbols-outlined">arrow_forward</span>
                     </button>
 
                     {/* صورة العقار */}
@@ -155,7 +155,7 @@ export function PropertyContextHeader({
                             />
                         </div>
                         <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="material-symbols-outlined text-white text-xs">arrow_outward</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-white text-xs">arrow_outward</span>
                         </div>
                     </Link>
 
@@ -170,7 +170,7 @@ export function PropertyContextHeader({
                             </span>
                             <span className="text-xs text-gray-400">•</span>
                             <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
-                                <span className="material-symbols-outlined text-[12px]">location_on</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-[12px]">location_on</span>
                                 {property.location}
                             </span>
                         </div>
@@ -207,7 +207,7 @@ export function PropertyContextHeader({
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isMenuOpen ? 'bg-gray-200 dark:bg-zinc-700' : 'bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700'}`}
                             >
-                                <span className="material-symbols-outlined text-gray-600 dark:text-gray-400">more_vert</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-gray-600 dark:text-gray-400">more_vert</span>
                             </button>
 
                             {/* القائمة المنسدلة */}
@@ -222,7 +222,7 @@ export function PropertyContextHeader({
                                             }}
                                             className="w-full px-4 py-2.5 text-right text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2"
                                         >
-                                            <span className="material-symbols-outlined text-[18px]">flag</span>
+                                            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">flag</span>
                                             <span>إبلاغ عن عقار</span>
                                         </button>
                                         <button
@@ -233,7 +233,7 @@ export function PropertyContextHeader({
                                             }}
                                             className="w-full px-4 py-2.5 text-right text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-2"
                                         >
-                                            <span className="material-symbols-outlined text-[18px]">block</span>
+                                            <span aria-hidden="true" className="material-symbols-outlined text-[18px]">block</span>
                                             <span>حظر المستخدم</span>
                                         </button>
                                     </div>

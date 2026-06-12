@@ -70,7 +70,7 @@ export function UnlockModal({ propertyId, onClose, onSuccess }: UnlockModalProps
                     {step === 1 ? (
                         <div className="animate-fadeIn text-center">
                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                                <span className="material-symbols-outlined text-3xl text-primary">payments</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-3xl text-primary">payments</span>
                             </div>
                             <h3 className="mb-2 text-xl font-bold text-text-main">فك قفل الحجز لهذا العقار</h3>
                             <p className="mb-6 text-sm text-text-muted">
@@ -109,7 +109,7 @@ export function UnlockModal({ propertyId, onClose, onSuccess }: UnlockModalProps
                                     onChange={(e) => setFile(e.target.files?.[0] || null)}
                                     accept="image/*"
                                 />
-                                <span className="material-symbols-outlined mb-2 text-4xl text-text-muted">cloud_upload</span>
+                                <span aria-hidden="true" className="material-symbols-outlined mb-2 text-4xl text-text-muted">cloud_upload</span>
                                 <p className="text-sm text-text-muted">{file ? file.name : 'ارفع صورة إيصال التحويل'}</p>
                             </label>
 
@@ -136,7 +136,7 @@ export function UnlockModal({ propertyId, onClose, onSuccess }: UnlockModalProps
                     {step === 3 ? (
                         <div className="animate-fadeIn py-10 text-center">
                             <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-success/20 text-success">
-                                <span className="material-symbols-outlined animate-bounce text-5xl">check_circle</span>
+                                <span aria-hidden="true" className="material-symbols-outlined animate-bounce text-5xl">check_circle</span>
                             </div>
                             <h3 className="text-xl font-bold text-text-main">تم استلام طلبك</h3>
                             <p className="text-text-muted">

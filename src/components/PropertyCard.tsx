@@ -247,7 +247,7 @@ export function PropertyCard({
                     ) : null}
                     {isVerified ? (
                         <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/40 bg-emerald-500/85 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
-                            <span className="material-symbols-outlined text-[13px]">verified</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[13px]">verified</span>
                             {AR.verified}
                         </span>
                     ) : null}
@@ -307,7 +307,7 @@ export function PropertyCard({
                                         {typeof rating === "number" && rating > 0 ? (
                                             <div className="flex shrink-0 items-center justify-center gap-1 rounded-full bg-amber-100/80 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 shadow-sm backdrop-blur-sm dark:bg-amber-500/20 dark:text-amber-300">
                                                 <span className="mt-0.5">{formatRating(rating)}</span>
-                                                <span className="material-symbols-outlined text-[13px] text-amber-500 dark:text-amber-400">star</span>
+                                                <span aria-hidden="true" className="material-symbols-outlined text-[13px] text-amber-500 dark:text-amber-400">star</span>
                                             </div>
                                         ) : null}
                                     </div>
@@ -321,7 +321,7 @@ export function PropertyCard({
                                     </h3>
                                     {locationLabel ? (
                                         <div className="flex items-center gap-1 font-medium text-slate-600 dark:text-slate-300 text-[12px] sm:text-[13px]">
-                                            <span className="material-symbols-outlined text-[15px] text-slate-400 dark:text-slate-400">location_on</span>
+                                            <span aria-hidden="true" className="material-symbols-outlined text-[15px] text-slate-400 dark:text-slate-400">location_on</span>
                                             <span className="truncate">{locationLabel}</span>
                                         </div>
                                     ) : null}
@@ -349,7 +349,7 @@ export function PropertyCard({
                                         {metaItems.slice(0, 3).map((item) => (
                                             <div key={item.label} className="flex items-center gap-1.5 bg-white/80 dark:bg-slate-800/80 px-2 py-1.5 rounded-[0.6rem] ring-1 ring-slate-200/50 dark:ring-white/5 shadow-sm backdrop-blur-md transition-colors hover:bg-white dark:hover:bg-slate-800">
                                                 <span className="text-[11px] sm:text-[12px] font-bold text-slate-800 dark:text-slate-200">{item.label.split(' ')[0]}</span>
-                                                <span className="material-symbols-outlined text-[14px] sm:text-[16px] text-slate-500 dark:text-slate-400">{item.icon}</span>
+                                                <span aria-hidden="true" className="material-symbols-outlined text-[14px] sm:text-[16px] text-slate-500 dark:text-slate-400">{item.icon}</span>
                                             </div>
                                         ))}
                                     </div>

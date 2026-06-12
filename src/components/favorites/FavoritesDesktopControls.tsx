@@ -116,7 +116,7 @@ export default function FavoritesDesktopControls({
                 <div className="flex flex-wrap items-start gap-3">
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                         <div className="flex items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1.5 text-xs font-bold text-primary">
-                            <span className="material-symbols-outlined text-[16px]">favorite</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[16px]">favorite</span>
                             {resultsCount.toLocaleString('ar-EG')} من {totalCount.toLocaleString('ar-EG')}
                         </div>
 
@@ -126,14 +126,14 @@ export default function FavoritesDesktopControls({
                                 onClick={onReset}
                                 className="flex min-h-[36px] items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3.5 py-1.5 text-xs font-bold text-rose-500 transition-all hover:border-rose-300 hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
                             >
-                                <span className="material-symbols-outlined text-[16px]">restart_alt</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-[16px]">restart_alt</span>
                                 إعادة التصفية
                             </button>
                         ) : null}
                     </div>
 
                     <div className="flex min-h-[40px] items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 dark:border-[#2a3142] dark:bg-[#121520]">
-                        <span className="material-symbols-outlined text-[18px] text-[#4e5f97] dark:text-slate-400">
+                        <span aria-hidden="true" className="material-symbols-outlined text-[18px] text-[#4e5f97] dark:text-slate-400">
                             sort
                         </span>
                         <select
@@ -215,7 +215,7 @@ export default function FavoritesDesktopControls({
                                                 : 'border-slate-200 bg-white text-slate-600 hover:border-primary/30 hover:text-primary dark:border-[#2a3142] dark:bg-[#121520] dark:text-slate-200 dark:hover:border-primary/40 dark:hover:text-primary',
                                         )}
                                     >
-                                        <span className="material-symbols-outlined text-[14px]">{feature.icon}</span>
+                                        <span aria-hidden="true" className="material-symbols-outlined text-[14px]">{feature.icon}</span>
                                         {feature.label}
                                     </button>
                                 );
@@ -247,7 +247,7 @@ export default function FavoritesDesktopControls({
                                     className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary transition-all hover:border-primary/40 hover:bg-primary/15"
                                 >
                                     {pill.label}
-                                    <span className="material-symbols-outlined text-[14px]">close</span>
+                                    <span aria-hidden="true" className="material-symbols-outlined text-[14px]">close</span>
                                 </button>
                             ))}
                         </div>

@@ -6,7 +6,7 @@ export default function EmptyState() {
                 flex items-center justify-center mb-6
                 backdrop-blur-md border border-dashed border-gray-300 dark:border-gray-700
             ">
-                <span className="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">
+                <span aria-hidden="true" className="material-symbols-outlined text-4xl text-gray-400 dark:text-gray-500">
                     notifications_none
                 </span>
             </div>

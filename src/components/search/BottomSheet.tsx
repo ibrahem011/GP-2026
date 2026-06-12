@@ -65,7 +65,7 @@ export default function BottomSheet({ open, title, onClose, children, footer }: 
                         className="touch-target rounded-full bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-primary/50 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 flex items-center justify-center"
                         aria-label="إغلاق"
                     >
-                        <span className="material-symbols-outlined">close</span>
+                        <span aria-hidden="true" className="material-symbols-outlined">close</span>
                     </button>
                 </div>
 

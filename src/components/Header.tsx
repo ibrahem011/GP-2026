@@ -131,7 +131,7 @@ export default function Header() {
                                         ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300'
                                         : 'bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40'}`}
                                 >
-                                    <span className="material-symbols-outlined text-[24px] pointer-events-none">
+                                    <span aria-hidden="true" className="material-symbols-outlined text-[24px] pointer-events-none">
                                         notifications
                                     </span>
                                     {unreadCount > 0 && (
@@ -187,7 +187,7 @@ export default function Header() {
                                     ? 'border-gray-100 bg-white text-gray-600 shadow-sm hover:bg-gray-50 hover:text-primary dark:border-white/10 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/20'
                                     : 'border-white/30 bg-white/20 text-white backdrop-blur-md hover:bg-white/40'}`}
                             >
-                                <span className="material-symbols-outlined text-[22px]">person</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-[22px]">person</span>
                             </Link>
                         </div>
                     ) : (

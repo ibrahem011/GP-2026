@@ -17,7 +17,7 @@ export default function EmptyState({ icon, title, subtitle, action }: EmptyState
             <div className="relative w-24 h-24 mx-auto mb-6">
                 <div className="absolute inset-0 bg-blue-500/20 dark:bg-blue-500/10 rounded-full animate-ping opacity-50"></div>
                 <div className="relative w-full h-full bg-blue-50 dark:bg-blue-500/20 rounded-full flex items-center justify-center border-4 border-white dark:border-zinc-800 shadow-xl shadow-blue-500/10">
-                    <span className="material-symbols-outlined text-5xl text-blue-500 dark:text-blue-400">{icon}</span>
+                    <span aria-hidden="true" className="material-symbols-outlined text-5xl text-blue-500 dark:text-blue-400">{icon}</span>
                 </div>
             </div>
             
@@ -32,7 +32,7 @@ export default function EmptyState({ icon, title, subtitle, action }: EmptyState
                     onClick={action.onClick}
                     className="inline-flex items-center justify-center gap-2 bg-primary text-white font-bold px-8 py-4 rounded-xl shadow-lg shadow-primary/30 hover:bg-primary/90 hover:-translate-y-1 transition-all duration-300 active:scale-95"
                 >
-                    <span className="material-symbols-outlined text-[20px]">add_circle</span>
+                    <span aria-hidden="true" className="material-symbols-outlined text-[20px]">add_circle</span>
                     {action.label}
                 </ActionButton>
             )}

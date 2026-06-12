@@ -108,7 +108,7 @@ export default function NotificationsSheet({
                                 </button>
                             )}
                             <button onClick={onClose} className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400">
-                                <span className="material-symbols-outlined text-xl">close</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-xl">close</span>
                             </button>
                         </div>
                     </div>
@@ -118,7 +118,7 @@ export default function NotificationsSheet({
                         {notifications.length === 0 ? (
                             <div className="py-20 flex flex-col items-center justify-center text-center opacity-50">
                                 <div className="size-20 rounded-3xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-6">
-                                    <span className="material-symbols-outlined text-4xl">notifications_off</span>
+                                    <span aria-hidden="true" className="material-symbols-outlined text-4xl">notifications_off</span>
                                 </div>
                                 <p className="text-lg font-bold text-gray-900 dark:text-white">لا توجد إشعارات</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">ستصلك إشعارات عند وجود نشاط جديد</p>
@@ -166,7 +166,7 @@ export default function NotificationsSheet({
                         <div className="p-6 border-t border-gray-100 dark:border-white/5 shrink-0 flex justify-center">
                             <Link href="/notifications" className="flex items-center gap-2 text-primary font-bold hover:gap-3 transition-all">
                                 <span>عرض جميع التنبيهات</span>
-                                <span className="material-symbols-outlined text-sm">arrow_back_ios</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-sm">arrow_back_ios</span>
                             </Link>
                         </div>
                     )}

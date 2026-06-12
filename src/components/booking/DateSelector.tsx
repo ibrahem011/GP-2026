@@ -233,7 +233,7 @@ export default function DateSelector({
 
                 <div className="space-y-3">
                     <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
-                        <span className="material-symbols-outlined text-blue-600 dark:text-blue-300">school</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-blue-600 dark:text-blue-300">school</span>
                         <div>
                             <h4 className="font-semibold text-gray-900 dark:text-zinc-100">إيجار الفترة الدراسية الكاملة</h4>
                             <p className="mt-1 text-sm text-gray-600 dark:text-zinc-300">من سبتمبر إلى يونيو (10 أشهر)</p>
@@ -242,7 +242,7 @@ export default function DateSelector({
 
                     {seasonalConfig?.requiresDeposit ? (
                         <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
-                            <span className="material-symbols-outlined text-amber-700 dark:text-amber-300">gpp_good</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-amber-700 dark:text-amber-300">gpp_good</span>
                             <div>
                                 <h4 className="font-semibold text-amber-800 dark:text-amber-200">تأمين مطلوب</h4>
                                 <p className="mt-1 text-sm text-amber-700/90 dark:text-amber-300">سيتم استرداد التأمين عند نهاية الفترة وتسليم العقار.</p>

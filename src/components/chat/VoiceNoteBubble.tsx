@@ -66,7 +66,7 @@ export const VoiceNoteBubble = ({ message, audioUrl, duration: propDuration, isM
                         ${isMe ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-primary/10 hover:bg-primary/20 text-primary'}
                     `}
                 >
-                    <span className="material-symbols-outlined text-[20px]">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                         {isPlaying ? 'pause' : 'play_arrow'}
                     </span>
                 </button>

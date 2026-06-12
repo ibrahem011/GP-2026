@@ -37,7 +37,7 @@ export default function AdminGuard({ children, requireSuperAdmin = false }: Admi
             <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black">
                 <div className="text-center">
                     <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
-                        <span className="material-symbols-outlined text-primary text-2xl">shield_person</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-primary text-2xl">shield_person</span>
                     </div>
                     <p className="text-gray-500 dark:text-gray-400">جاري التحقق من الصلاحيات...</p>
                 </div>

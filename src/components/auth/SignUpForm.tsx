@@ -74,7 +74,7 @@ export default function SignUpForm({ onSwitchToLogin, redirectUrl }: { onSwitchT
                     aria-label="العودة لتسجيل الدخول"
                     type="button"
                 >
-                    <span className="material-symbols-outlined text-[22px] transition-transform group-hover:translate-x-0.5">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[22px] transition-transform group-hover:translate-x-0.5">
                         arrow_forward
                     </span>
                 </button>
@@ -191,7 +191,7 @@ export default function SignUpForm({ onSwitchToLogin, redirectUrl }: { onSwitchT
                                 onClick={() => setShowPassword((prev) => !prev)}
                                 aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                             >
-                                <span className="material-symbols-outlined text-[20px]">
+                                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                                     {showPassword ? 'visibility_off' : 'visibility'}
                                 </span>
                             </button>

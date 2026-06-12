@@ -53,7 +53,7 @@ export default function HomePropertySection({
           <div
             className={`flex size-9 shrink-0 items-center justify-center rounded-full border ${iconClassName}`}
           >
-            <span className="material-symbols-outlined text-[19px]">{icon}</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[19px]">{icon}</span>
           </div>
           <h2 className="text-balance-ar text-xl font-extrabold text-slate-900 dark:text-slate-50 sm:text-[1.55rem]">
             {title}
@@ -65,7 +65,7 @@ export default function HomePropertySection({
           className="group inline-flex min-h-11 shrink-0 items-center gap-1 rounded-xl px-2 text-sm font-bold text-primary transition-colors hover:bg-primary/5 hover:text-blue-700 focus-visible:ring-2 focus-visible:ring-primary/60 dark:hover:text-blue-300"
         >
           {linkLabel}
-          <span className="material-symbols-outlined text-[18px] transition-transform group-hover:-translate-x-1 rtl:rotate-180">
+          <span aria-hidden="true" className="material-symbols-outlined text-[18px] transition-transform group-hover:-translate-x-1 rtl:rotate-180">
             arrow_forward
           </span>
         </Link>

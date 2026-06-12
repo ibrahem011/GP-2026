@@ -55,7 +55,7 @@ export default function PropertyMap({ properties, center = DEFAULT_CENTER, zoom 
                             
                             <h3 className="mb-1.5 line-clamp-1 text-base font-bold text-slate-900 dark:text-white leading-tight">{property.title}</h3>
                             <p className="mb-3 line-clamp-1 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-start gap-1">
-                                <span className="material-symbols-outlined text-[14px]">location_on</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-[14px]">location_on</span>
                                 {property.location.address || property.location.area}
                             </p>
                             
