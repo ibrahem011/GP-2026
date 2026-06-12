@@ -9,7 +9,7 @@ const PropertyMap = dynamic(() => import('./PropertyMap'), {
     loading: () => (
         <div className="flex h-full min-h-[400px] w-full items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800">
             <div className="flex flex-col items-center text-gray-400">
-                <span className="material-symbols-outlined mb-2 text-4xl">map</span>
+                <span aria-hidden="true" className="material-symbols-outlined mb-2 text-4xl">map</span>
                 <span className="text-sm">جارٍ تحميل الخريطة...</span>
             </div>
         </div>
@@ -51,7 +51,7 @@ export default function MapView({ properties, className = '' }: MapViewProps) {
             <div
                 className={`flex h-[600px] w-full flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 text-center shadow-xl dark:border-gray-700 dark:bg-gray-900 ${className}`}
             >
-                <span className="material-symbols-outlined text-5xl text-gray-400">location_off</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-5xl text-gray-400">location_off</span>
                 <h3 className="mt-4 text-lg font-bold text-gray-900 dark:text-white">لا توجد مواقع دقيقة لعرضها الآن</h3>
                 <p className="mt-2 max-w-md text-sm text-gray-500 dark:text-gray-400">
                     بعض العقارات لا تحتوي على إحداثيات محفوظة بعد، لذلك ستظهر في القائمة فقط حتى يتم تحديد موقعها.

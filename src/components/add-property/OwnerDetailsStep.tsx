@@ -14,7 +14,7 @@ export default function OwnerDetailsStep({ user, value, onChange }: OwnerDetails
         <div className="space-y-4">
             {!user.isVerified ? (
                 <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-200">
-                    <span className="material-symbols-outlined shrink-0">warning</span>
+                    <span aria-hidden="true" className="material-symbols-outlined shrink-0">warning</span>
                     <p>
                         حسابك غير موثق حالياً. يمكنك تعديل اسمك المستعار الآن، لكن ننصح بتوثيق الحساب بالهوية الوطنية
                         لزيادة ثقة العملاء بعقاراتك.
@@ -27,7 +27,7 @@ export default function OwnerDetailsStep({ user, value, onChange }: OwnerDetails
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">اسم صاحب العقار *</label>
                     {user.isVerified ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700 dark:bg-green-950/40 dark:text-green-300">
-                            <span className="material-symbols-outlined text-[14px]">verified</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[14px]">verified</span>
                             موثق
                         </span>
                     ) : null}

@@ -80,7 +80,7 @@ export default function NotificationsPopover({
                 <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                            <span className="material-symbols-outlined text-2xl">notifications</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-2xl">notifications</span>
                         </div>
                         <h3 className="text-xl font-black text-gray-900 dark:text-white">الإشعارات</h3>
                         {unreadCount > 0 && (
@@ -91,7 +91,7 @@ export default function NotificationsPopover({
                     </div>
 
                     <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400 transition-colors">
-                        <span className="material-symbols-outlined text-xl">close</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-xl">close</span>
                     </button>
                 </div>
 
@@ -99,7 +99,7 @@ export default function NotificationsPopover({
                 <div className="max-h-[460px] overflow-y-auto overflow-x-hidden scroll-smooth custom-scrollbar">
                     {notifications.length === 0 ? (
                         <div className="py-20 flex flex-col items-center justify-center text-center opacity-40">
-                            <span className="material-symbols-outlined text-5xl mb-4">notifications_off</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-5xl mb-4">notifications_off</span>
                             <p className="font-bold">لا توجد إشعارات حالياً</p>
                         </div>
                     ) : (
@@ -148,7 +148,7 @@ export default function NotificationsPopover({
                     )}
                     <Link href="/notifications" className="flex-1 py-2.5 rounded-xl bg-primary text-white font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                         <span>كل الإشعارات</span>
-                        <span className="material-symbols-outlined text-base">arrow_back_ios</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-base">arrow_back_ios</span>
                     </Link>
                 </div>
             </div>

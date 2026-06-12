@@ -63,7 +63,7 @@ export default function AuthForm() {
         <GlassCard variant="elevated" padding="lg" className="w-full max-w-md mx-auto">
             <div className="text-center mb-8">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/30">
-                    <span className="material-symbols-outlined text-white text-3xl">
+                    <span aria-hidden="true" className="material-symbols-outlined text-white text-3xl">
                         {isLogin ? 'login' : 'person_add'}
                     </span>
                 </div>
@@ -84,7 +84,7 @@ export default function AuthForm() {
                             type="text"
                             required
                             placeholder="أحمد محمد"
-                            icon={<span className="material-symbols-outlined text-gray-400">person</span>}
+                            icon={<span aria-hidden="true" className="material-symbols-outlined text-gray-400">person</span>}
                         />
                         <GlassInput
                             label="رقم الهاتف"
@@ -93,7 +93,7 @@ export default function AuthForm() {
                             required
                             placeholder="01xxxxxxxxx"
                             dir="ltr"
-                            icon={<span className="material-symbols-outlined text-gray-400">phone</span>}
+                            icon={<span aria-hidden="true" className="material-symbols-outlined text-gray-400">phone</span>}
                         />
                     </>
                 )}
@@ -105,7 +105,7 @@ export default function AuthForm() {
                     required
                     placeholder="example@mail.com"
                     dir="ltr"
-                    icon={<span className="material-symbols-outlined text-gray-400">mail</span>}
+                    icon={<span aria-hidden="true" className="material-symbols-outlined text-gray-400">mail</span>}
                     data-testid="auth-email"
                 />
 
@@ -116,7 +116,7 @@ export default function AuthForm() {
                     required
                     placeholder="••••••••"
                     dir="ltr"
-                    icon={<span className="material-symbols-outlined text-gray-400">lock</span>}
+                    icon={<span aria-hidden="true" className="material-symbols-outlined text-gray-400">lock</span>}
                     data-testid="auth-password"
                 />
 

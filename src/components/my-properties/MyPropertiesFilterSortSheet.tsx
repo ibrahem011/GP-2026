@@ -121,7 +121,7 @@ export default function MyPropertiesFilterSortSheet({
                                         : 'لا توجد تصفية أو ترتيب مخصص حالياً'}
                                 </p>
                             </div>
-                            <span className="material-symbols-outlined text-primary">tune</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-primary">tune</span>
                         </div>
 
                         <section className="space-y-3">
@@ -145,7 +145,7 @@ export default function MyPropertiesFilterSortSheet({
                                             )}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <span className="material-symbols-outlined">
+                                                <span aria-hidden="true" className="material-symbols-outlined">
                                                     {option.icon}
                                                 </span>
                                                 <span className="text-sm font-semibold">
@@ -154,7 +154,7 @@ export default function MyPropertiesFilterSortSheet({
                                             </div>
 
                                             {isActive ? (
-                                                <span className="material-symbols-outlined text-[20px]">
+                                                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                                                     check
                                                 </span>
                                             ) : null}

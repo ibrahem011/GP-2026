@@ -36,7 +36,7 @@ export const PropertyContextCard = ({ property }: PropertyContextCardProps) => {
                     </h3>
                     <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 gap-2">
                         <span className="truncate flex items-center gap-0.5">
-                            <span className="material-symbols-outlined text-[14px]">location_on</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[14px]">location_on</span>
                             {property.area || property.address || 'جمصة'}
                         </span>
                         <span className="w-1 h-1 rounded-full bg-gray-300"></span>
@@ -47,7 +47,7 @@ export const PropertyContextCard = ({ property }: PropertyContextCardProps) => {
                 </div>
 
                 <div className="shrink-0">
-                    <span className="material-symbols-outlined text-gray-400 group-hover:text-primary rtl:rotate-180 transition-colors">
+                    <span aria-hidden="true" className="material-symbols-outlined text-gray-400 group-hover:text-primary rtl:rotate-180 transition-colors">
                         chevron_left
                     </span>
                 </div>

@@ -45,7 +45,7 @@ export default function WhatsAppButton({
                 className={`fixed bottom-6 left-6 z-50 bg-primary hover:brightness-110 text-white p-4 rounded-full shadow-2xl transition-transform active:scale-95 animate-bounce-subtle flex items-center justify-center ${className}`}
                 aria-label="تواصل عبر واتساب"
             >
-                <span className="material-symbols-outlined text-[28px]">chat</span>
+                <span aria-hidden="true" className="material-symbols-outlined text-[28px]">chat</span>
             </button>
         );
     }
@@ -55,7 +55,7 @@ export default function WhatsAppButton({
             onClick={handleClick}
             className={`bg-primary hover:brightness-110 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 ${className}`}
         >
-            <span className="material-symbols-outlined text-[20px]">chat</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">chat</span>
             <span>تواصل واتساب</span>
         </button>
     );

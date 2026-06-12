@@ -11,7 +11,7 @@ export const MediaPermissionCard = ({ requesterName, onAction }: MediaPermission
             <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-md border border-gray-100 dark:border-zinc-700 p-4 max-w-sm w-full">
                 <div className="flex flex-col items-center text-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-primary text-2xl">lock_open</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-primary text-2xl">lock_open</span>
                     </div>
 
                     <div>

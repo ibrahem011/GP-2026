@@ -45,7 +45,7 @@ export default function NotificationCard({ notification, onClick }: Notification
                 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center
                 ${getColorClass()}
             `}>
-                <span className="material-symbols-outlined text-[20px]">
+                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                     {getIcon()}
                 </span>
             </div>

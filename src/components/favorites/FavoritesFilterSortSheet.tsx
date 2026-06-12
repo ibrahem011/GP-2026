@@ -134,7 +134,7 @@ export default function FavoritesFilterSortSheet({
                                 </p>
                             </div>
 
-                            <span className="material-symbols-outlined text-primary">tune</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-primary">tune</span>
                         </div>
 
                 <section className="space-y-3">
@@ -158,14 +158,14 @@ export default function FavoritesFilterSortSheet({
                                     )}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <span className="material-symbols-outlined">
+                                        <span aria-hidden="true" className="material-symbols-outlined">
                                             {option.icon}
                                         </span>
                                         <span className="text-sm font-semibold">{option.label}</span>
                                     </div>
 
                                     {isActive ? (
-                                        <span className="material-symbols-outlined text-[20px]">
+                                        <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                                             check
                                         </span>
                                     ) : null}
@@ -290,7 +290,7 @@ export default function FavoritesFilterSortSheet({
                                                 : 'border-gray-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200',
                                         )}
                                     >
-                                        <span className="material-symbols-outlined text-[16px]">
+                                        <span aria-hidden="true" className="material-symbols-outlined text-[16px]">
                                             {feature.icon}
                                         </span>
                                         {feature.label}

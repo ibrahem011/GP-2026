@@ -101,11 +101,11 @@ export default function LoginForm({
                         aria-label="العودة"
                         type="button"
                     >
-                        <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[20px]">arrow_forward</span>
                     </button>
                     <nav className="text-xs font-bold text-gray-400 flex items-center gap-2">
                         <Link href="/" className="hover:text-primary transition-colors">الرئيسية</Link>
-                        <span className="material-symbols-outlined text-[14px]">chevron_left</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[14px]">chevron_left</span>
                         <span className="text-gray-600 dark:text-gray-300">تسجيل الدخول</span>
                     </nav>
                 </div>
@@ -199,7 +199,7 @@ export default function LoginForm({
                                 type="button"
                                 aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
                             >
-                                <span className="material-symbols-outlined text-[20px]">
+                                <span aria-hidden="true" className="material-symbols-outlined text-[20px]">
                                     {showPassword ? 'visibility_off' : 'visibility'}
                                 </span>
                             </button>

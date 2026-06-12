@@ -21,7 +21,7 @@ export function QuickReplies({ onSelect }: QuickRepliesProps) {
                         onClick={() => onSelect(reply.template)}
                         className="shrink-0 px-3 py-2 bg-gray-100 dark:bg-zinc-800 rounded-full text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors border border-gray-200 dark:border-zinc-700"
                     >
-                        <span className="material-symbols-outlined text-sm text-blue-500">{reply.icon}</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-sm text-blue-500">{reply.icon}</span>
                         {reply.text}
                     </button>
                 ))}

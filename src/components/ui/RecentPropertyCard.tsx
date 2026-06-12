@@ -65,7 +65,7 @@ export function RecentPropertyCard({
                     }}
                     className="absolute top-3 right-3 size-8 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white transition-colors group/btn"
                 >
-                    <span className="material-symbols-outlined text-white group-hover/btn:text-error text-[20px] transition-colors">
+                    <span aria-hidden="true" className="material-symbols-outlined text-white group-hover/btn:text-error text-[20px] transition-colors">
                         favorite
                     </span>
                 </button>
@@ -73,7 +73,7 @@ export function RecentPropertyCard({
                 {/* Verified Badge - BOTTOM RIGHT */}
                 {isVerified && (
                     <div className="absolute bottom-3 right-3 bg-success/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded flex items-center gap-1 font-medium">
-                        <span className="material-symbols-outlined text-[14px]">
+                        <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
                             verified
                         </span>
                         موثوق
@@ -89,7 +89,7 @@ export function RecentPropertyCard({
                             {title}
                         </h3>
                         <p className="text-sm text-text-muted flex items-center mt-1">
-                            <span className="material-symbols-outlined text-[16px] text-primary ml-1">
+                            <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-primary ml-1">
                                 location_on
                             </span>
                             {location}
@@ -107,17 +107,17 @@ export function RecentPropertyCard({
                 {/* Features - Dashed Border */}
                 <div className="flex gap-4 mt-4 py-3 border-t border-dashed border-border-light dark:border-border-dark">
                     <div className="flex items-center gap-1.5 text-text-muted">
-                        <span className="material-symbols-outlined text-[18px]">bed</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">bed</span>
                         <span className="text-xs font-medium">{bedrooms} غرف</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-text-muted">
-                        <span className="material-symbols-outlined text-[18px]">
+                        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                             bathtub
                         </span>
                         <span className="text-xs font-medium">{bathrooms} حمام</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-text-muted">
-                        <span className="material-symbols-outlined text-[18px]">
+                        <span aria-hidden="true" className="material-symbols-outlined text-[18px]">
                             straighten
                         </span>
                         <span className="text-xs font-medium">{area} م²</span>
@@ -130,7 +130,7 @@ export function RecentPropertyCard({
                     className="w-full mt-1 bg-primary hover:bg-primary/90 text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                     احجز الآن
-                    <span className="material-symbols-outlined text-[18px] rtl:rotate-180">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[18px] rtl:rotate-180">
                         arrow_right_alt
                     </span>
                 </Link>

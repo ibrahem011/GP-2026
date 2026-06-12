@@ -191,7 +191,7 @@ function MyPropertyCardComponent({
 
                 {property.isVerified ? (
                     <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-emerald-200/40 bg-emerald-500/85 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm backdrop-blur">
-                        <span className="material-symbols-outlined text-[14px]">verified</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-[14px]">verified</span>
                         موثق
                     </span>
                 ) : null}
@@ -201,13 +201,13 @@ function MyPropertyCardComponent({
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-black text-primary dark:bg-primary/20 dark:text-blue-300">
-                            <span className="material-symbols-outlined text-[14px]">home_work</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[14px]">home_work</span>
                             {CATEGORY_AR[property.category]}
                         </span>
 
                         {locationLabel ? (
                             <span className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full bg-slate-100/85 px-3 py-1 text-[11px] font-semibold text-slate-500 dark:bg-white/[0.06] dark:text-slate-300">
-                                <span className="material-symbols-outlined text-[14px]">
+                                <span aria-hidden="true" className="material-symbols-outlined text-[14px]">
                                     location_on
                                 </span>
                                 <span className="truncate">{locationLabel}</span>
@@ -234,7 +234,7 @@ function MyPropertyCardComponent({
                             />
                             {STATUS_AR[property.status]}
                             {onStatusChange ? (
-                                <span className="material-symbols-outlined text-[15px]">
+                                <span aria-hidden="true" className="material-symbols-outlined text-[15px]">
                                     expand_more
                                 </span>
                             ) : null}
@@ -251,7 +251,7 @@ function MyPropertyCardComponent({
                                     >
                                         {STATUS_AR[status]}
                                         {property.status === status ? (
-                                            <span className="material-symbols-outlined text-[16px] text-primary dark:text-blue-300">
+                                            <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-primary dark:text-blue-300">
                                                 check
                                             </span>
                                         ) : null}
@@ -275,7 +275,7 @@ function MyPropertyCardComponent({
                             key={item.key}
                             className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-slate-100/85 px-2.5 py-2 text-center dark:bg-white/[0.05]"
                         >
-                            <span className="material-symbols-outlined text-[15px] text-slate-400 dark:text-slate-300">
+                            <span aria-hidden="true" className="material-symbols-outlined text-[15px] text-slate-400 dark:text-slate-300">
                                 {item.icon}
                             </span>
                             <span className="truncate">{item.label}</span>
@@ -290,7 +290,7 @@ function MyPropertyCardComponent({
                                 key={item.key}
                                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-[11px] font-bold text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100"
                             >
-                                <span className="material-symbols-outlined text-[15px] text-primary">
+                                <span aria-hidden="true" className="material-symbols-outlined text-[15px] text-primary">
                                     {item.icon}
                                 </span>
                                 <span>{item.value}</span>
@@ -325,11 +325,11 @@ function MyPropertyCardComponent({
                                 title="حذف العقار"
                             >
                                 {isDeleting ? (
-                                    <span className="material-symbols-outlined animate-spin text-[18px]">
+                                    <span aria-hidden="true" className="material-symbols-outlined animate-spin text-[18px]">
                                         progress_activity
                                     </span>
                                 ) : (
-                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                    <span aria-hidden="true" className="material-symbols-outlined text-[18px]">delete</span>
                                 )}
                                 <span>حذف</span>
                             </button>
@@ -339,7 +339,7 @@ function MyPropertyCardComponent({
                                 className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-bold text-white transition-all hover:bg-primary/90 active:scale-[0.98]"
                                 title="تعديل العقار"
                             >
-                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                                <span aria-hidden="true" className="material-symbols-outlined text-[18px]">edit</span>
                                 <span>تعديل</span>
                             </Link>
                         </div>

@@ -47,7 +47,7 @@ export default function ResetPasswordForm({ onSwitchToLogin, redirectUrl }: { on
                     className="group flex size-10 items-center justify-center rounded-full text-text-main dark:text-white transition-all hover:bg-black/5 dark:hover:bg-white/10 hover:scale-105"
                     type="button"
                 >
-                    <span className="material-symbols-outlined text-[22px] transition-transform group-hover:translate-x-0.5">
+                    <span aria-hidden="true" className="material-symbols-outlined text-[22px] transition-transform group-hover:translate-x-0.5">
                         arrow_forward
                     </span>
                 </button>
@@ -58,7 +58,7 @@ export default function ResetPasswordForm({ onSwitchToLogin, redirectUrl }: { on
             <main className="px-5 py-6 sm:px-6">
                 <div className="mb-7 text-center">
                     <div className="mx-auto mb-4 flex size-24 items-center justify-center rounded-full bg-primary/10">
-                        <span className="material-symbols-outlined text-primary text-[48px]">lock_reset</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-primary text-[48px]">lock_reset</span>
                     </div>
                     <h1 className="text-2xl font-bold text-text-main dark:text-white">نسيت كلمة المرور؟</h1>
                     <p className="mt-2 text-sm leading-relaxed text-text-muted dark:text-gray-400">
@@ -82,7 +82,7 @@ export default function ResetPasswordForm({ onSwitchToLogin, redirectUrl }: { on
                                 autoComplete="email"
                                 required
                             />
-                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-muted dark:text-gray-400 text-[20px]">
+                            <span aria-hidden="true" className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-muted dark:text-gray-400 text-[20px]">
                                 contact_mail
                             </span>
                         </div>

@@ -36,7 +36,7 @@ export default function MyPropertiesMobileActions({
                         aria-label="إضافة عقار"
                         className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[0_8px_30px_-4px_rgba(37,99,235,0.4)] transition-transform active:scale-95"
                     >
-                        <span className="material-symbols-outlined text-3xl">add</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-3xl">add</span>
                     </Link>
                 </div>
 
@@ -49,7 +49,7 @@ export default function MyPropertiesMobileActions({
                             aria-label="فتح فلترة وترتيب الموبايل"
                             className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl text-sm font-bold text-[#0e111b] transition-all hover:bg-slate-50 active:scale-[0.98] dark:text-white dark:hover:bg-white/5"
                         >
-                            <span className="material-symbols-outlined text-[20px]">tune</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">tune</span>
                             <span>فلترة</span>
                             {activeCount > 0 ? (
                                 <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">
@@ -65,7 +65,7 @@ export default function MyPropertiesMobileActions({
                             aria-label="فتح الإحصاءات"
                             className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl text-sm font-bold text-[#0e111b] transition-all hover:bg-slate-50 active:scale-[0.98] dark:text-white dark:hover:bg-white/5"
                         >
-                            <span className="material-symbols-outlined text-[20px]">bar_chart</span>
+                            <span aria-hidden="true" className="material-symbols-outlined text-[20px]">bar_chart</span>
                             <span>الإحصاءات</span>
                         </button>
                     </div>

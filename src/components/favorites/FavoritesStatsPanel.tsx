@@ -68,7 +68,7 @@ export default function FavoritesStatsPanel({ stats, className }: FavoritesStats
                             item.accent,
                         )}
                     >
-                        <span className="material-symbols-outlined">{item.icon}</span>
+                        <span aria-hidden="true" className="material-symbols-outlined">{item.icon}</span>
                     </div>
 
                     <p className="text-xs font-bold text-slate-400">{item.label}</p>
