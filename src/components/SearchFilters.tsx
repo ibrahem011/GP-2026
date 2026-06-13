@@ -103,6 +103,7 @@ export default function SearchFilters({
             <button
               key={String(opt.value)}
               onClick={() => setCategory(opt.value)}
+              aria-pressed={category === opt.value}
               className={[
                 'shrink-0 px-3 py-2 rounded-full border text-sm flex items-center gap-2 transition',
                 category === opt.value
@@ -110,7 +111,7 @@ export default function SearchFilters({
                   : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200',
               ].join(' ')}
             >
-              <span className="material-symbols-outlined text-[18px]">{opt.icon}</span>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{opt.icon}</span>
               {opt.label}
             </button>
           ))}
@@ -200,7 +201,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="تقليل عدد غرف النوم"
             >
-              <span className="material-symbols-outlined">remove</span>
+              <span className="material-symbols-outlined" aria-hidden="true">remove</span>
             </button>
             <div className="text-lg font-bold">{bedrooms === 0 ? 'بدون تحديد' : `${bedrooms}+`}</div>
             <button
@@ -208,7 +209,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="زيادة عدد غرف النوم"
             >
-              <span className="material-symbols-outlined">add</span>
+              <span className="material-symbols-outlined" aria-hidden="true">add</span>
             </button>
           </div>
         </div>
@@ -221,7 +222,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="تقليل عدد الحمامات"
             >
-              <span className="material-symbols-outlined">remove</span>
+              <span className="material-symbols-outlined" aria-hidden="true">remove</span>
             </button>
             <div className="text-lg font-bold">{bathrooms === 0 ? 'بدون تحديد' : `${bathrooms}+`}</div>
             <button
@@ -229,7 +230,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="زيادة عدد الحمامات"
             >
-              <span className="material-symbols-outlined">add</span>
+              <span className="material-symbols-outlined" aria-hidden="true">add</span>
             </button>
           </div>
         </div>
@@ -247,6 +248,7 @@ export default function SearchFilters({
             <button
               key={feature.id}
               onClick={() => toggleFeature(feature.id)}
+              aria-pressed={selectedFeatures.includes(feature.id)}
               className={[
                 'px-3 py-1.5 rounded-full text-xs font-medium border transition-all flex items-center gap-1.5',
                 selectedFeatures.includes(feature.id)
@@ -254,7 +256,7 @@ export default function SearchFilters({
                   : 'bg-transparent border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-gray-400',
               ].join(' ')}
             >
-              <span className="material-symbols-outlined text-[16px]">{feature.icon}</span>
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">{feature.icon}</span>
               {feature.label}
             </button>
           ))}
