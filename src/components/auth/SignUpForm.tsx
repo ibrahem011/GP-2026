@@ -96,6 +96,7 @@ export default function SignUpForm({ onSwitchToLogin, redirectUrl }: { onSwitchT
                     <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
                         <button
                             type="button"
+                            aria-pressed={role === 'tenant'}
                             className={`h-10 rounded-lg text-sm font-bold transition-all ${role === 'tenant'
                                 ? 'bg-white dark:bg-primary text-primary dark:text-white shadow'
                                 : 'text-slate-600 dark:text-slate-300'
@@ -106,6 +107,7 @@ export default function SignUpForm({ onSwitchToLogin, redirectUrl }: { onSwitchT
                         </button>
                         <button
                             type="button"
+                            aria-pressed={role === 'landlord'}
                             className={`h-10 rounded-lg text-sm font-bold transition-all ${role === 'landlord'
                                 ? 'bg-white dark:bg-primary text-primary dark:text-white shadow'
                                 : 'text-slate-600 dark:text-slate-300'
