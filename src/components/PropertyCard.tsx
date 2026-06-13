@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -64,7 +64,7 @@ const AR = {
     per: "\u0644\u0643\u0644",
 };
 
-export function PropertyCard({
+const PropertyCardComponent = ({
     id,
     title,
     location,
@@ -81,7 +81,7 @@ export function PropertyCard({
     variant = "default",
     initialIsFavorite,
     onFavoriteChange,
-}: PropertyCardProps) {
+}: PropertyCardProps) => {
     const [isFavorite, setIsFavorite] = useState(Boolean(initialIsFavorite));
     const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
     const [imgError, setImgError] = useState(false);
@@ -361,4 +361,9 @@ export function PropertyCard({
             </div>
         </article>
     );
-}
+};
+
+// ⚡ Bolt Performance Optimization:
+// Wrap frequently rendered list component (PropertyCard) in React.memo
+// to prevent unnecessary re-renders cascading from parent state updates (e.g. debounced search queries).
+export const PropertyCard = React.memo(PropertyCardComponent);
