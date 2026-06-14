@@ -9,6 +9,7 @@ export default function FilterChip({ label, count, active, onClick }: FilterChip
     return (
         <button
             onClick={onClick}
+            aria-pressed={active}
             className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all duration-300 active:scale-95 ${active
                     ? 'bg-primary text-white shadow-md shadow-primary/30 ring-2 ring-primary/20 ring-offset-2 ring-offset-gray-50 dark:ring-offset-black'
                     : 'bg-white dark:bg-zinc-800/80 backdrop-blur-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-white/5 hover:border-primary/30 hover:bg-primary/5 dark:hover:bg-primary/10'
