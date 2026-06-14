@@ -103,6 +103,7 @@ export default function SearchFilters({
             <button
               key={String(opt.value)}
               onClick={() => setCategory(opt.value)}
+              aria-pressed={category === opt.value}
               className={[
                 'shrink-0 px-3 py-2 rounded-full border text-sm flex items-center gap-2 transition',
                 category === opt.value
@@ -247,6 +248,7 @@ export default function SearchFilters({
             <button
               key={feature.id}
               onClick={() => toggleFeature(feature.id)}
+              aria-pressed={selectedFeatures.includes(feature.id)}
               className={[
                 'px-3 py-1.5 rounded-full text-xs font-medium border transition-all flex items-center gap-1.5',
                 selectedFeatures.includes(feature.id)
