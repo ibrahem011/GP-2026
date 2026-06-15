@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PropertyCard } from '@/components/PropertyCard';
@@ -157,7 +157,7 @@ export default function FavoritesPage() {
         setFilters(DEFAULT_FAVORITES_FILTERS);
     };
 
-    const handleFavoriteChange = (property: Property, nextState: boolean) => {
+    const handleFavoriteChange = useCallback((property: Property, nextState: boolean) => {
         if (!nextState) {
             setFavorites((current) => current.filter((item) => item.id !== property.id));
             return;
@@ -170,7 +170,7 @@ export default function FavoritesPage() {
 
             return [property, ...current];
         });
-    };
+    }, []);
 
     if (authLoading) {
         return (
