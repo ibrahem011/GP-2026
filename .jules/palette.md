@@ -1,0 +1,3 @@
+## 2026-06-15 - [RTL Accessibility for Icon Buttons]
+**Learning:** In this Arabic (RTL) application, default English ARIA labels on icon-only buttons create a jarring screen reader experience. Additionally, sighted users benefit from a 'title' attribute to understand icon-only actions without guesswork. Inner decorative font icons (like Material Symbols) must have 'aria-hidden="true"' to avoid screen readers announcing the ligature text.
+**Action:** When adding or auditing icon-only buttons, always ensure an explicit Arabic 'aria-label', an Arabic 'title' tooltip, keyboard focus styles ('focus-visible:ring-2'), and 'aria-hidden="true"' on the inner icon element.
