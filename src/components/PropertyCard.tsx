@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -64,7 +64,7 @@ const AR = {
     per: "\u0644\u0643\u0644",
 };
 
-export function PropertyCard({
+const PropertyCardComponent = function PropertyCard({
     id,
     title,
     location,
@@ -362,3 +362,20 @@ export function PropertyCard({
         </article>
     );
 }
+
+// ⚡ Bolt Performance Optimization: Wrap PropertyCard in React.memo with a custom comparison function.
+// This prevents unnecessary re-renders of the list item when parent state (like debounced search queries) updates.
+// Since the component uses Context which triggers re-renders anyway, avoiding props changes helps avoid *extra* renders,
+// but the key benefit is that `PropertyCard` instances won't re-render purely because the parent re-rendered
+// and passed a new inline function or object if the actual values are the same.
+export const PropertyCard = memo(PropertyCardComponent, (prevProps, nextProps) => {
+    return (
+        prevProps.id === nextProps.id &&
+        prevProps.title === nextProps.title &&
+        prevProps.price === nextProps.price &&
+        prevProps.isFavorite === nextProps.isFavorite &&
+        prevProps.initialIsFavorite === nextProps.initialIsFavorite
+        // We only compare the key scalar props that change. Context updates (useAuth, useFavorites)
+        // will bypass memo anyway and trigger necessary re-renders when authentication or favorite store changes.
+    );
+});
