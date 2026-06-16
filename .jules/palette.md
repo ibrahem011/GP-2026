@@ -1,0 +1,3 @@
+## 2026-06-16 - Enhance Icon-Only Button Accessibility in RTL
+**Learning:** When using icon ligatures (e.g., Material Symbols) in icon-only buttons within an Arabic (RTL) context, it's critical to ensure three things: 1) The `aria-label` must be in Arabic, overriding default English assumptions. 2) A `title` attribute should also be provided in Arabic for sighted users. 3) The inner decorative icon element (containing the ligature text like 'dark_mode') must have `aria-hidden="true"` to prevent screen readers from reading the ligature out loud.
+**Action:** Always verify icon-only buttons for Arabic `aria-label`/`title` pairs, apply `aria-hidden="true"` to inner icon elements, and ensure keyboard focus states (`focus-visible`) are prominent.
