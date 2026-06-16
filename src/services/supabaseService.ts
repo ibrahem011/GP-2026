@@ -1544,12 +1544,13 @@ export const supabaseService = {
             }
         }
 
-        const { data: existing } = await supabase
+        const { count } = await supabase
             .from('favorites')
-            .select('*')
+            .select('id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
+
+        const existing = (count ?? 0) > 0;
 
         if (existing) {
             await supabase
@@ -1633,14 +1634,13 @@ export const supabaseService = {
             return _mockUnlocked.has(propertyId);
         }
 
-        const { data } = await supabase
+        const { count } = await supabase
             .from('unlocked_properties')
-            .select('*')
+            .select('id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        return !!data;
+        return (count ?? 0) > 0;
     },
 
     async getPublicBookingPeriods(propertyId: string): Promise<PublicBookingPeriod[]> {
@@ -1775,17 +1775,15 @@ export const supabaseService = {
             const payment = await getApprovedUnlockPayment(userId, propertyId, paymentId);
 
             // âœ… STEP 2: Check if already unlocked
-            const { data: alreadyUnlocked } = await supabase
+            const { count: unlockedCount } = await supabase
                 .from('unlocked_properties')
-                .select('property_id')
+                .select('id', { count: 'exact', head: true })
                 .eq('user_id', userId)
-                .eq('property_id', propertyId)
-                .maybeSingle();
+                .eq('property_id', propertyId);
 
-            if (alreadyUnlocked) {
+            if ((unlockedCount ?? 0) > 0) {
                 throw new Error('ط§ظ„ط¹ظ‚ط§ط± ظ…ظپطھظˆط­ ط¨ط§ظ„ظپط¹ظ„');
             }
-
             // âœ… STEP 3: Atomic operation - mark payment consumed + unlock property
             const { error: unlockError } = await supabase.rpc('unlock_property_with_payment', {
                 p_user_id: userId,
