@@ -1204,23 +1204,20 @@ export const supabaseService = {
             return files.map(() => `https://images.unsplash.com/photo-${Math.floor(Math.random() * 1000)}?auto=format&fit=crop&w=800&q=80`);
         }
 
-        const uploadedPaths: string[] = [];
-        for (const file of files) {
-            try {
-                const path = await uploadImage(file, `${userId}/`);
-                uploadedPaths.push(path);
-            } catch (error: any) {
-                console.error('Error uploading image:', {
-                    message: error.message,
-                    code: error.code,
-                    hint: error.hint,
-                    details: error.details,
-                    error // Log full error just in case it's not a PostgrestError
-                });
-                throw error;
-            }
+        try {
+            const uploadPromises = files.map(file => uploadImage(file, `${userId}/`));
+            const uploadedPaths = await Promise.all(uploadPromises);
+            return uploadedPaths;
+        } catch (error: any) {
+            console.error('Error uploading image:', {
+                message: error.message,
+                code: error.code,
+                hint: error.hint,
+                details: error.details,
+                error // Log full error just in case it's not a PostgrestError
+            });
+            throw error;
         }
-        return uploadedPaths;
     },
 
     // ====== ط­ط°ظپ ط§ظ„طµظˆط± ======
@@ -1274,9 +1271,7 @@ export const supabaseService = {
                 .single();
 
             if (error) {
-                for (const path of imagePaths) {
-                    await this.deletePropertyImage(path);
-                }
+                await Promise.allSettled(imagePaths.map(path => this.deletePropertyImage(path)));
                 throw new Error(`ظپط´ظ„ ط­ظپط¸ ط§ظ„ط¹ظ‚ط§ط±: ${error.message}`);
             }
 
