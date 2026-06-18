@@ -1,0 +1,3 @@
+## 2024-04-21 - Optimize Supabase existence checks to use HEAD requests
+**Learning:** Checking for row existence using `.select('*').single()` fetches the entire row data and column structures from Postgres, which is inefficient. PostgREST allows HTTP HEAD requests by passing `{ count: 'exact', head: true }` inside the select clause to skip transferring unnecessary data. Furthermore, selecting only the primary key/foreign key (`.select('property_id')`) avoids parsing all columns.
+**Action:** When performing boolean existence checks using Supabase, use `.select('id', { count: 'exact', head: true })` and check `(count ?? 0) > 0` instead of downloading row objects.

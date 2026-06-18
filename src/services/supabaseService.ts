@@ -1544,12 +1544,14 @@ export const supabaseService = {
             }
         }
 
-        const { data: existing } = await supabase
+        // ⚡ Bolt Optimization: Use HTTP HEAD request to check for existence instead of fetching the entire row
+        const { count } = await supabase
             .from('favorites')
-            .select('*')
+            .select('property_id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
+
+        const existing = (count ?? 0) > 0;
 
         if (existing) {
             await supabase
