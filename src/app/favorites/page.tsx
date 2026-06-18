@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PropertyCard } from '@/components/PropertyCard';
@@ -43,6 +43,7 @@ export default function FavoritesPage() {
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
     const [isStatsSheetOpen, setIsStatsSheetOpen] = useState(false);
     const { user, isAuthenticated, loading: authLoading } = useAuth();
+    const propertiesRef = useRef<Map<string, Property>>(new Map());
     const timeoutMessage = 'انتهت مهلة تحميل المفضلات. تأكد من الاتصال ثم حاول مرة أخرى.';
     const genericErrorMessage = 'فشل جلب المفضلات. يرجى المحاولة مرة أخرى.';
 
@@ -157,20 +158,30 @@ export default function FavoritesPage() {
         setFilters(DEFAULT_FAVORITES_FILTERS);
     };
 
-    const handleFavoriteChange = (property: Property, nextState: boolean) => {
+    useEffect(() => {
+        favorites.forEach((property) => {
+            propertiesRef.current.set(property.id, property);
+        });
+    }, [favorites]);
+
+    // ⚡ Bolt Performance Optimization: Wrapped handleFavoriteChange in useCallback and removed inline arrow function in render to preserve React.memo optimization of PropertyCard.
+    const handleFavoriteChange = useCallback((id: string, nextState: boolean) => {
         if (!nextState) {
-            setFavorites((current) => current.filter((item) => item.id !== property.id));
+            setFavorites((current) => current.filter((item) => item.id !== id));
             return;
         }
 
         setFavorites((current) => {
-            if (current.some((item) => item.id === property.id)) {
+            if (current.some((item) => item.id === id)) {
                 return current;
             }
 
+            const property = propertiesRef.current.get(id);
+            if (!property) return current;
+
             return [property, ...current];
         });
-    };
+    }, []);
 
     if (authLoading) {
         return (
@@ -363,9 +374,7 @@ export default function FavoritesPage() {
                                                 location={property.location.address || property.location.area}
                                                 variant="favorites"
                                                 initialIsFavorite
-                                                onFavoriteChange={(nextState) =>
-                                                    handleFavoriteChange(property, nextState)
-                                                }
+                                                onFavoriteChange={handleFavoriteChange}
                                             />
                                         </div>
                                     ))}

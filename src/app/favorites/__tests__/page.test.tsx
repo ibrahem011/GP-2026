@@ -31,15 +31,17 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/components/PropertyCard', () => ({
     PropertyCard: ({
+        id,
         title,
         onFavoriteChange,
     }: {
+        id: string;
         title: string;
-        onFavoriteChange?: (isFavorite: boolean) => void;
+        onFavoriteChange?: (id: string, isFavorite: boolean) => void;
     }) => (
         <div>
             <div data-testid="property-card">{title}</div>
-            <button type="button" aria-label={`remove-${title}`} onClick={() => onFavoriteChange?.(false)}>
+            <button type="button" aria-label={`remove-${title}`} onClick={() => onFavoriteChange?.(id, false)}>
                 remove
             </button>
         </div>
