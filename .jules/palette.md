@@ -1,0 +1,3 @@
+## 2024-05-18 - Localized ARIA Labels for RTL Apps
+**Learning:** In a heavily RTL (Arabic) localized application, accessibility attributes like `aria-label` and `title` must also be in Arabic to maintain a cohesive experience for screen readers and tooltips. English labels like "Switch to dark mode" break context. Also, applying explicit `focus-visible` styles enhances keyboard navigation for interactive components.
+**Action:** When working on buttons, especially icon buttons, ensure `aria-label`, `title`, and `aria-pressed` exist and match the UI's primary language. Add `aria-hidden="true"` on internal decorative/icon elements to prevent duplicate or noisy screen reader readouts.
