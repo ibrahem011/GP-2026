@@ -1544,14 +1544,13 @@ export const supabaseService = {
             }
         }
 
-        const { data: existing } = await supabase
+        const { count } = await supabase
             .from('favorites')
-            .select('*')
+            .select('property_id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        if (existing) {
+        if ((count ?? 0) > 0) {
             await supabase
                 .from('favorites')
                 .delete()
@@ -1633,14 +1632,18 @@ export const supabaseService = {
             return _mockUnlocked.has(propertyId);
         }
 
-        const { data } = await supabase
+        const { count, error } = await supabase
             .from('unlocked_properties')
-            .select('*')
+            .select('property_id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        return !!data;
+        if (error) {
+            console.error('Error checking if property is unlocked:', error);
+            return false;
+        }
+
+        return (count ?? 0) > 0;
     },
 
     async getPublicBookingPeriods(propertyId: string): Promise<PublicBookingPeriod[]> {
