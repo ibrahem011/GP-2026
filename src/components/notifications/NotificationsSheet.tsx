@@ -107,8 +107,13 @@ export default function NotificationsSheet({
                                     قراءة الكل
                                 </button>
                             )}
-                            <button onClick={onClose} className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400">
-                                <span className="material-symbols-outlined text-xl">close</span>
+                            <button
+                                onClick={onClose}
+                                className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary"
+                                aria-label="إغلاق الإشعارات"
+                                title="إغلاق الإشعارات"
+                            >
+                                <span className="material-symbols-outlined text-xl" aria-hidden="true">close</span>
                             </button>
                         </div>
                     </div>
