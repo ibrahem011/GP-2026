@@ -29,7 +29,7 @@ export default function FloatingActions({
                         onClick={onOpenFilters}
                         className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition"
                     >
-                        <span className="material-symbols-outlined text-[20px]">tune</span>
+                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">tune</span>
                         <span className="text-sm font-semibold">فلترة</span>
 
                         {appliedCount > 0 && (
@@ -46,7 +46,7 @@ export default function FloatingActions({
                         onClick={onToggleMap}
                         className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition"
                     >
-                        <span className="material-symbols-outlined text-[20px]">
+                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
                             {viewMode === 'list' ? 'map' : 'view_list'}
                         </span>
                         <span className="text-sm font-semibold">{viewMode === 'list' ? 'الخريطة' : 'قائمة'}</span>
@@ -59,7 +59,7 @@ export default function FloatingActions({
                         onClick={onOpenSort}
                         className="flex-1 h-11 rounded-xl flex items-center justify-center gap-2 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition"
                     >
-                        <span className="material-symbols-outlined text-[20px]">sort</span>
+                        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">sort</span>
                         <span className="text-sm font-semibold">ترتيب</span>
                     </button>
                 </div>
