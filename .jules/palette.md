@@ -1,0 +1,3 @@
+## 2026-05-21 - [ThemeToggle Accessibility Enhancement]
+**Learning:** In this Arabic RTL codebase, icon-only buttons require localized Arabic `aria-label` and `title` attributes to properly support screen readers and sighted users with tooltips, rather than defaulting to English. Furthermore, the inner material symbols icon span must explicitly have `aria-hidden="true"` to prevent screen readers from announcing the raw text of the icon font ligature.
+**Action:** Always provide localized Arabic `aria-label` and `title` pairs for icon buttons, and use `aria-hidden="true"` on inner icon elements.
