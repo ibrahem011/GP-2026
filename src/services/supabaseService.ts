@@ -2285,29 +2285,33 @@ export const supabaseService = {
         }
 
         // Use parameterized filters to prevent injection (no string interpolation in .or())
-        const { data: asBuyer, error: errBuyer } = await supabase
-            .from('conversations')
-            .select(`
-                *,
-                property:properties(title, images),
-                buyer:profiles!buyer_id(full_name, avatar_url),
-                owner:profiles!owner_id(full_name, avatar_url),
-                last_message:messages(text, created_at, is_read, sender_id, media_url, message_type)
-            `)
-            .eq('buyer_id', userId)
-            .order('updated_at', { ascending: false });
-
-        const { data: asOwner, error: errOwner } = await supabase
-            .from('conversations')
-            .select(`
-                *,
-                property:properties(title, images),
-                buyer:profiles!buyer_id(full_name, avatar_url),
-                owner:profiles!owner_id(full_name, avatar_url),
-                last_message:messages(text, created_at, is_read, sender_id, media_url, message_type)
-            `)
-            .eq('owner_id', userId)
-            .order('updated_at', { ascending: false });
+        const [
+            { data: asBuyer, error: errBuyer },
+            { data: asOwner, error: errOwner }
+        ] = await Promise.all([
+            supabase
+                .from('conversations')
+                .select(`
+                    *,
+                    property:properties(title, images),
+                    buyer:profiles!buyer_id(full_name, avatar_url),
+                    owner:profiles!owner_id(full_name, avatar_url),
+                    last_message:messages(text, created_at, is_read, sender_id, media_url, message_type)
+                `)
+                .eq('buyer_id', userId)
+                .order('updated_at', { ascending: false }),
+            supabase
+                .from('conversations')
+                .select(`
+                    *,
+                    property:properties(title, images),
+                    buyer:profiles!buyer_id(full_name, avatar_url),
+                    owner:profiles!owner_id(full_name, avatar_url),
+                    last_message:messages(text, created_at, is_read, sender_id, media_url, message_type)
+                `)
+                .eq('owner_id', userId)
+                .order('updated_at', { ascending: false })
+        ]);
 
         const error = errBuyer || errOwner;
         const data = [...(asBuyer || []), ...(asOwner || [])]
@@ -2324,18 +2328,21 @@ export const supabaseService = {
         }));
 
         const propertyImages = conversations.flatMap((conv: any) => conv.property?.images || []);
-        const signedPropertyImages = await resolveStorageValues(
-            propertyImages,
-            STORAGE_BUCKETS.propertiesImages,
-        );
-        const lastMessageMedia = await resolveStorageValues(
-            conversations.map((conv: any) => conv.last_message?.media_url || null),
-            STORAGE_BUCKETS.chatImages,
-        );
-        const lastVoiceMedia = await resolveStorageValues(
-            conversations.map((conv: any) => conv.last_message?.message_type === 'voice' ? conv.last_message?.media_url || null : null),
-            STORAGE_BUCKETS.voiceNotes,
-        );
+
+        const [signedPropertyImages, lastMessageMedia, lastVoiceMedia] = await Promise.all([
+            resolveStorageValues(
+                propertyImages,
+                STORAGE_BUCKETS.propertiesImages,
+            ),
+            resolveStorageValues(
+                conversations.map((conv: any) => conv.last_message?.media_url || null),
+                STORAGE_BUCKETS.chatImages,
+            ),
+            resolveStorageValues(
+                conversations.map((conv: any) => conv.last_message?.message_type === 'voice' ? conv.last_message?.media_url || null : null),
+                STORAGE_BUCKETS.voiceNotes,
+            )
+        ]);
 
         let propertyImageIndex = 0;
         let lastMessageIndex = 0;
@@ -2403,14 +2410,17 @@ export const supabaseService = {
             return [];
         }
         const messages = (data || []).reverse() as any[];
-        const signedChatMedia = await resolveStorageValues(
-            messages.map((message) => message.message_type === 'image' ? message.media_url || null : null),
-            STORAGE_BUCKETS.chatImages,
-        );
-        const signedVoiceMedia = await resolveStorageValues(
-            messages.map((message) => message.message_type === 'voice' ? message.media_url || null : null),
-            STORAGE_BUCKETS.voiceNotes,
-        );
+
+        const [signedChatMedia, signedVoiceMedia] = await Promise.all([
+            resolveStorageValues(
+                messages.map((message) => message.message_type === 'image' ? message.media_url || null : null),
+                STORAGE_BUCKETS.chatImages,
+            ),
+            resolveStorageValues(
+                messages.map((message) => message.message_type === 'voice' ? message.media_url || null : null),
+                STORAGE_BUCKETS.voiceNotes,
+            )
+        ]);
 
         return messages.map((message, index) => ({
             ...message,

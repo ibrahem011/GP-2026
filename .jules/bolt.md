@@ -1,0 +1,3 @@
+## 2024-05-18 - Parallelizing Sequential I/O in Chat Service
+**Learning:** In `src/services/supabaseService.ts`, the `getUserConversations` and `getMessages` methods were suffering from an N+1 style waterfall issue. Multiple independent Supabase queries (e.g., fetching as buyer vs. as owner) and storage resolution calls (`resolveStorageValues` for property images, chat images, voice notes) were being awaited sequentially. This codebase pattern significantly increases latency since the application blocks on each network request.
+**Action:** Identified independent asynchronous operations and grouped them using `Promise.all`. This pattern should be proactively sought out during refactoring in service layers that aggregate data from multiple tables or buckets.
