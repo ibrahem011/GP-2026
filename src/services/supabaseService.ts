@@ -1633,14 +1633,13 @@ export const supabaseService = {
             return _mockUnlocked.has(propertyId);
         }
 
-        const { data } = await supabase
+        const { count } = await supabase
             .from('unlocked_properties')
-            .select('*')
+            .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        return !!data;
+        return (count ?? 0) > 0;
     },
 
     async getPublicBookingPeriods(propertyId: string): Promise<PublicBookingPeriod[]> {
