@@ -1,0 +1,3 @@
+## 2026-05-15 - [Accessible Icon-Only Buttons]
+**Learning:** In RTL applications, icon-only buttons often lack localized context for both screen readers and sighted users. Using `aria-label` alone isn't enough; it's beneficial to include a localized `title` attribute to provide a native tooltip on hover. Additionally, using `aria-hidden="true"` on the inner icon (e.g., `material-symbols-outlined`) prevents redundant or confusing screen reader announcements.
+**Action:** Always provide localized `aria-label` and `title` attributes on icon-only buttons. Add `focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary` for proper keyboard focus indication, and use `aria-hidden="true"` on the inner icon element to keep the accessibility tree clean.
