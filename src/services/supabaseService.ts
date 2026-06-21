@@ -1544,14 +1544,15 @@ export const supabaseService = {
             }
         }
 
-        const { data: existing } = await supabase
+        // ⚡ Bolt Optimization: Use HTTP HEAD request to check for record existence
+        // Reduces network payload by not fetching full row data when we only need to check if the favorite exists.
+        const { count } = await supabase
             .from('favorites')
-            .select('*')
+            .select('property_id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        if (existing) {
+        if ((count ?? 0) > 0) {
             await supabase
                 .from('favorites')
                 .delete()
@@ -1633,14 +1634,15 @@ export const supabaseService = {
             return _mockUnlocked.has(propertyId);
         }
 
-        const { data } = await supabase
+        // ⚡ Bolt Optimization: Use HTTP HEAD request to check for record existence
+        // Reduces network payload by not fetching full row data when we only need to check if the property is unlocked.
+        const { count } = await supabase
             .from('unlocked_properties')
-            .select('*')
+            .select('property_id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        return !!data;
+        return (count ?? 0) > 0;
     },
 
     async getPublicBookingPeriods(propertyId: string): Promise<PublicBookingPeriod[]> {
