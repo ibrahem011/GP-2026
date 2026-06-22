@@ -200,7 +200,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="تقليل عدد غرف النوم"
             >
-              <span className="material-symbols-outlined">remove</span>
+              <span className="material-symbols-outlined" aria-hidden="true">remove</span>
             </button>
             <div className="text-lg font-bold">{bedrooms === 0 ? 'بدون تحديد' : `${bedrooms}+`}</div>
             <button
@@ -208,7 +208,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="زيادة عدد غرف النوم"
             >
-              <span className="material-symbols-outlined">add</span>
+              <span className="material-symbols-outlined" aria-hidden="true">add</span>
             </button>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="تقليل عدد الحمامات"
             >
-              <span className="material-symbols-outlined">remove</span>
+              <span className="material-symbols-outlined" aria-hidden="true">remove</span>
             </button>
             <div className="text-lg font-bold">{bathrooms === 0 ? 'بدون تحديد' : `${bathrooms}+`}</div>
             <button
@@ -229,7 +229,7 @@ export default function SearchFilters({
               className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
               aria-label="زيادة عدد الحمامات"
             >
-              <span className="material-symbols-outlined">add</span>
+              <span className="material-symbols-outlined" aria-hidden="true">add</span>
             </button>
           </div>
         </div>
