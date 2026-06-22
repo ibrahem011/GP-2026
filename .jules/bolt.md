@@ -1,0 +1,3 @@
+## 2024-04-07 - Supabase Existence Checking via HEAD requests
+**Learning:** Found multiple places in `src/services/supabaseService.ts` (`isPropertyUnlocked`, `toggleFavorite`) where checking if a specific row exists was done by querying with `.select('*').single()` and casting the result to boolean. This inefficiently fetched all row columns from the database across the network, just to determine if it exists or not. We should utilize Supabase's `head` option.
+**Action:** Replaced `.select('*').single()` with `.select('property_id', { count: 'exact', head: true })` for existence checks. This acts as an HTTP HEAD request and avoids fetching row data, significantly improving query memory usage and network bandwidth.

@@ -1544,14 +1544,17 @@ export const supabaseService = {
             }
         }
 
-        const { data: existing } = await supabase
+        // ⚡ Bolt Performance Optimization:
+        // Replaced .select('*').single() with a head count query.
+        // This avoids fetching the entire row just to check for existence,
+        // reducing network payload and database overhead.
+        const { count: existingCount } = await supabase
             .from('favorites')
-            .select('*')
+            .select('property_id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        if (existing) {
+        if (existingCount !== null && existingCount > 0) {
             await supabase
                 .from('favorites')
                 .delete()
@@ -1633,14 +1636,16 @@ export const supabaseService = {
             return _mockUnlocked.has(propertyId);
         }
 
-        const { data } = await supabase
+        // ⚡ Bolt Performance Optimization:
+        // Replaced .select('*').single() with a head count query.
+        // This avoids fetching all column data for an existence check boolean.
+        const { count } = await supabase
             .from('unlocked_properties')
-            .select('*')
+            .select('property_id', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('property_id', propertyId)
-            .single();
+            .eq('property_id', propertyId);
 
-        return !!data;
+        return count !== null && count > 0;
     },
 
     async getPublicBookingPeriods(propertyId: string): Promise<PublicBookingPeriod[]> {
