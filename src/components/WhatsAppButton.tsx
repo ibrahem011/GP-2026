@@ -19,6 +19,7 @@ export default function WhatsAppButton({
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPageUrl(window.location.href);
         }
     }, []);
@@ -45,7 +46,7 @@ export default function WhatsAppButton({
                 className={`fixed bottom-6 left-6 z-50 bg-primary hover:brightness-110 text-white p-4 rounded-full shadow-2xl transition-transform active:scale-95 animate-bounce-subtle flex items-center justify-center ${className}`}
                 aria-label="تواصل عبر واتساب"
             >
-                <span className="material-symbols-outlined text-[28px]">chat</span>
+                <span className="material-symbols-outlined text-[28px]" aria-hidden="true">chat</span>
             </button>
         );
     }
@@ -55,7 +56,7 @@ export default function WhatsAppButton({
             onClick={handleClick}
             className={`bg-primary hover:brightness-110 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 ${className}`}
         >
-            <span className="material-symbols-outlined text-[20px]">chat</span>
+            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">chat</span>
             <span>تواصل واتساب</span>
         </button>
     );
