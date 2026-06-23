@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PropertyCard } from '@/components/PropertyCard';
@@ -157,20 +157,32 @@ export default function FavoritesPage() {
         setFilters(DEFAULT_FAVORITES_FILTERS);
     };
 
-    const handleFavoriteChange = (property: Property, nextState: boolean) => {
+    const propertiesRef = useRef(new Map<string, Property>());
+
+    useEffect(() => {
+        propertiesRef.current.clear();
+        filteredFavorites.forEach(property => {
+            propertiesRef.current.set(property.id, property);
+        });
+    }, [filteredFavorites]);
+
+    const handleFavoriteChange = useCallback((nextState: boolean, id: string) => {
         if (!nextState) {
-            setFavorites((current) => current.filter((item) => item.id !== property.id));
+            setFavorites((current) => current.filter((item) => item.id !== id));
             return;
         }
 
         setFavorites((current) => {
-            if (current.some((item) => item.id === property.id)) {
+            if (current.some((item) => item.id === id)) {
                 return current;
             }
 
+            const property = propertiesRef.current.get(id);
+            if (!property) return current;
+
             return [property, ...current];
         });
-    };
+    }, []);
 
     if (authLoading) {
         return (
@@ -363,9 +375,7 @@ export default function FavoritesPage() {
                                                 location={property.location.address || property.location.area}
                                                 variant="favorites"
                                                 initialIsFavorite
-                                                onFavoriteChange={(nextState) =>
-                                                    handleFavoriteChange(property, nextState)
-                                                }
+                                                onFavoriteChange={handleFavoriteChange}
                                             />
                                         </div>
                                     ))}
