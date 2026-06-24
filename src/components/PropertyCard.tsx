@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -40,7 +40,7 @@ interface PropertyCardProps {
     viewsCount?: number;
     variant?: "default" | "favorites" | "spotlight";
     initialIsFavorite?: boolean;
-    onFavoriteChange?: (isFavorite: boolean) => void;
+    onFavoriteChange?: (id: string, isFavorite: boolean) => void;
 }
 
 function formatRating(rating: number) {
@@ -64,7 +64,10 @@ const AR = {
     per: "\u0644\u0643\u0644",
 };
 
-export function PropertyCard({
+// ⚡ Bolt Performance Optimization:
+// Wrapping PropertyCard with React.memo to prevent unnecessary re-renders
+// when parent components update state that doesn't affect the card's props.
+export const PropertyCard = memo(function PropertyCard({
     id,
     title,
     location,
@@ -138,7 +141,7 @@ export function PropertyCard({
         try {
             const savedState = await toggleFavorite(id, nextState);
             setIsFavorite(savedState);
-            onFavoriteChange?.(savedState);
+            onFavoriteChange?.(id, savedState);
         } catch (error) {
             setIsFavorite(!nextState);
             console.error("Error toggling favorite:", error);
@@ -361,4 +364,4 @@ export function PropertyCard({
             </div>
         </article>
     );
-}
+});
