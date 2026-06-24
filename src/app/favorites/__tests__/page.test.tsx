@@ -16,6 +16,7 @@ vi.mock('@/services/supabaseService', () => ({
 }));
 
 vi.mock('@/lib/propertyMapper', () => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     fromPropertyRow: (...args: any[]) => mockFromPropertyRow(...args),
 }));
 
@@ -31,15 +32,17 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/components/PropertyCard', () => ({
     PropertyCard: ({
+        id,
         title,
         onFavoriteChange,
     }: {
+        id: string;
         title: string;
-        onFavoriteChange?: (isFavorite: boolean) => void;
+        onFavoriteChange?: (id: string, isFavorite: boolean) => void;
     }) => (
         <div>
             <div data-testid="property-card">{title}</div>
-            <button type="button" aria-label={`remove-${title}`} onClick={() => onFavoriteChange?.(false)}>
+            <button type="button" aria-label={`remove-${title}`} onClick={() => onFavoriteChange?.(id, false)}>
                 remove
             </button>
         </div>
@@ -96,6 +99,7 @@ describe('FavoritesPage', () => {
             isAuthenticated: true,
             loading: false,
         });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         mockFromPropertyRow.mockImplementation((row: any) =>
             makeMappedProperty({
                 id: row.id,
