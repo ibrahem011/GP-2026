@@ -1,0 +1,3 @@
+## 2024-03-27 - [Material Icons Accessibility]
+**Learning:** Decorative Material Icons (e.g., `<span className="material-symbols-outlined">send</span>`) in an Arabic/RTL application cause screen readers to read the English ligatures ("send", "mic") aloud, confusing users expecting Arabic descriptions.
+**Action:** Always add `aria-hidden="true"` to the `<span>` containing the Material Icon ligature, and apply the descriptive Arabic `aria-label` to the parent `<button>` instead.
