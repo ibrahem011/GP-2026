@@ -29,6 +29,7 @@ export default function SortSheet({
             footer={
                 <button
                     onClick={onClose}
+                    aria-label="تأكيد الترتيب وإغلاق النافذة"
                     className="w-full h-12 rounded-2xl bg-primary text-white font-bold"
                 >
                     تم
@@ -40,6 +41,7 @@ export default function SortSheet({
                     <button
                         key={opt.value}
                         onClick={() => onChange(opt.value)}
+                        aria-pressed={value === opt.value}
                         className={[
                             'w-full p-4 rounded-2xl border flex items-center justify-between',
                             value === opt.value
@@ -48,10 +50,10 @@ export default function SortSheet({
                         ].join(' ')}
                     >
                         <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined">{opt.icon}</span>
+                            <span className="material-symbols-outlined" aria-hidden="true">{opt.icon}</span>
                             <span className="font-semibold">{opt.label}</span>
                         </div>
-                        {value === opt.value && <span className="material-symbols-outlined">check</span>}
+                        {value === opt.value && <span className="material-symbols-outlined" aria-hidden="true">check</span>}
                     </button>
                 ))}
             </div>
