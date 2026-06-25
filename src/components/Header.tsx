@@ -126,16 +126,19 @@ export default function Header() {
                             <div className="relative flex items-center" ref={dropdownRef}>
                                 <button
                                     data-notifications-trigger="true"
+                                    aria-label="الإشعارات"
+                                    title="الإشعارات"
+                                    aria-expanded={showNotifications}
                                     onClick={() => setShowNotifications(!showNotifications)}
-                                    className={`relative flex touch-target items-center justify-center rounded-full shadow-sm border transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/60 ${isScrolled
+                                    className={`relative flex touch-target items-center justify-center rounded-full shadow-sm border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${isScrolled
                                         ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300'
                                         : 'bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40'}`}
                                 >
-                                    <span className="material-symbols-outlined text-[24px] pointer-events-none">
+                                    <span aria-hidden="true" className="material-symbols-outlined text-[24px] pointer-events-none">
                                         notifications
                                     </span>
                                     {unreadCount > 0 && (
-                                        <span className="absolute top-1.5 left-1.5 size-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm animate-pulse"></span>
+                                        <span aria-hidden="true" className="absolute top-1.5 left-1.5 size-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm animate-pulse"></span>
                                     )}
                                 </button>
 
