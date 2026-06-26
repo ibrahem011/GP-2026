@@ -40,17 +40,21 @@ export function PropertyFilters({ sortBy, setSortBy, viewMode, setViewMode }: Pr
             <div className="flex bg-white/40 dark:bg-zinc-800/40 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-xl p-1 shadow-sm">
                 <button
                     onClick={() => setViewMode('list')}
+                    aria-pressed={viewMode === 'list'}
+                    aria-label="عرض كقائمة"
                     className={`p-1.5 rounded-lg transition-all duration-300 ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                     title="عرض كقائمة"
                 >
-                    <List className="w-5 h-5" />
+                    <List className="w-5 h-5" aria-hidden="true" />
                 </button>
                 <button
                     onClick={() => setViewMode('grid')}
+                    aria-pressed={viewMode === 'grid'}
+                    aria-label="عرض كشبكة"
                     className={`p-1.5 rounded-lg transition-all duration-300 ${viewMode === 'grid' ? 'bg-white dark:bg-zinc-700 shadow-sm text-primary' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                     title="عرض كشبكة"
                 >
-                    <Grid3X3 className="w-5 h-5" />
+                    <Grid3X3 className="w-5 h-5" aria-hidden="true" />
                 </button>
             </div>
         </div>
