@@ -1,3 +1,6 @@
 ## 2026-03-15 - Missing ARIA Labels on Custom Increment/Decrement Controls
 **Learning:** Custom UI controls for numeric filters (like bedrooms and bathrooms) in this app use icon-only buttons (+/-) without native `<input type="number">`. These were missing `aria-label` attributes, rendering them completely opaque to screen readers, especially in the Right-To-Left (RTL) Arabic context.
 **Action:** Always verify icon-only interactive elements in custom filter components and explicitly add Arabic `aria-label`s to provide context (e.g., 'زيادة عدد غرف النوم' for incrementing bedrooms).
+## 2026-06-27 - Missing ARIA Labels on Booking Flow Back Buttons
+**Learning:** Icon-only navigation buttons (like back/previous arrows) in critical flows (e.g., booking) were missing `aria-label` attributes and the inner icons lacked `aria-hidden="true"`. In an RTL Arabic context, these controls are completely inaccessible to screen readers without explicit Arabic labels.
+**Action:** Always ensure icon-only navigation buttons have explicit Arabic `aria-label`s (e.g., 'الرجوع للخلف' or 'الخطوة السابقة') and that the inner icon element (e.g., Material Symbols) is hidden from screen readers using `aria-hidden="true"`.
