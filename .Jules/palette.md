@@ -1,3 +1,7 @@
 ## 2026-03-15 - Missing ARIA Labels on Custom Increment/Decrement Controls
 **Learning:** Custom UI controls for numeric filters (like bedrooms and bathrooms) in this app use icon-only buttons (+/-) without native `<input type="number">`. These were missing `aria-label` attributes, rendering them completely opaque to screen readers, especially in the Right-To-Left (RTL) Arabic context.
 **Action:** Always verify icon-only interactive elements in custom filter components and explicitly add Arabic `aria-label`s to provide context (e.g., 'زيادة عدد غرف النوم' for incrementing bedrooms).
+
+## 2026-06-29 - Adding aria-pressed and aria-hidden to Custom Filter Components
+**Learning:** Custom interactive components acting as toggleable filters (like `FilterChip` and `CategoryFilter`) often rely entirely on visual cues (e.g., background color changes) to indicate their active state. Without the `aria-pressed` attribute, screen readers cannot communicate this selected state to visually impaired users. Furthermore, decorative icon fonts like Material Symbols, which use text ligatures, must have `aria-hidden="true"` to prevent screen readers from reading the ligature text aloud, which can be confusing when the parent element already has a visible label.
+**Action:** Always bind the `aria-pressed` attribute to the component's boolean active state for custom filter controls, and ensure all purely decorative inner icon elements (like `<span className="material-symbols-outlined">`) are explicitly hidden from screen readers using `aria-hidden="true"`.
