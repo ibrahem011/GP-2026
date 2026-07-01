@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PropertyCard } from '@/components/PropertyCard';
@@ -157,20 +157,44 @@ export default function FavoritesPage() {
         setFilters(DEFAULT_FAVORITES_FILTERS);
     };
 
-    const handleFavoriteChange = (property: Property, nextState: boolean) => {
+    // Keep properties in a ref so useCallback doesn't need to depend on the list
+    const propertiesRef = useRef<Map<string, Property>>(new Map());
+
+    useEffect(() => {
+        const newMap = new Map();
+        favorites.forEach((p) => newMap.set(p.id, p));
+        propertiesRef.current = newMap;
+    }, [favorites]);
+
+    // ⚡ Bolt Performance Optimization:
+    // Using useCallback and accepting an ID instead of a closure with full Property object
+    // to preserve React.memo optimization on PropertyCard children.
+    const handleFavoriteChange = useCallback((id: string, nextState: boolean) => {
         if (!nextState) {
-            setFavorites((current) => current.filter((item) => item.id !== property.id));
+            setFavorites((current) => current.filter((item) => item.id !== id));
             return;
         }
 
+        const property = propertiesRef.current.get(id);
+        if (!property) return;
+
         setFavorites((current) => {
-            if (current.some((item) => item.id === property.id)) {
+            if (current.some((item) => item.id === id)) {
                 return current;
             }
 
             return [property, ...current];
         });
-    };
+    }, []);
+
+    // Create stable callbacks for each item
+    const callbacksRef = useRef<Map<string, (state: boolean) => void>>(new Map());
+    const getCallback = useCallback((id: string) => {
+        if (!callbacksRef.current.has(id)) {
+            callbacksRef.current.set(id, (state: boolean) => handleFavoriteChange(id, state));
+        }
+        return callbacksRef.current.get(id)!;
+    }, [handleFavoriteChange]);
 
     if (authLoading) {
         return (
@@ -363,9 +387,7 @@ export default function FavoritesPage() {
                                                 location={property.location.address || property.location.area}
                                                 variant="favorites"
                                                 initialIsFavorite
-                                                onFavoriteChange={(nextState) =>
-                                                    handleFavoriteChange(property, nextState)
-                                                }
+                                                onFavoriteChange={getCallback(property.id)}
                                             />
                                         </div>
                                     ))}
