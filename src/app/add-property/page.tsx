@@ -747,6 +747,7 @@ export default function AddPropertyPage() {
             setSuccess(true);
 
             redirectToMyProperties(2000);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             console.error('Error adding property:', error);
             setSubmitError(getSubmitErrorMessage(error));
@@ -1045,9 +1046,11 @@ export default function AddPropertyPage() {
                                                         type="button"
                                                         onClick={() => removeExistingImage(image.id)}
                                                         disabled={loading || uploading}
-                                                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-50"
+                                                        aria-label="حذف الصورة"
+                                                        title="حذف الصورة"
+                                                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                                                     >
-                                                        <span className="material-symbols-outlined text-[14px]">close</span>
+                                                        <span className="material-symbols-outlined text-[14px]" aria-hidden="true">close</span>
                                                     </button>
                                                 </div>
                                             ))}
@@ -1058,9 +1061,11 @@ export default function AddPropertyPage() {
                                                         type="button"
                                                         onClick={() => removeImage(image.id)}
                                                         disabled={loading || uploading}
-                                                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-50"
+                                                        aria-label="حذف الصورة"
+                                                        title="حذف الصورة"
+                                                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                                                     >
-                                                        <span className="material-symbols-outlined text-[14px]">close</span>
+                                                        <span className="material-symbols-outlined text-[14px]" aria-hidden="true">close</span>
                                                     </button>
                                                 </div>
                                             ))}
