@@ -7,7 +7,9 @@ import { AREAS, PropertyCategory } from '@/types';
 type Variant = 'panel' | 'sheet';
 
 interface SearchFiltersProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onFilterChange: (filters: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   initialFilters?: any;
   variant?: Variant;
   showHeader?: boolean; // نخفيه داخل الـ BottomSheet
@@ -15,9 +17,13 @@ interface SearchFiltersProps {
 
 const CATEGORY_OPTIONS: { value: PropertyCategory | 'all'; label: string; icon: string }[] = [
   { value: 'all', label: 'الكل', icon: 'apps' },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { value: 'apartment' as any, label: 'شقة', icon: 'apartment' },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { value: 'villa' as any, label: 'فيلا', icon: 'holiday_village' },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { value: 'chalet' as any, label: 'شاليه', icon: 'cabin' },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   { value: 'room' as any, label: 'غرفة', icon: 'bed' },
 ];
 
@@ -197,18 +203,20 @@ export default function SearchFilters({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setBedrooms((v) => Math.max(0, v - 1))}
-              className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
+              className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary"
               aria-label="تقليل عدد غرف النوم"
+              title="تقليل عدد غرف النوم"
             >
-              <span className="material-symbols-outlined">remove</span>
+              <span className="material-symbols-outlined" aria-hidden="true">remove</span>
             </button>
             <div className="text-lg font-bold">{bedrooms === 0 ? 'بدون تحديد' : `${bedrooms}+`}</div>
             <button
               onClick={() => setBedrooms((v) => Math.min(10, v + 1))}
-              className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
+              className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary"
               aria-label="زيادة عدد غرف النوم"
+              title="زيادة عدد غرف النوم"
             >
-              <span className="material-symbols-outlined">add</span>
+              <span className="material-symbols-outlined" aria-hidden="true">add</span>
             </button>
           </div>
         </div>
@@ -218,18 +226,20 @@ export default function SearchFilters({
           <div className="flex items-center justify-between">
             <button
               onClick={() => setBathrooms((v) => Math.max(0, v - 1))}
-              className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
+              className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary"
               aria-label="تقليل عدد الحمامات"
+              title="تقليل عدد الحمامات"
             >
-              <span className="material-symbols-outlined">remove</span>
+              <span className="material-symbols-outlined" aria-hidden="true">remove</span>
             </button>
             <div className="text-lg font-bold">{bathrooms === 0 ? 'بدون تحديد' : `${bathrooms}+`}</div>
             <button
               onClick={() => setBathrooms((v) => Math.min(10, v + 1))}
-              className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center"
+              className="h-10 w-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-primary"
               aria-label="زيادة عدد الحمامات"
+              title="زيادة عدد الحمامات"
             >
-              <span className="material-symbols-outlined">add</span>
+              <span className="material-symbols-outlined" aria-hidden="true">add</span>
             </button>
           </div>
         </div>
