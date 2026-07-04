@@ -1,0 +1,3 @@
+## 2024-07-04 - React.memo for PropertyCard
+**Learning:** Passing inline functions like `onFavoriteChange={(nextState) => handleFavoriteChange(property, nextState)}` to `PropertyCard` inside list rendering breaks memoization. React re-renders all PropertyCards when the parent component re-renders (e.g. from filter or state changes).
+**Action:** Use `useCallback` in the parent or pass a stable property ID instead of relying on inline closures. If wrapping `PropertyCard` in `React.memo`, ensure the `onFavoriteChange` prop receives a stable reference, such as by looking up properties by ID from a ref.
