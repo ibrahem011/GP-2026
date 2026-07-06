@@ -127,6 +127,8 @@ export default function Header() {
                                 <button
                                     data-notifications-trigger="true"
                                     onClick={() => setShowNotifications(!showNotifications)}
+                                    aria-expanded={showNotifications}
+                                    aria-label="الإشعارات"
                                     className={`relative flex touch-target items-center justify-center rounded-full shadow-sm border transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/60 ${isScrolled
                                         ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300'
                                         : 'bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/40'}`}
