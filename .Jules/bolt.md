@@ -1,0 +1,3 @@
+## 2026-07-07 - React.memo Optimization Requirements
+**Learning:** In Next.js App Router applications, when applying `React.memo()` to components like PropertyCard to prevent re-renders, inline functions passed to list items (e.g., `onFavoriteChange={(nextState) => handleFavoriteChange(property, nextState)}`) will break the memoization since they create a new reference on every parent render. Parent components must use `useCallback` or stable item IDs to preserve rendering performance.
+**Action:** If implementing `React.memo` on list components like PropertyCard, I must also investigate and update parent list components (e.g., search results, favorites list) to use `useCallback` or stable functions, otherwise the optimization will have no effect.
