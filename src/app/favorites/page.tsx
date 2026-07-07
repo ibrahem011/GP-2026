@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PropertyCard } from '@/components/PropertyCard';
@@ -38,6 +38,14 @@ export default function FavoritesPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isTimeout, setIsTimeout] = useState(false);
+    const propertiesRef = useRef<Map<string, Property>>(new Map());
+
+    useEffect(() => {
+        propertiesRef.current.clear();
+        favorites.forEach((prop) => {
+            propertiesRef.current.set(prop.id, prop);
+        });
+    }, [favorites]);
     const [sortBy, setSortBy] = useState<FavoritesSort>('newest');
     const [filters, setFilters] = useState<FavoritesFilters>(DEFAULT_FAVORITES_FILTERS);
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
@@ -157,20 +165,24 @@ export default function FavoritesPage() {
         setFilters(DEFAULT_FAVORITES_FILTERS);
     };
 
-    const handleFavoriteChange = (property: Property, nextState: boolean) => {
+    const handleFavoriteChange = useCallback((propertyId: string, nextState: boolean) => {
         if (!nextState) {
-            setFavorites((current) => current.filter((item) => item.id !== property.id));
+            setFavorites((current) => current.filter((item) => item.id !== propertyId));
             return;
         }
 
         setFavorites((current) => {
-            if (current.some((item) => item.id === property.id)) {
+            if (current.some((item) => item.id === propertyId)) {
                 return current;
             }
 
-            return [property, ...current];
+            const property = propertiesRef.current.get(propertyId);
+            if (property) {
+                return [property, ...current];
+            }
+            return current;
         });
-    };
+    }, []);
 
     if (authLoading) {
         return (
@@ -363,9 +375,7 @@ export default function FavoritesPage() {
                                                 location={property.location.address || property.location.area}
                                                 variant="favorites"
                                                 initialIsFavorite
-                                                onFavoriteChange={(nextState) =>
-                                                    handleFavoriteChange(property, nextState)
-                                                }
+                                                onFavoriteChange={handleFavoriteChange}
                                             />
                                         </div>
                                     ))}
