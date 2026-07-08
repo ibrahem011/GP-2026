@@ -61,10 +61,11 @@ export function BottomNav() {
                                 key={item.href}
                                 href={item.href}
                                 onClick={(e) => handleNavigation(e, item)}
+                                aria-current={isActive ? "page" : undefined}
                                 className="group relative flex min-w-0 flex-1 flex-col items-center justify-end h-16 touch-target rounded-2xl transition-all duration-200 outline-none z-20 focus-visible:ring-2 focus-visible:ring-primary/50"
                             >
                                 <div className="absolute -top-[28px] flex items-center justify-center w-[60px] h-[60px] bg-primary text-white rounded-full shadow-[0_8px_20px_rgba(59,130,246,0.28)] border-[4px] border-surface-light dark:border-surface-dark transition-transform duration-200 group-hover:-translate-y-0.5 group-active:scale-95">
-                                    <span className="material-symbols-outlined text-[36px] font-light leading-none">
+                                    <span aria-hidden="true" className="material-symbols-outlined text-[36px] font-light leading-none">
                                         add
                                     </span>
                                 </div>
@@ -87,10 +88,12 @@ export function BottomNav() {
                             key={item.href}
                             href={item.href}
                             onClick={(e) => handleNavigation(e, item)}
+                            aria-current={isActive ? "page" : undefined}
                             className={`group relative flex min-w-0 flex-1 flex-col items-center justify-center h-16 touch-target rounded-2xl transition-all duration-200 ease-out focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-95 ${isActive ? '-translate-y-0.5 bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-white/5'
                                 }`}
                         >
                             <span
+                                aria-hidden="true"
                                 className={`material-symbols-outlined text-[26px] leading-none transition-all duration-300 ${isActive
                                     ? 'text-primary'
                                     : 'text-slate-500 dark:text-slate-300 group-hover:text-primary'
