@@ -1,0 +1,3 @@
+## 2026-07-08 - Optimizing React List Rendering with React.memo and useCallback
+**Learning:** When passing callback functions to list items (like `onFavoriteChange` in `favorites/page.tsx`), inline functions that depend on the loop closure cause child components to re-render constantly. Using `useCallback` combined with synchronizing the list data into a `useRef` Map allows for a stable reference that preserves `React.memo()` optimizations while still having access to the full item object without dependency array invalidation.
+**Action:** Use `React.memo` for frequently rendered list components and ensure parent callbacks are stable by using `useRef` for data lookup based on item ID rather than capturing the item in an inline closure.

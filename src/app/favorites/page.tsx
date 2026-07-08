@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PropertyCard } from '@/components/PropertyCard';
@@ -43,18 +43,19 @@ export default function FavoritesPage() {
     const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
     const [isStatsSheetOpen, setIsStatsSheetOpen] = useState(false);
     const { user, isAuthenticated, loading: authLoading } = useAuth();
+
+    const propertiesRef = useRef<Map<string, Property>>(new Map());
+
+    useEffect(() => {
+        propertiesRef.current.clear();
+        favorites.forEach((property) => {
+            propertiesRef.current.set(property.id, property);
+        });
+    }, [favorites]);
     const timeoutMessage = 'انتهت مهلة تحميل المفضلات. تأكد من الاتصال ثم حاول مرة أخرى.';
     const genericErrorMessage = 'فشل جلب المفضلات. يرجى المحاولة مرة أخرى.';
 
-    useEffect(() => {
-        if (!authLoading && user) {
-            void fetchFavorites();
-        } else if (!authLoading && !user) {
-            setLoading(false);
-        }
-    }, [authLoading, user]);
-
-    const fetchFavorites = async () => {
+    const fetchFavorites = useCallback(async () => {
         if (!user) return;
 
         setLoading(true);
@@ -91,7 +92,15 @@ export default function FavoritesPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user, genericErrorMessage, timeoutMessage]);
+
+    useEffect(() => {
+        if (!authLoading && user) {
+            void fetchFavorites();
+        } else if (!authLoading && !user) {
+            setLoading(false);
+        }
+    }, [authLoading, user, fetchFavorites]);
 
     const filteredFavorites = useMemo(() => {
         const min = filters.minPrice.trim() === '' ? null : Number(filters.minPrice);
@@ -157,20 +166,23 @@ export default function FavoritesPage() {
         setFilters(DEFAULT_FAVORITES_FILTERS);
     };
 
-    const handleFavoriteChange = (property: Property, nextState: boolean) => {
+    const handleFavoriteChange = useCallback((nextState: boolean, id: string) => {
         if (!nextState) {
-            setFavorites((current) => current.filter((item) => item.id !== property.id));
+            setFavorites((current) => current.filter((item) => item.id !== id));
             return;
         }
 
+        const property = propertiesRef.current.get(id);
+        if (!property) return;
+
         setFavorites((current) => {
-            if (current.some((item) => item.id === property.id)) {
+            if (current.some((item) => item.id === id)) {
                 return current;
             }
 
             return [property, ...current];
         });
-    };
+    }, []);
 
     if (authLoading) {
         return (
@@ -363,9 +375,7 @@ export default function FavoritesPage() {
                                                 location={property.location.address || property.location.area}
                                                 variant="favorites"
                                                 initialIsFavorite
-                                                onFavoriteChange={(nextState) =>
-                                                    handleFavoriteChange(property, nextState)
-                                                }
+                                                onFavoriteChange={handleFavoriteChange}
                                             />
                                         </div>
                                     ))}
